@@ -281,19 +281,23 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                           return Opacity(
                             opacity: value,
                             child: Padding(
-                              padding: EdgeInsets.only(
-                                top: 2.0,
-                                bottom: 2.0,
-                                left: (1.0 - value) * -10, // slide in from left
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 2.0,
                               ),
-                              child: Text(
-                                log,
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  fontSize: 10.5,
-                                  color: logColor,
-                                  height: 1.3,
-                                  letterSpacing: 0.5,
+                              child: Transform.translate(
+                                offset: Offset(
+                                  (1.0 - value) * -12,
+                                  0.0,
+                                ), // slide in from left
+                                child: Text(
+                                  log,
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceMono',
+                                    fontSize: 10.5,
+                                    color: logColor,
+                                    height: 1.3,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
                             ),
