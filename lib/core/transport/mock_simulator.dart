@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'transport_interface.dart';
 import '../protocol/frame.dart';
+import 'package:flutter/foundation.dart';
 
 class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   final String userAlias;
@@ -14,7 +14,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   void Function(String nodeHash, String alias, int seed, double rssi)?
   _onPeerFound;
 
-  void Function(String nodeHash)? _onPeerLost;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
 
   Timer? _discoveryTimer;
@@ -59,7 +58,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     if (_isScanning) return;
     _isScanning = true;
     _onPeerFound = onPeerFound;
-    _onPeerLost = onPeerLost;
 
     Timer(const Duration(milliseconds: 200), () {
       if (!_isScanning) return;
@@ -87,7 +85,9 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     try {
       final frame = Frame.deserialize(rawText);
       _simulateDelayedReply(frame);
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('MockSimulator broadcast error: $e');
+    }
     return true;
   }
 
@@ -97,7 +97,9 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     try {
       final frame = Frame.deserialize(rawText);
       _simulateDirectReply(frame);
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('MockSimulator sendDirect error: $e');
+    }
     return true;
   }
 

@@ -252,7 +252,7 @@ class _MainShellState extends State<MainShell> {
               borderRadius: BorderRadius.circular(1),
               boxShadow: [
                 BoxShadow(
-                  color: activeColor.withOpacity(0.5),
+                  color: activeColor.withValues(alpha: 0.5),
                   blurRadius: 4,
                   spreadRadius: 0.5,
                 ),

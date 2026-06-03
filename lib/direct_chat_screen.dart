@@ -370,15 +370,17 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 horizontal: 16.0,
               ),
               color: isBlocked
-                  ? YamiTheme.glowWarning.withOpacity(0.08)
+                  ? YamiTheme.glowWarning.withValues(alpha: 0.08)
                   : (isMuted
-                        ? YamiTheme.glowWarning.withOpacity(0.05)
+                        ? YamiTheme.glowWarning.withValues(alpha: 0.05)
                         : (!isPeerOnline
-                              ? YamiTheme.textMuted.withOpacity(0.08)
+                              ? YamiTheme.textMuted.withValues(alpha: 0.08)
                               : (isTrusted
-                                    ? YamiTheme.glowSecure.withOpacity(0.04)
-                                    : YamiTheme.surfaceDark.withOpacity(
-                                        0.85,
+                                    ? YamiTheme.glowSecure.withValues(
+                                        alpha: 0.04,
+                                      )
+                                    : YamiTheme.surfaceDark.withValues(
+                                        alpha: 0.85,
                                       )))),
               child: Row(
                 children: [
@@ -434,7 +436,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 vertical: 8.0,
                 horizontal: 16.0,
               ),
-              color: YamiTheme.surfaceDark.withOpacity(0.95),
+              color: YamiTheme.surfaceDark.withValues(alpha: 0.95),
               child: Row(
                 children: [
                   const Icon(
@@ -522,7 +524,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: (!isPeerOnline || isBlocked)
-                            ? YamiTheme.textMuted.withOpacity(0.1)
+                            ? YamiTheme.textMuted.withValues(alpha: 0.1)
                             : (isTrusted
                                   ? YamiTheme.glowSecure
                                   : YamiTheme.glowActive),
@@ -607,7 +609,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           Icon(
                             Icons.visibility_off,
                             size: 14,
-                            color: YamiTheme.glowWarning.withOpacity(0.8),
+                            color: YamiTheme.glowWarning.withValues(alpha: 0.8),
                           ),
                           const SizedBox(width: 8),
                           Flexible(

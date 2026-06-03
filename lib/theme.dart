@@ -24,22 +24,22 @@ class YamiTheme {
     bool doubleBorder = false,
   }) {
     return BoxDecoration(
-      color: backgroundColor.withOpacity(opacity),
+      color: backgroundColor.withValues(alpha: opacity),
       borderRadius: BorderRadius.circular(borderRadius),
       border: Border.all(
-        color: doubleBorder ? borderGlass.withOpacity(0.12) : borderGlass,
+        color: doubleBorder ? borderGlass.withValues(alpha: 0.12) : borderGlass,
         width: 1.0,
       ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.35),
+          color: Colors.black.withValues(alpha: 0.35),
           blurRadius: 16.0,
           spreadRadius: -4.0,
         ),
 
         if (glowRadius > 0 && glowColor != Colors.transparent)
           BoxShadow(
-            color: glowColor.withOpacity(0.15),
+            color: glowColor.withValues(alpha: 0.15),
             blurRadius: glowRadius,
             spreadRadius: 0.5,
           ),
@@ -102,7 +102,6 @@ class YamiTheme {
         primary: glowActive,
         secondary: glowAmbient,
         surface: surfaceDark,
-        background: bgDeep,
       ),
       textTheme: const TextTheme(
         headlineMedium: TextStyle(

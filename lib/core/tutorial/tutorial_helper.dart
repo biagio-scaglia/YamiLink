@@ -116,7 +116,7 @@ class YamiTutorialHelper {
 
     final tutorial = TutorialCoachMark(
       targets: targets,
-      colorShadow: YamiTheme.bgDeep.withOpacity(0.92),
+      colorShadow: YamiTheme.bgDeep.withValues(alpha: 0.92),
       onClickTarget: (target) {},
       onClickOverlay: (target) {},
       onFinish: () {
@@ -249,7 +249,7 @@ class YamiTutorialHelper {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: YamiTheme.textMuted.withOpacity(0.3),
+                      color: YamiTheme.textMuted.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -325,7 +325,7 @@ class YamiTutorialHelper {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: YamiTheme.glowActive.withOpacity(0.1),
+                color: YamiTheme.glowActive.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: YamiTheme.glowActive, size: 20),
@@ -366,7 +366,7 @@ class YamiTutorialHelper {
   static void _showFullUserGuide(BuildContext context) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.8),
+      barrierColor: Colors.black.withValues(alpha: 0.8),
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.transparent,

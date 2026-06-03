@@ -108,8 +108,8 @@ class _EntryScreenState extends State<EntryScreen>
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: YamiTheme.glowAmbient.withOpacity(
-                      0.04 + (0.04 * _pulseController.value),
+                    color: YamiTheme.glowAmbient.withValues(
+                      alpha: 0.04 + (0.04 * _pulseController.value),
                     ),
                   ),
                 ),
@@ -127,7 +127,7 @@ class _EntryScreenState extends State<EntryScreen>
                     Icon(
                       Icons.blur_on,
                       size: 64,
-                      color: YamiTheme.glowActive.withOpacity(0.8),
+                      color: YamiTheme.glowActive.withValues(alpha: 0.8),
                     ),
                     const SizedBox(height: 12),
 
@@ -138,7 +138,7 @@ class _EntryScreenState extends State<EntryScreen>
                         letterSpacing: 6.0,
                         shadows: [
                           BoxShadow(
-                            color: YamiTheme.glowActive.withOpacity(0.35),
+                            color: YamiTheme.glowActive.withValues(alpha: 0.35),
                             blurRadius: 16.0,
                           ),
                         ],
@@ -218,7 +218,9 @@ class _EntryScreenState extends State<EntryScreen>
                           Text(
                             'Saved in memory only. Keys evaporate on exit.',
                             style: YamiTheme.monoStyle.copyWith(
-                              color: YamiTheme.glowActive.withOpacity(0.85),
+                              color: YamiTheme.glowActive.withValues(
+                                alpha: 0.85,
+                              ),
                               fontSize: 9,
                               letterSpacing: 0.5,
                             ),
@@ -236,7 +238,9 @@ class _EntryScreenState extends State<EntryScreen>
                           backgroundColor: YamiTheme.glowActive,
                           foregroundColor: YamiTheme.bgDeep,
                           elevation: 8,
-                          shadowColor: YamiTheme.glowActive.withOpacity(0.4),
+                          shadowColor: YamiTheme.glowActive.withValues(
+                            alpha: 0.4,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),

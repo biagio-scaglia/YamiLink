@@ -1,15 +1,6 @@
-enum ModerationSeverity {
-  clean,
-  warning,
-  severe,
-}
+enum ModerationSeverity { clean, warning, severe }
 
-enum ModerationAction {
-  allow,
-  warn,
-  hide,
-  block,
-}
+enum ModerationAction { allow, warn, hide, block }
 
 class ModerationRule {
   final String name;
@@ -50,7 +41,10 @@ class ModerationDecision {
     required this.shouldIncrementPeerRisk,
   });
 
-  factory ModerationDecision.clean({required String messageId, String normalizedText = ''}) {
+  factory ModerationDecision.clean({
+    required String messageId,
+    String normalizedText = '',
+  }) {
     return ModerationDecision(
       messageId: messageId,
       normalizedText: normalizedText,

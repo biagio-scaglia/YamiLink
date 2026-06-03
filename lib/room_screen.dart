@@ -161,7 +161,7 @@ class _RoomScreenState extends State<RoomScreen> {
               '1-HOP ADJACENCY LIMIT • EPHEMERAL SEGMENT',
               style: YamiTheme.captionStyle.copyWith(
                 fontSize: 8.5,
-                color: YamiTheme.glowActive.withOpacity(0.8),
+                color: YamiTheme.glowActive.withValues(alpha: 0.8),
                 letterSpacing: 0.5,
               ),
             ),
@@ -202,7 +202,7 @@ class _RoomScreenState extends State<RoomScreen> {
                 vertical: 8.0,
                 horizontal: 16.0,
               ),
-              color: YamiTheme.surfaceDark.withOpacity(0.85),
+              color: YamiTheme.surfaceDark.withValues(alpha: 0.85),
               child: Row(
                 children: [
                   const Icon(
@@ -229,7 +229,7 @@ class _RoomScreenState extends State<RoomScreen> {
                 vertical: 8.0,
                 horizontal: 16.0,
               ),
-              color: YamiTheme.surfaceDark.withOpacity(0.95),
+              color: YamiTheme.surfaceDark.withValues(alpha: 0.95),
               child: Row(
                 children: [
                   const Icon(
@@ -463,7 +463,9 @@ class _RoomScreenState extends State<RoomScreen> {
                               Icon(
                                 Icons.visibility_off,
                                 size: 14,
-                                color: YamiTheme.glowWarning.withOpacity(0.8),
+                                color: YamiTheme.glowWarning.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Flexible(

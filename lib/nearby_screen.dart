@@ -75,8 +75,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: YamiTheme.glowActive.withOpacity(
-                                      isScanning
+                                    color: YamiTheme.glowActive.withValues(
+                                      alpha: isScanning
                                           ? (1.0 - _radarController.value) * 0.4
                                           : 0.1,
                                     ),
@@ -95,8 +95,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: YamiTheme.glowAmbient.withOpacity(
-                                      isScanning
+                                    color: YamiTheme.glowAmbient.withValues(
+                                      alpha: isScanning
                                           ? (1.0 -
                                                     ((_radarController.value +
                                                             0.5) %
@@ -121,7 +121,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                       ? [
                                           BoxShadow(
                                             color: YamiTheme.glowActive
-                                                .withOpacity(0.4),
+                                                .withValues(alpha: 0.4),
                                             blurRadius: 18.0,
                                             spreadRadius: 4.0,
                                           ),
@@ -260,7 +260,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                           Icon(
                             Icons.radar,
                             size: 48,
-                            color: YamiTheme.textMuted.withOpacity(0.2),
+                            color: YamiTheme.textMuted.withValues(alpha: 0.2),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -368,7 +368,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                 decoration: BoxDecoration(
                   color: isTrusted
                       ? YamiTheme.glowSecure
-                      : YamiTheme.glowActive.withOpacity(0.3),
+                      : YamiTheme.glowActive.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -421,7 +421,9 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 borderRadius: BorderRadius.circular(1),
                                 color: index < proximityBars
                                     ? proximityColor
-                                    : YamiTheme.textMuted.withOpacity(0.2),
+                                    : YamiTheme.textMuted.withValues(
+                                        alpha: 0.2,
+                                      ),
                               ),
                             );
                           }),
@@ -461,7 +463,7 @@ class _NearbyScreenState extends State<NearbyScreen>
               Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: YamiTheme.textMuted.withOpacity(0.7),
+                color: YamiTheme.textMuted.withValues(alpha: 0.7),
               ),
             ],
           ),
@@ -616,9 +618,9 @@ class _NearbyScreenState extends State<NearbyScreen>
                       margin: const EdgeInsets.only(bottom: 24.0),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: YamiTheme.glowSecure.withOpacity(0.04),
+                        color: YamiTheme.glowSecure.withValues(alpha: 0.04),
                         border: Border.all(
-                          color: YamiTheme.glowSecure.withOpacity(0.2),
+                          color: YamiTheme.glowSecure.withValues(alpha: 0.2),
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),

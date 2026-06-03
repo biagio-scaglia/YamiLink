@@ -110,7 +110,7 @@ class ChatsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24.0),
               decoration: YamiTheme.glassDecoration(
-                backgroundColor: YamiTheme.surfaceDark.withOpacity(0.4),
+                backgroundColor: YamiTheme.surfaceDark.withValues(alpha: 0.4),
                 glowColor: YamiTheme.glowActive,
                 glowRadius: 10,
                 borderRadius: 50,
@@ -242,10 +242,14 @@ class ChatsScreen extends StatelessWidget {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: YamiTheme.textMuted.withOpacity(0.15),
+                              color: YamiTheme.textMuted.withValues(
+                                alpha: 0.15,
+                              ),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: YamiTheme.textMuted.withOpacity(0.3),
+                                color: YamiTheme.textMuted.withValues(
+                                  alpha: 0.3,
+                                ),
                                 width: 0.5,
                               ),
                             ),
@@ -300,7 +304,7 @@ class ChatsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: YamiTheme.glowActive.withOpacity(0.4),
+                            color: YamiTheme.glowActive.withValues(alpha: 0.4),
                             blurRadius: 4,
                             spreadRadius: 0.5,
                           ),

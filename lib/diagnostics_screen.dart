@@ -55,7 +55,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               'LOCAL TELEMETRY CONSOLE',
               style: YamiTheme.captionStyle.copyWith(
                 fontSize: 8.5,
-                color: YamiTheme.glowActive.withOpacity(0.8),
+                color: YamiTheme.glowActive.withValues(alpha: 0.8),
                 letterSpacing: 0.5,
               ),
             ),
@@ -168,8 +168,10 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     ),
                     Switch.adaptive(
                       value: simulation.relayEnabled,
-                      activeColor: YamiTheme.glowSecure,
-                      activeTrackColor: YamiTheme.glowSecure.withOpacity(0.2),
+                      activeThumbColor: YamiTheme.glowSecure,
+                      activeTrackColor: YamiTheme.glowSecure.withValues(
+                        alpha: 0.2,
+                      ),
                       onChanged: (val) {
                         simulation.toggleRelay();
                       },
@@ -194,7 +196,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.55),
+                    color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: YamiTheme.borderGlass),
                   ),
@@ -281,7 +283,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   letterSpacing: 1.0,
                 ),
               ),
-              Icon(icon, size: 14, color: accentColor.withOpacity(0.8)),
+              Icon(icon, size: 14, color: accentColor.withValues(alpha: 0.8)),
             ],
           ),
           const SizedBox(height: 8),

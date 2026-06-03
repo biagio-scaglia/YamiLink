@@ -31,7 +31,7 @@ class YamiAvatar extends StatelessWidget {
         boxShadow: isGlowing
             ? [
                 BoxShadow(
-                  color: activeGlowColor.withOpacity(0.2),
+                  color: activeGlowColor.withValues(alpha: 0.2),
                   blurRadius: 10.0,
                   spreadRadius: 0.5,
                 ),
@@ -78,16 +78,16 @@ class YamiAvatarPainter extends CustomPainter {
 
     final geometryType = random.nextInt(4);
     final strokePaint = Paint()
-      ..color = glowColor.withOpacity(0.65)
+      ..color = glowColor.withValues(alpha: 0.65)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
 
     final fillPaint = Paint()
-      ..color = glowColor.withOpacity(0.12)
+      ..color = glowColor.withValues(alpha: 0.12)
       ..style = PaintingStyle.fill;
 
     final notchPaint = Paint()
-      ..color = glowColor.withOpacity(0.3)
+      ..color = glowColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
     for (int i = 0; i < 8; i++) {
@@ -106,7 +106,7 @@ class YamiAvatarPainter extends CustomPainter {
     canvas.drawCircle(
       center,
       maxRadius * 0.12,
-      fillPaint..color = glowColor.withOpacity(0.25),
+      fillPaint..color = glowColor.withValues(alpha: 0.25),
     );
 
     if (geometryType == 0) {
@@ -120,7 +120,7 @@ class YamiAvatarPainter extends CustomPainter {
       canvas.drawLine(
         Offset(width * 0.18, height / 2),
         Offset(width * 0.82, height / 2),
-        strokePaint..color = glowColor.withOpacity(0.4),
+        strokePaint..color = glowColor.withValues(alpha: 0.4),
       );
       canvas.drawLine(
         Offset(width / 2, height * 0.18),
@@ -144,7 +144,7 @@ class YamiAvatarPainter extends CustomPainter {
           center.dy + sin(angle2) * (maxRadius * 0.72),
         ),
         2,
-        fillPaint..color = glowColor.withOpacity(0.8),
+        fillPaint..color = glowColor.withValues(alpha: 0.8),
       );
     } else if (geometryType == 1) {
       final path = Path();
@@ -168,7 +168,7 @@ class YamiAvatarPainter extends CustomPainter {
       innerPath.close();
       canvas.drawPath(
         innerPath,
-        strokePaint..color = YamiTheme.glowAmbient.withOpacity(0.5),
+        strokePaint..color = YamiTheme.glowAmbient.withValues(alpha: 0.5),
       );
     } else if (geometryType == 2) {
       final points = <Offset>[];
@@ -187,7 +187,7 @@ class YamiAvatarPainter extends CustomPainter {
             canvas.drawLine(
               points[i],
               points[j],
-              strokePaint..color = glowColor.withOpacity(0.18),
+              strokePaint..color = glowColor.withValues(alpha: 0.18),
             );
           }
         }
@@ -199,7 +199,7 @@ class YamiAvatarPainter extends CustomPainter {
           point,
           5,
           strokePaint
-            ..color = glowColor.withOpacity(0.4)
+            ..color = glowColor.withValues(alpha: 0.4)
             ..strokeWidth = 0.5,
         );
       }
@@ -207,7 +207,7 @@ class YamiAvatarPainter extends CustomPainter {
       canvas.drawCircle(
         center,
         maxRadius * 0.6,
-        strokePaint..color = glowColor.withOpacity(0.35),
+        strokePaint..color = glowColor.withValues(alpha: 0.35),
       );
 
       final orbitCount = 2 + random.nextInt(2);
