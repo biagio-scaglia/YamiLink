@@ -15,7 +15,8 @@ class NearbyScreen extends StatefulWidget {
   State<NearbyScreen> createState() => _NearbyScreenState();
 }
 
-class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderStateMixin {
+class _NearbyScreenState extends State<NearbyScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _radarController;
 
   @override
@@ -72,7 +73,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: YamiTheme.glowActive.withOpacity(
-                                      isScanning ? (1.0 - _radarController.value) * 0.4 : 0.1,
+                                      isScanning
+                                          ? (1.0 - _radarController.value) * 0.4
+                                          : 0.1,
                                     ),
                                     width: 1.5,
                                   ),
@@ -80,13 +83,23 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                               ),
                               // Pulse Ring 2
                               Container(
-                                width: 150 * ((_radarController.value + 0.5) % 1.0),
-                                height: 150 * ((_radarController.value + 0.5) % 1.0),
+                                width:
+                                    150 *
+                                    ((_radarController.value + 0.5) % 1.0),
+                                height:
+                                    150 *
+                                    ((_radarController.value + 0.5) % 1.0),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: YamiTheme.glowAmbient.withOpacity(
-                                      isScanning ? (1.0 - ((_radarController.value + 0.5) % 1.0)) * 0.25 : 0.05,
+                                      isScanning
+                                          ? (1.0 -
+                                                    ((_radarController.value +
+                                                            0.5) %
+                                                        1.0)) *
+                                                0.25
+                                          : 0.05,
                                     ),
                                     width: 1.0,
                                   ),
@@ -98,14 +111,17 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                                 height: 28,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: isScanning ? YamiTheme.glowActive : YamiTheme.textMuted,
+                                  color: isScanning
+                                      ? YamiTheme.glowActive
+                                      : YamiTheme.textMuted,
                                   boxShadow: isScanning
                                       ? [
                                           BoxShadow(
-                                            color: YamiTheme.glowActive.withOpacity(0.4),
+                                            color: YamiTheme.glowActive
+                                                .withOpacity(0.4),
                                             blurRadius: 18.0,
                                             spreadRadius: 4.0,
-                                          )
+                                          ),
                                         ]
                                       : null,
                                 ),
@@ -121,9 +137,13 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        isScanning ? 'BROADCASTING PRESENCE BEACON...' : 'DISCOVERY TRANSMITTER PAUSED',
+                        isScanning
+                            ? 'BROADCASTING PRESENCE BEACON...'
+                            : 'DISCOVERY TRANSMITTER PAUSED',
                         style: YamiTheme.monoStyle.copyWith(
-                          color: isScanning ? YamiTheme.glowActive : YamiTheme.textMuted,
+                          color: isScanning
+                              ? YamiTheme.glowActive
+                              : YamiTheme.textMuted,
                           fontSize: 10,
                         ),
                       ),
@@ -135,8 +155,12 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
             actions: [
               IconButton(
                 icon: Icon(
-                  isScanning ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  color: isScanning ? YamiTheme.glowActive : YamiTheme.textSecondary,
+                  isScanning
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
+                  color: isScanning
+                      ? YamiTheme.glowActive
+                      : YamiTheme.textSecondary,
                   size: 28,
                 ),
                 onPressed: () {
@@ -168,7 +192,10 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: YamiTheme.glassDecoration(
                       backgroundColor: YamiTheme.surfaceLight,
                       opacity: 0.8,
@@ -181,14 +208,18 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           height: 6,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isScanning ? YamiTheme.glowSecure : YamiTheme.textMuted,
+                            color: isScanning
+                                ? YamiTheme.glowSecure
+                                : YamiTheme.textMuted,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${simulation.peers.length} ONLINE',
                           style: YamiTheme.monoStyle.copyWith(
-                            color: isScanning ? YamiTheme.textPrimary : YamiTheme.textMuted,
+                            color: isScanning
+                                ? YamiTheme.textPrimary
+                                : YamiTheme.textMuted,
                             fontSize: 9,
                             letterSpacing: 0.5,
                           ),
@@ -219,7 +250,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           const SizedBox(height: 16),
                           Text(
                             'Local Proximity Layer is Empty.',
-                            style: YamiTheme.subtitleStyle.copyWith(color: YamiTheme.textSecondary),
+                            style: YamiTheme.subtitleStyle.copyWith(
+                              color: YamiTheme.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -232,7 +265,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           if (!isScanning)
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: YamiTheme.glowActive),
+                                side: const BorderSide(
+                                  color: YamiTheme.glowActive,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -243,7 +278,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                               icon: const Icon(Icons.flash_on, size: 14),
                               label: Text(
                                 'SIMULATE ACTIVE PEERS',
-                                style: YamiTheme.monoStyle.copyWith(fontSize: 10),
+                                style: YamiTheme.monoStyle.copyWith(
+                                  fontSize: 10,
+                                ),
                               ),
                             ),
                         ],
@@ -252,20 +289,21 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                   ),
                 )
               : SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final peer = simulation.peers[index];
-                      return _buildPeerTile(context, peer, simulation);
-                    },
-                    childCount: simulation.peers.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final peer = simulation.peers[index];
+                    return _buildPeerTile(context, peer, simulation);
+                  }, childCount: simulation.peers.length),
                 ),
         ],
       ),
     );
   }
 
-  Widget _buildPeerTile(BuildContext context, Peer peer, SimulationService simulation) {
+  Widget _buildPeerTile(
+    BuildContext context,
+    Peer peer,
+    SimulationService simulation,
+  ) {
     Color proximityColor;
     String proximityText;
     int proximityBars = 1;
@@ -314,7 +352,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                 width: 3.5,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive.withOpacity(0.3),
+                  color: isTrusted
+                      ? YamiTheme.glowSecure
+                      : YamiTheme.glowActive.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -324,7 +364,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
               YamiAvatar(
                 seed: peer.avatarSeed,
                 size: 46,
-                glowColor: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
+                glowColor: isTrusted
+                    ? YamiTheme.glowSecure
+                    : YamiTheme.glowActive,
                 isGlowing: isTrusted,
               ),
               const SizedBox(width: 14),
@@ -354,7 +396,7 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                       ],
                     ),
                     const SizedBox(height: 5),
-                    
+
                     // Signal proximity telemetry indicators
                     Row(
                       children: [
@@ -367,7 +409,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                               margin: const EdgeInsets.only(right: 2),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(1),
-                                color: index < proximityBars ? proximityColor : YamiTheme.textMuted.withOpacity(0.2),
+                                color: index < proximityBars
+                                    ? proximityColor
+                                    : YamiTheme.textMuted.withOpacity(0.2),
                               ),
                             );
                           }),
@@ -381,14 +425,21 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                             letterSpacing: 0.5,
                           ),
                         ),
-                        
+
                         if (peer.relayCapability) ...[
                           const SizedBox(width: 12),
-                          const Icon(Icons.router, size: 11, color: YamiTheme.textSecondary),
+                          const Icon(
+                            Icons.router,
+                            size: 11,
+                            color: YamiTheme.textSecondary,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             'RELAY',
-                            style: YamiTheme.captionStyle.copyWith(fontSize: 8, color: YamiTheme.textSecondary),
+                            style: YamiTheme.captionStyle.copyWith(
+                              fontSize: 8,
+                              color: YamiTheme.textSecondary,
+                            ),
                           ),
                         ],
                       ],
@@ -409,7 +460,11 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
     );
   }
 
-  void _showPeerDetailsSheet(BuildContext context, Peer peer, SimulationService simulation) {
+  void _showPeerDetailsSheet(
+    BuildContext context,
+    Peer peer,
+    SimulationService simulation,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -417,14 +472,21 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final currentPeer = simulation.peers.firstWhere((p) => p.id == peer.id, orElse: () => peer);
+            final currentPeer = simulation.peers.firstWhere(
+              (p) => p.id == peer.id,
+              orElse: () => peer,
+            );
             final isTrusted = currentPeer.trustLevel == TrustLevel.paired;
 
             // Generate deterministic pair passcode
-            final pairCode = '${(currentPeer.id.hashCode % 900 + 100)} ${(currentPeer.alias.hashCode % 900 + 100)}';
+            final pairCode =
+                '${(currentPeer.id.hashCode % 900 + 100)} ${(currentPeer.alias.hashCode % 900 + 100)}';
 
             return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 26.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 26.0,
+              ),
               decoration: const BoxDecoration(
                 color: YamiTheme.bgDeep,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
@@ -450,15 +512,14 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                   YamiAvatar(
                     seed: currentPeer.avatarSeed,
                     size: 80,
-                    glowColor: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
+                    glowColor: isTrusted
+                        ? YamiTheme.glowSecure
+                        : YamiTheme.glowActive,
                     isGlowing: true,
                   ),
                   const SizedBox(height: 16),
 
-                  Text(
-                    currentPeer.alias,
-                    style: YamiTheme.titleStyle,
-                  ),
+                  Text(currentPeer.alias, style: YamiTheme.titleStyle),
                   const SizedBox(height: 4),
 
                   // Monospace identity code
@@ -492,13 +553,24 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 12),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Proximity range', style: YamiTheme.bodyStyle.copyWith(color: YamiTheme.textSecondary)),
                             Text(
-                              currentPeer.proximityHint.toString().split('.').last.toUpperCase(),
+                              'Proximity range',
+                              style: YamiTheme.bodyStyle.copyWith(
+                                color: YamiTheme.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              currentPeer.proximityHint
+                                  .toString()
+                                  .split('.')
+                                  .last
+                                  .toUpperCase(),
                               style: YamiTheme.monoStyle.copyWith(
-                                color: currentPeer.proximityHint == ProximityHint.immediate
+                                color:
+                                    currentPeer.proximityHint ==
+                                        ProximityHint.immediate
                                     ? YamiTheme.glowSecure
                                     : YamiTheme.glowActive,
                               ),
@@ -507,13 +579,22 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                         ),
                         const SizedBox(height: 8),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Relay capabilities', style: YamiTheme.bodyStyle.copyWith(color: YamiTheme.textSecondary)),
                             Text(
-                              currentPeer.relayCapability ? 'ACTIVE MESH NODE' : 'ENDPOINT NODE',
+                              'Relay capabilities',
+                              style: YamiTheme.bodyStyle.copyWith(
+                                color: YamiTheme.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              currentPeer.relayCapability
+                                  ? 'ACTIVE MESH NODE'
+                                  : 'ENDPOINT NODE',
                               style: YamiTheme.monoStyle.copyWith(
-                                color: currentPeer.relayCapability ? YamiTheme.glowActive : YamiTheme.textMuted,
+                                color: currentPeer.relayCapability
+                                    ? YamiTheme.glowActive
+                                    : YamiTheme.textMuted,
                                 fontSize: 10,
                               ),
                             ),
@@ -532,17 +613,26 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: YamiTheme.glowSecure.withOpacity(0.04),
-                        border: Border.all(color: YamiTheme.glowSecure.withOpacity(0.2)),
+                        border: Border.all(
+                          color: YamiTheme.glowSecure.withOpacity(0.2),
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.verified, color: YamiTheme.glowSecure, size: 20),
+                          const Icon(
+                            Icons.verified,
+                            color: YamiTheme.glowSecure,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Device verified. Cryptographic pairing completed.',
-                              style: YamiTheme.captionStyle.copyWith(color: YamiTheme.glowSecure, fontSize: 11),
+                              style: YamiTheme.captionStyle.copyWith(
+                                color: YamiTheme.glowSecure,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],
@@ -552,7 +642,10 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 24.0),
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: YamiTheme.glassDecoration(
                         backgroundColor: YamiTheme.surfaceLight,
                         opacity: 0.5,
@@ -562,7 +655,10 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                         children: [
                           Text(
                             'MATCHING VERIFICATION CODE',
-                            style: YamiTheme.monoStyle.copyWith(fontSize: 9, color: YamiTheme.textMuted),
+                            style: YamiTheme.monoStyle.copyWith(
+                              fontSize: 9,
+                              color: YamiTheme.textMuted,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -576,7 +672,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           const SizedBox(height: 4),
                           Text(
                             'Verify this number matches on their screen.',
-                            style: YamiTheme.captionStyle.copyWith(fontSize: 10),
+                            style: YamiTheme.captionStyle.copyWith(
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
@@ -591,7 +689,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           height: 48,
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: YamiTheme.glowActive),
+                              side: const BorderSide(
+                                color: YamiTheme.glowActive,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -602,7 +702,10 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                             },
                             child: Text(
                               'DIRECT CHAT',
-                              style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive, fontSize: 11),
+                              style: YamiTheme.monoStyle.copyWith(
+                                color: YamiTheme.glowActive,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ),
@@ -613,7 +716,9 @@ class _NearbyScreenState extends State<NearbyScreen> with SingleTickerProviderSt
                           height: 48,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isTrusted ? YamiTheme.glowWarning : YamiTheme.glowSecure,
+                              backgroundColor: isTrusted
+                                  ? YamiTheme.glowWarning
+                                  : YamiTheme.glowSecure,
                               foregroundColor: YamiTheme.bgDeep,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
