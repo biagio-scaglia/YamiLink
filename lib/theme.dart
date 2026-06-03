@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 
 class YamiTheme {
   // Brand Color Tokens (Obsidian Proximity Palette)
-  static const Color bgDeep = Color(0xFF070A0F);       // Midnight Slate Base
-  static const Color surfaceDark = Color(0xFF0E131F);   // Obsidian Card Base
-  static const Color surfaceLight = Color(0xFF161E30);  // Elevated Interactive
-  static const Color borderGlass = Color(0x14FFFFFF);   // Soft outer border
+  static const Color bgDeep = Color(0xFF070A0F); // Midnight Slate Base
+  static const Color surfaceDark = Color(0xFF0E131F); // Obsidian Card Base
+  static const Color surfaceLight = Color(0xFF161E30); // Elevated Interactive
+  static const Color borderGlass = Color(0x14FFFFFF); // Soft outer border
 
-  static const Color glowActive = Color(0xFF00F0FF);    // Electric Cyan
-  static const Color glowSecure = Color(0xFF00FF85);    // Neon Mint Green
-  static const Color glowAmbient = Color(0xFF7000FF);   // Phlox Violet
-  static const Color glowWarning = Color(0xFFFF3B30);   // Warm Crimson
+  static const Color glowActive = Color(0xFF00F0FF); // Electric Cyan
+  static const Color glowSecure = Color(0xFF00FF85); // Neon Mint Green
+  static const Color glowAmbient = Color(0xFF7000FF); // Phlox Violet
+  static const Color glowWarning = Color(0xFFFF3B30); // Warm Crimson
 
-  static const Color textPrimary = Color(0xFFF1F5F9);   // Off-white
+  static const Color textPrimary = Color(0xFFF1F5F9); // Off-white
   static const Color textSecondary = Color(0xFF94A3B8); // Cool Gray
-  static const Color textMuted = Color(0xFF64748B);     // Muted Metadata
+  static const Color textMuted = Color(0xFF64748B); // Muted Metadata
 
   // Advanced Glassmorphic Decorator
   static BoxDecoration glassDecoration({
@@ -65,42 +65,42 @@ class YamiTheme {
 
   // Typography Styles
   static TextStyle get titleStyle => const TextStyle(
-        fontFamily: 'SpaceGrotesk', // Modern geometric sans-serif
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        color: textPrimary,
-        letterSpacing: 0.5,
-      );
+    fontFamily: 'SpaceGrotesk', // Modern geometric sans-serif
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    color: textPrimary,
+    letterSpacing: 0.5,
+  );
 
   static TextStyle get subtitleStyle => const TextStyle(
-        fontFamily: 'SpaceGrotesk',
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-        color: textSecondary,
-      );
+    fontFamily: 'SpaceGrotesk',
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: textSecondary,
+  );
 
   static TextStyle get bodyStyle => const TextStyle(
-        fontFamily: 'Outfit', // Smooth readable sans
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: textPrimary,
-        height: 1.4,
-      );
+    fontFamily: 'Outfit', // Smooth readable sans
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textPrimary,
+    height: 1.4,
+  );
 
   static TextStyle get captionStyle => const TextStyle(
-        fontFamily: 'Outfit',
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        color: textMuted,
-      );
+    fontFamily: 'Outfit',
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: textMuted,
+  );
 
   static TextStyle get monoStyle => const TextStyle(
-        fontFamily: 'SpaceMono', // Monospace details
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: glowActive,
-        letterSpacing: 1.5,
-      );
+    fontFamily: 'SpaceMono', // Monospace details
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    color: glowActive,
+    letterSpacing: 1.5,
+  );
 
   // App Theme configuration
   static ThemeData get themeData {
@@ -119,10 +119,7 @@ class YamiTheme {
           fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          color: textPrimary,
-        ),
+        bodyMedium: TextStyle(fontSize: 14, color: textPrimary),
       ),
     );
   }

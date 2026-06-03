@@ -13,17 +13,36 @@ class EntryScreen extends StatefulWidget {
   State<EntryScreen> createState() => _EntryScreenState();
 }
 
-class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStateMixin {
+class _EntryScreenState extends State<EntryScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _aliasController = TextEditingController();
   int _currentSeed = 12345;
   final Random _random = Random();
   late AnimationController _pulseController;
 
   final List<String> _prefixes = [
-    'Ghost', 'Neon', 'Echo', 'Vector', 'Quantum', 'Shadow', 'Solar', 'Void', 'Grid', 'Net'
+    'Ghost',
+    'Neon',
+    'Echo',
+    'Vector',
+    'Quantum',
+    'Shadow',
+    'Solar',
+    'Void',
+    'Grid',
+    'Net',
   ];
   final List<String> _suffixes = [
-    'Seeker', 'Rider', 'Node', 'Beacon', 'Phantom', 'Runner', 'Pulse', 'Link', 'Signal', 'Zero'
+    'Seeker',
+    'Rider',
+    'Node',
+    'Beacon',
+    'Phantom',
+    'Runner',
+    'Pulse',
+    'Link',
+    'Signal',
+    'Zero',
   ];
 
   @override
@@ -77,10 +96,8 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
       body: Stack(
         children: [
           // Background Slate Base
-          Positioned.fill(
-            child: Container(color: YamiTheme.bgDeep),
-          ),
-          
+          Positioned.fill(child: Container(color: YamiTheme.bgDeep)),
+
           // Slow pulsating background radial glow
           AnimatedBuilder(
             animation: _pulseController,
@@ -93,7 +110,9 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: YamiTheme.glowAmbient.withOpacity(0.04 + (0.04 * _pulseController.value)),
+                    color: YamiTheme.glowAmbient.withOpacity(
+                      0.04 + (0.04 * _pulseController.value),
+                    ),
                   ),
                 ),
               );
@@ -115,7 +134,7 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                       color: YamiTheme.glowActive.withOpacity(0.8),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // SpaceGrotesk styling title
                     Text(
                       'YAMILINK',
@@ -156,7 +175,7 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                             isGlowing: true,
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // TextField with design styles
                           TextField(
                             controller: _aliasController,
@@ -171,16 +190,26 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                                 letterSpacing: 1.5,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: YamiTheme.borderGlass),
+                                borderSide: const BorderSide(
+                                  color: YamiTheme.borderGlass,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: YamiTheme.glowActive),
+                                borderSide: const BorderSide(
+                                  color: YamiTheme.glowActive,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              prefixIcon: const Icon(Icons.face, color: YamiTheme.textSecondary),
+                              prefixIcon: const Icon(
+                                Icons.face,
+                                color: YamiTheme.textSecondary,
+                              ),
                               suffixIcon: IconButton(
-                                icon: const Icon(Icons.refresh, color: YamiTheme.glowActive),
+                                icon: const Icon(
+                                  Icons.refresh,
+                                  color: YamiTheme.glowActive,
+                                ),
                                 onPressed: _generateRandomAlias,
                                 tooltip: 'Regenerate',
                               ),
@@ -192,7 +221,7 @@ class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStat
                             },
                           ),
                           const SizedBox(height: 12),
-                          
+
                           // Ephemeral warning banner
                           Text(
                             'Saved in memory only. Keys evaporate on exit.',

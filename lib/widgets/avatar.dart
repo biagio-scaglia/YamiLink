@@ -34,7 +34,7 @@ class YamiAvatar extends StatelessWidget {
                   color: activeGlowColor.withOpacity(0.2),
                   blurRadius: 10.0,
                   spreadRadius: 0.5,
-                )
+                ),
               ]
             : null,
       ),
@@ -107,23 +107,53 @@ class YamiAvatarPainter extends CustomPainter {
     }
 
     // 2. Draw central core
-    canvas.drawCircle(center, maxRadius * 0.12, fillPaint..color = glowColor.withOpacity(0.25));
+    canvas.drawCircle(
+      center,
+      maxRadius * 0.12,
+      fillPaint..color = glowColor.withOpacity(0.25),
+    );
 
     // 3. Render Geometry
     if (geometryType == 0) {
       // Concentric rings with rotating segments and crosshairs
       canvas.drawCircle(center, maxRadius * 0.45, strokePaint);
-      canvas.drawCircle(center, maxRadius * 0.72, strokePaint..strokeWidth = 0.6);
-      
+      canvas.drawCircle(
+        center,
+        maxRadius * 0.72,
+        strokePaint..strokeWidth = 0.6,
+      );
+
       // Fine crosshair lines
-      canvas.drawLine(Offset(width * 0.18, height / 2), Offset(width * 0.82, height / 2), strokePaint..color = glowColor.withOpacity(0.4));
-      canvas.drawLine(Offset(width / 2, height * 0.18), Offset(width / 2, height * 0.82), strokePaint);
-      
+      canvas.drawLine(
+        Offset(width * 0.18, height / 2),
+        Offset(width * 0.82, height / 2),
+        strokePaint..color = glowColor.withOpacity(0.4),
+      );
+      canvas.drawLine(
+        Offset(width / 2, height * 0.18),
+        Offset(width / 2, height * 0.82),
+        strokePaint,
+      );
+
       // Orbiting node points
       final angle1 = random.nextDouble() * 2 * pi;
       final angle2 = angle1 + pi / 3;
-      canvas.drawCircle(Offset(center.dx + cos(angle1) * (maxRadius * 0.45), center.dy + sin(angle1) * (maxRadius * 0.45)), 3, fillPaint..color = glowColor);
-      canvas.drawCircle(Offset(center.dx + cos(angle2) * (maxRadius * 0.72), center.dy + sin(angle2) * (maxRadius * 0.72)), 2, fillPaint..color = glowColor.withOpacity(0.8));
+      canvas.drawCircle(
+        Offset(
+          center.dx + cos(angle1) * (maxRadius * 0.45),
+          center.dy + sin(angle1) * (maxRadius * 0.45),
+        ),
+        3,
+        fillPaint..color = glowColor,
+      );
+      canvas.drawCircle(
+        Offset(
+          center.dx + cos(angle2) * (maxRadius * 0.72),
+          center.dy + sin(angle2) * (maxRadius * 0.72),
+        ),
+        2,
+        fillPaint..color = glowColor.withOpacity(0.8),
+      );
     } else if (geometryType == 1) {
       // Triangle structures
       final path = Path();
@@ -137,10 +167,19 @@ class YamiAvatarPainter extends CustomPainter {
       // Inverted inner triangle
       final innerPath = Path();
       innerPath.moveTo(center.dx, center.dy + maxRadius * 0.35);
-      innerPath.lineTo(center.dx - maxRadius * 0.3, center.dy - maxRadius * 0.2);
-      innerPath.lineTo(center.dx + maxRadius * 0.3, center.dy - maxRadius * 0.2);
+      innerPath.lineTo(
+        center.dx - maxRadius * 0.3,
+        center.dy - maxRadius * 0.2,
+      );
+      innerPath.lineTo(
+        center.dx + maxRadius * 0.3,
+        center.dy - maxRadius * 0.2,
+      );
       innerPath.close();
-      canvas.drawPath(innerPath, strokePaint..color = YamiTheme.glowAmbient.withOpacity(0.5));
+      canvas.drawPath(
+        innerPath,
+        strokePaint..color = YamiTheme.glowAmbient.withOpacity(0.5),
+      );
     } else if (geometryType == 2) {
       // Intersecting nodes (graph network visual)
       final points = <Offset>[];
@@ -148,14 +187,20 @@ class YamiAvatarPainter extends CustomPainter {
       for (int i = 0; i < nodeCount; i++) {
         final angle = random.nextDouble() * 2 * pi;
         final dist = (0.3 + random.nextDouble() * 0.45) * maxRadius;
-        points.add(Offset(center.dx + cos(angle) * dist, center.dy + sin(angle) * dist));
+        points.add(
+          Offset(center.dx + cos(angle) * dist, center.dy + sin(angle) * dist),
+        );
       }
 
       // Draw connections
       for (int i = 0; i < points.length; i++) {
         for (int j = i + 1; j < points.length; j++) {
           if (random.nextDouble() > 0.4) {
-            canvas.drawLine(points[i], points[j], strokePaint..color = glowColor.withOpacity(0.18));
+            canvas.drawLine(
+              points[i],
+              points[j],
+              strokePaint..color = glowColor.withOpacity(0.18),
+            );
           }
         }
       }
@@ -163,19 +208,42 @@ class YamiAvatarPainter extends CustomPainter {
       // Draw nodes
       for (var point in points) {
         canvas.drawCircle(point, 3, fillPaint..color = glowColor);
-        canvas.drawCircle(point, 5, strokePaint..color = glowColor.withOpacity(0.4)..strokeWidth = 0.5);
+        canvas.drawCircle(
+          point,
+          5,
+          strokePaint
+            ..color = glowColor.withOpacity(0.4)
+            ..strokeWidth = 0.5,
+        );
       }
     } else {
       // Circular radar scan arc with orbiting satellites
-      canvas.drawCircle(center, maxRadius * 0.6, strokePaint..color = glowColor.withOpacity(0.35));
-      
+      canvas.drawCircle(
+        center,
+        maxRadius * 0.6,
+        strokePaint..color = glowColor.withOpacity(0.35),
+      );
+
       final orbitCount = 2 + random.nextInt(2);
       for (int i = 0; i < orbitCount; i++) {
         final angle = random.nextDouble() * 2 * pi;
         final orbitRadius = maxRadius * (0.35 + (i * 0.25));
-        final satellite = Offset(center.dx + cos(angle) * orbitRadius, center.dy + sin(angle) * orbitRadius);
-        canvas.drawCircle(satellite, 3.5, fillPaint..color = YamiTheme.glowAmbient);
-        canvas.drawLine(center, satellite, strokePaint..color = YamiTheme.borderGlass..strokeWidth = 0.4);
+        final satellite = Offset(
+          center.dx + cos(angle) * orbitRadius,
+          center.dy + sin(angle) * orbitRadius,
+        );
+        canvas.drawCircle(
+          satellite,
+          3.5,
+          fillPaint..color = YamiTheme.glowAmbient,
+        );
+        canvas.drawLine(
+          center,
+          satellite,
+          strokePaint
+            ..color = YamiTheme.borderGlass
+            ..strokeWidth = 0.4,
+        );
       }
     }
   }
