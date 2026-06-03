@@ -8,7 +8,7 @@ import '../core/moderation/moderation_service.dart';
 import '../core/protocol/frame.dart';
 import '../core/state/peer_manager.dart';
 import '../core/state/session_manager.dart';
-import '../core/transport/mock_simulator.dart';
+import '../core/transport/noop_transport.dart';
 import '../core/transport/transport_interface.dart';
 import '../core/transport/win_udp_transport.dart';
 import '../ffi_bridge.dart';
@@ -29,7 +29,6 @@ class YamiLinkRepository extends ChangeNotifier {
   double _signalStrength = 1.0;
 
   Timer? _sweepTimer;
-  Timer? _simStrengthTimer;
   final String _sessionId = List.generate(
     16,
     (_) => Random().nextInt(16).toRadixString(16),
@@ -71,21 +70,13 @@ class YamiLinkRepository extends ChangeNotifier {
       _messageTransport = winTransport;
 
       YamiLinkFfiBridge.instance.start(profile.alias, profile.avatarSeed);
-      _packetsProcessed = 5;
+      _packetsProcessed = 0;
     } else {
-      final sim = MockSimulatorTransport(
-        userAlias: profile.alias,
-        userSeed: profile.avatarSeed,
-        userNodeId: profile.id,
-      );
-      _discoveryTransport = sim;
-      _messageTransport = sim;
-      _packetsProcessed = 142;
-
-      _simStrengthTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-        _signalStrength = 0.75 + Random().nextDouble() * 0.2;
-        notifyListeners();
-      });
+      final noOp = NoOpTransport();
+      _discoveryTransport = noOp;
+      _messageTransport = noOp;
+      _packetsProcessed = 0;
+      _signalStrength = 1.0;
     }
 
     _peerManager = PeerManager(onChanged: notifyListeners);
@@ -232,10 +223,6 @@ class YamiLinkRepository extends ChangeNotifier {
         debugPrint('Failed to parse incoming protocol frame: $e');
       }
     });
-
-    if (!YamiLinkFfiBridge.instance.isSupported) {
-      _loadInitialSimulatedHistory();
-    }
 
     _sweepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _peerManager.sweepStalePeers();
@@ -478,32 +465,9 @@ class YamiLinkRepository extends ChangeNotifier {
     _sessionManager.markAsRead(peerId);
   }
 
-  void _loadInitialSimulatedHistory() {
-    final now = DateTime.now();
-    _sessionManager.loadInitialHistory([
-      Message(
-        id: 'msg_init_1',
-        senderId: 'peer_atlas',
-        senderAlias: 'AtlasNode',
-        content: 'Welcome to YamiLink local room. Is the UX workshop starting?',
-        timestamp: now.subtract(const Duration(minutes: 5)),
-        status: MessageStatus.delivered,
-      ),
-      Message(
-        id: 'msg_init_2',
-        senderId: 'peer_nebula',
-        senderAlias: 'NebulaSeeker',
-        content: 'Yes! Room B. It is quite crowded already.',
-        timestamp: now.subtract(const Duration(minutes: 3)),
-        status: MessageStatus.delivered,
-      ),
-    ]);
-  }
-
   @override
   void dispose() {
     _sweepTimer?.cancel();
-    _simStrengthTimer?.cancel();
     _messageTransport.clearReceiveCallback();
     _discoveryTransport.stopDiscovery();
 

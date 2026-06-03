@@ -24,7 +24,7 @@ graph TD
     UI[Interfaccia Utente - Flutter] --> |Richieste Azioni / Stato| Repo[YamiLinkRepository - ChangeNotifier]
     Repo --> |Filtro Peer Bloccati / Stato Radar| PM[PeerManager]
     Repo --> |Gestione Messaggi / Coda Affidabilita| SM[SessionManager]
-    Repo --> |Invio Byte| Trans[TransportInterface - WinUdpTransport / MockSimulator]
+    Repo --> |Invio Byte| Trans[TransportInterface - WinUdpTransport / NoOpTransport]
     Trans --> |Integrazione FFI| FFI[YamiLinkFfiBridge]
     FFI --> |Background Threads| C[Core C Nativo - Win32 / POSIX]
     C --> |Ricezione Pacchetti UDP| FFI
@@ -119,7 +119,7 @@ yamilink/
 │   │   │   ├── peer_manager.dart        # Gestione liveness del radar, blocchi ed antispam
 │   │   │   └── session_manager.dart     # Storia dei messaggi, code ACK e rilevazione duplicati
 │   │   └── transport/
-│   │       ├── mock_simulator.dart      # Simulatore in-memory per piattaforme sprovviste di FFI
+│   │       ├── noop_transport.dart      # Adattatore strutturale (fallback) per piattaforme sprovviste di FFI
 │   │       ├── transport_interface.dart # Interfacce astratte per la trasmissione di rete
 │   │       └── win_udp_transport.dart   # Implementazione Winsock per Windows
 │   ├── repository/

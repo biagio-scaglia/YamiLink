@@ -107,7 +107,7 @@ void main() {
       final incomingBytes = utf8.encode(incomingFrame.serialize());
       transport.onDataReceivedCallback?.call('peer_sender', incomingBytes);
 
-      expect(repository.roomMessages.length, 3);
+      expect(repository.roomMessages.length, 1);
       expect(repository.roomMessages.last.content, 'Broadcast test');
       expect(repository.roomMessages.last.hopCount, 1);
 

@@ -275,29 +275,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                             textAlign: TextAlign.center,
                             style: YamiTheme.captionStyle,
                           ),
-                          const SizedBox(height: 24),
-
-                          if (!isScanning)
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: YamiTheme.glowActive,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () {
-                                simulation.startScanning();
-                              },
-                              icon: const Icon(Icons.flash_on, size: 14),
-                              label: Text(
-                                'SIMULATE ACTIVE PEERS',
-                                style: YamiTheme.monoStyle.copyWith(
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
