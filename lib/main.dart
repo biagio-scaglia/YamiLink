@@ -105,23 +105,20 @@ class _MainShellState extends State<MainShell> {
     final simulation = Provider.of<SimulationService>(context);
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: YamiTheme.surfaceDark,
           border: Border(
-            top: BorderSide(
-              color: YamiTheme.borderGlass,
-              width: 1.0,
-            ),
+            top: BorderSide(color: YamiTheme.borderGlass, width: 1.0),
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 8.0,
+              horizontal: 16.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -154,11 +151,7 @@ class _MainShellState extends State<MainShell> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(
-                icon,
-                color: color,
-                size: 22,
-              ),
+              Icon(icon, color: color, size: 22),
               if (badgeCount > 0)
                 Positioned(
                   right: -6,
@@ -211,7 +204,7 @@ class _MainShellState extends State<MainShell> {
                   color: activeColor.withOpacity(0.5),
                   blurRadius: 4,
                   spreadRadius: 0.5,
-                )
+                ),
               ],
             ),
           ),

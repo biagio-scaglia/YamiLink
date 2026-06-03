@@ -1,23 +1,15 @@
 import 'dart:math';
 
-enum TrustLevel {
-  unverified,
-  paired,
-  blocked,
-}
+enum TrustLevel { unverified, paired, blocked }
 
 enum ProximityHint {
   immediate, // 0-3m
-  near,      // 3-10m
-  far,       // 10-30m
+  near, // 3-10m
+  far, // 10-30m
   unknown,
 }
 
-enum MessageStatus {
-  sending,
-  delivered,
-  failed,
-}
+enum MessageStatus { sending, delivered, failed }
 
 class EphemeralProfile {
   final String id;
@@ -34,7 +26,10 @@ class EphemeralProfile {
 
   factory EphemeralProfile.generate(String alias) {
     final random = Random();
-    final id = List.generate(16, (_) => random.nextInt(16).toRadixString(16)).join();
+    final id = List.generate(
+      16,
+      (_) => random.nextInt(16).toRadixString(16),
+    ).join();
     return EphemeralProfile(
       id: id,
       alias: alias,
@@ -110,9 +105,5 @@ class Session {
   final String name;
   final DateTime joinedAt;
 
-  Session({
-    required this.id,
-    required this.name,
-    required this.joinedAt,
-  });
+  Session({required this.id, required this.name, required this.joinedAt});
 }

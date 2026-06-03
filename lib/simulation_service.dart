@@ -5,7 +5,7 @@ import 'models.dart';
 
 class SimulationService extends ChangeNotifier {
   final EphemeralProfile profile;
-  
+
   // State
   List<Peer> _peers = [];
   List<Message> _roomMessages = [];
@@ -27,7 +27,8 @@ class SimulationService extends ChangeNotifier {
   // Getters
   List<Peer> get peers => _peers;
   List<Message> get roomMessages => _roomMessages;
-  List<Message> getDirectMessages(String peerId) => _directMessages[peerId] ?? [];
+  List<Message> getDirectMessages(String peerId) =>
+      _directMessages[peerId] ?? [];
   bool get isScanning => _isScanning;
   bool get relayEnabled => _relayEnabled;
   int get packetsProcessed => _packetsProcessed;
@@ -44,7 +45,7 @@ class SimulationService extends ChangeNotifier {
     'EchoZero',
     'ShadowNet',
     'GridRouter-07',
-    'RescueBeacon_B3'
+    'RescueBeacon_B3',
   ];
 
   void _generateInitialHistory() {
@@ -54,7 +55,8 @@ class SimulationService extends ChangeNotifier {
         id: 'msg_init_1',
         senderId: 'peer_atlas',
         senderAlias: 'AtlasNode',
-        content: 'Benvenuti nel canale locale YamiLink! Qualcuno sa se il workshop di UX è iniziato?',
+        content:
+            'Benvenuti nel canale locale YamiLink! Qualcuno sa se il workshop di UX è iniziato?',
         timestamp: now.subtract(const Duration(minutes: 5)),
         status: MessageStatus.delivered,
       ),
@@ -137,7 +139,7 @@ class SimulationService extends ChangeNotifier {
 
   void _updatePeerList() {
     if (!_isScanning) return;
-    
+
     _packetsProcessed += _random.nextInt(12) + 3;
     _signalStrength = 0.7 + _random.nextDouble() * 0.25;
 
@@ -145,14 +147,17 @@ class SimulationService extends ChangeNotifier {
     for (var peer in _peers) {
       if (_random.nextDouble() > 0.6) {
         final hints = ProximityHint.values;
-        peer.proximityHint = hints[_random.nextInt(hints.length - 1)]; // Avoid unknown
+        peer.proximityHint =
+            hints[_random.nextInt(hints.length - 1)]; // Avoid unknown
         peer.lastSeen = DateTime.now();
       }
     }
 
     // 2. Randomly add a new peer (up to max 8)
     if (_peers.length < 8 && _random.nextDouble() > 0.7) {
-      final availableNames = _simulatedNames.where((name) => !_peers.any((p) => p.alias == name)).toList();
+      final availableNames = _simulatedNames
+          .where((name) => !_peers.any((p) => p.alias == name))
+          .toList();
       if (availableNames.isNotEmpty) {
         final name = availableNames[_random.nextInt(availableNames.length)];
         final newPeer = Peer(
@@ -169,7 +174,9 @@ class SimulationService extends ChangeNotifier {
 
     // 3. Randomly drop a far peer (leaving the physical space)
     if (_peers.length > 3 && _random.nextDouble() > 0.85) {
-      final farPeers = _peers.where((p) => p.proximityHint == ProximityHint.far).toList();
+      final farPeers = _peers
+          .where((p) => p.proximityHint == ProximityHint.far)
+          .toList();
       if (farPeers.isNotEmpty) {
         final removeMe = farPeers[_random.nextInt(farPeers.length)];
         _peers.remove(removeMe);
@@ -228,7 +235,7 @@ class SimulationService extends ChangeNotifier {
 
   void _simulateReplyTo(String originalText) {
     if (_peers.isEmpty) return;
-    
+
     // Pick an active peer to reply
     final replier = _peers[_random.nextInt(_peers.length)];
     String replyText = '';
@@ -237,9 +244,11 @@ class SimulationService extends ChangeNotifier {
     if (lower.contains('ciao') || lower.contains('hello')) {
       replyText = 'Ciao ${profile.alias}! Come va qui a YamiLink?';
     } else if (lower.contains('funziona') || lower.contains('mesh')) {
-      replyText = 'Sì! Sfrutta il Wi-Fi locale e il Bluetooth per fare routing 1-hop.';
+      replyText =
+          'Sì! Sfrutta il Wi-Fi locale e il Bluetooth per fare routing 1-hop.';
     } else if (lower.contains('chi sei') || lower.contains('identità')) {
-      replyText = 'Sono un peer temporaneo locale, la mia chiave scade quando esco.';
+      replyText =
+          'Sono un peer temporaneo locale, la mia chiave scade quando esco.';
     } else {
       final answers = [
         'Interessante, ne stavamo parlando proprio ora.',
@@ -288,14 +297,17 @@ class SimulationService extends ChangeNotifier {
 
       // Trigger automatic peer reply
       Timer(const Duration(seconds: 2), () {
-        final peer = _peers.firstWhere((p) => p.id == peerId, orElse: () => _createDummyPeer(peerId));
+        final peer = _peers.firstWhere(
+          (p) => p.id == peerId,
+          orElse: () => _createDummyPeer(peerId),
+        );
         final replies = [
           'Messaggio cifrato ricevuto! Ottima questa connessione protetta.',
           'Ti sento forte e chiaro peer-to-peer.',
           'Sì, ci vediamo vicino allo stand tra 10 minuti.',
-          'Ricevuto! Ricordati che questa chat svanirà appena ci allontaniamo.'
+          'Ricevuto! Ricordati che questa chat svanirà appena ci allontaniamo.',
         ];
-        
+
         final peerReply = Message(
           id: 'msg_dm_reply_${DateTime.now().millisecondsSinceEpoch}',
           senderId: peer.id,
