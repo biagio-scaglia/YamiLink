@@ -26,7 +26,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     'SEC: Shared cryptographic secret refreshed',
     'NET: Route capacity validated - active bandwidth ok',
     'INF: Signal ping response received (latency: 18ms)',
-    'DBG: Frame checksum validated - no packet loss'
+    'DBG: Frame checksum validated - no packet loss',
   ];
 
   @override
@@ -43,17 +43,19 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     // Periodically append new telemetry logs to the console
     _logTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) return;
-      
+
       final simulation = Provider.of<SimulationService>(context, listen: false);
       if (!simulation.isScanning) return; // Only log when scanning is active
 
       final logTime = _formatTime(DateTime.now());
-      final template = _logTemplates[DateTime.now().millisecond % _logTemplates.length];
-      
+      final template =
+          _logTemplates[DateTime.now().millisecond % _logTemplates.length];
+
       // Randomly append peer-specific details
       String logLine;
       if (template.contains('node') && simulation.peers.isNotEmpty) {
-        final peer = simulation.peers[DateTime.now().millisecond % simulation.peers.length];
+        final peer = simulation
+            .peers[DateTime.now().millisecond % simulation.peers.length];
         logLine = '[$logTime] ${template.replaceFirst('node', peer.alias)}';
       } else {
         logLine = '[$logTime] $template';
@@ -122,10 +124,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: YamiTheme.borderGlass,
-            height: 1.0,
-          ),
+          child: Container(color: YamiTheme.borderGlass, height: 1.0),
         ),
       ),
       body: Container(
@@ -170,7 +169,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       value: '${(simulation.signalStrength * 100).toInt()}%',
                       subtitle: 'Local space quality',
                       icon: Icons.wifi_tethering,
-                      accentColor: simulation.signalStrength > 0.8 ? YamiTheme.glowSecure : YamiTheme.glowActive,
+                      accentColor: simulation.signalStrength > 0.8
+                          ? YamiTheme.glowSecure
+                          : YamiTheme.glowActive,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -189,10 +190,15 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
               // 2. Interactive Relay Toggle Card
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
                 decoration: YamiTheme.glassDecoration(
                   backgroundColor: YamiTheme.surfaceDark,
-                  glowColor: simulation.relayEnabled ? YamiTheme.glowSecure : Colors.transparent,
+                  glowColor: simulation.relayEnabled
+                      ? YamiTheme.glowSecure
+                      : Colors.transparent,
                   glowRadius: simulation.relayEnabled ? 3.0 : 0.0,
                 ),
                 child: Row(
@@ -213,7 +219,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                           const SizedBox(height: 3),
                           Text(
                             'Allow packets from other nodes to transit through your device.',
-                            style: YamiTheme.captionStyle.copyWith(fontSize: 11),
+                            style: YamiTheme.captionStyle.copyWith(
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -308,7 +316,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
@@ -318,11 +326,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   letterSpacing: 1.0,
                 ),
               ),
-              Icon(
-                icon,
-                size: 14,
-                color: accentColor.withOpacity(0.8),
-              ),
+              Icon(icon, size: 14, color: accentColor.withOpacity(0.8)),
             ],
           ),
           const SizedBox(height: 8),
@@ -334,10 +338,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            subtitle,
-            style: YamiTheme.captionStyle.copyWith(fontSize: 10),
-          ),
+          Text(subtitle, style: YamiTheme.captionStyle.copyWith(fontSize: 10)),
         ],
       ),
     );

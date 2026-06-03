@@ -41,7 +41,7 @@ class _RoomScreenState extends State<RoomScreen> {
 
     simulation.sendBroadcastMessage(text);
     _messageController.clear();
-    
+
     // Animate to bottom after message is added
     Future.delayed(const Duration(milliseconds: 100), () {
       _scrollToBottom();
@@ -93,10 +93,7 @@ class _RoomScreenState extends State<RoomScreen> {
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: YamiTheme.borderGlass,
-            height: 1.0,
-          ),
+          child: Container(color: YamiTheme.borderGlass, height: 1.0),
         ),
       ),
       body: Container(
@@ -107,7 +104,10 @@ class _RoomScreenState extends State<RoomScreen> {
           children: [
             // Ephemeral warning banner
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 16.0,
+              ),
               color: YamiTheme.surfaceDark.withOpacity(0.8),
               child: Row(
                 children: [
@@ -120,9 +120,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   Expanded(
                     child: Text(
                       'All local cache expires immediately upon disconnecting.',
-                      style: YamiTheme.captionStyle.copyWith(
-                        fontSize: 10,
-                      ),
+                      style: YamiTheme.captionStyle.copyWith(fontSize: 10),
                     ),
                   ),
                 ],
@@ -133,12 +131,15 @@ class _RoomScreenState extends State<RoomScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
                   final isMe = message.senderId == profile.id;
-                  
+
                   // Try to find if peer is trusted/paired
                   final senderPeer = simulation.peers.firstWhere(
                     (p) => p.id == message.senderId,
@@ -151,21 +152,26 @@ class _RoomScreenState extends State<RoomScreen> {
                   );
                   final isTrusted = senderPeer.trustLevel == TrustLevel.paired;
 
-                  return _buildMessageRow(message, isMe, isTrusted, senderPeer.avatarSeed);
+                  return _buildMessageRow(
+                    message,
+                    isMe,
+                    isTrusted,
+                    senderPeer.avatarSeed,
+                  );
                 },
               ),
             ),
 
             // Divider border
-            Container(
-              height: 1,
-              color: YamiTheme.borderGlass,
-            ),
+            Container(height: 1, color: YamiTheme.borderGlass),
 
             // Input keyboard panel
             SafeArea(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 color: YamiTheme.surfaceDark,
                 child: Row(
                   children: [
@@ -185,7 +191,10 @@ class _RoomScreenState extends State<RoomScreen> {
                               fontSize: 13,
                               color: YamiTheme.textMuted,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 10.0,
+                            ),
                             border: InputBorder.none,
                           ),
                           onSubmitted: (_) => _sendMessage(simulation),
@@ -217,29 +226,40 @@ class _RoomScreenState extends State<RoomScreen> {
     );
   }
 
-  Widget _buildMessageRow(Message message, bool isMe, bool isTrusted, int avatarSeed) {
-    final Alignment alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
-    final CrossAxisAlignment crossAlignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+  Widget _buildMessageRow(
+    Message message,
+    bool isMe,
+    bool isTrusted,
+    int avatarSeed,
+  ) {
+    final CrossAxisAlignment crossAlignment = isMe
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
 
     // Timestamp formatting
-    final String timeStr = '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+    final String timeStr =
+        '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe) ...[
             YamiAvatar(
               seed: avatarSeed,
               size: 32,
-              glowColor: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
+              glowColor: isTrusted
+                  ? YamiTheme.glowSecure
+                  : YamiTheme.glowActive,
               isGlowing: isTrusted,
             ),
             const SizedBox(width: 8),
           ],
-          
+
           // Bubble card container
           Flexible(
             child: Column(
@@ -247,7 +267,10 @@ class _RoomScreenState extends State<RoomScreen> {
               children: [
                 // Header details
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 2.0,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -258,7 +281,9 @@ class _RoomScreenState extends State<RoomScreen> {
                           fontWeight: FontWeight.bold,
                           color: isMe
                               ? YamiTheme.glowActive
-                              : (isTrusted ? YamiTheme.glowSecure : YamiTheme.textSecondary),
+                              : (isTrusted
+                                    ? YamiTheme.glowSecure
+                                    : YamiTheme.textSecondary),
                         ),
                       ),
                       if (isTrusted && !isMe) ...[
@@ -280,26 +305,34 @@ class _RoomScreenState extends State<RoomScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Content text bubble
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14.0,
+                    vertical: 10.0,
+                  ),
                   decoration: YamiTheme.glassDecoration(
-                    backgroundColor: isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark,
+                    backgroundColor: isMe
+                        ? YamiTheme.surfaceLight
+                        : YamiTheme.surfaceDark,
                     opacity: 0.8,
-                    glowColor: isMe ? YamiTheme.glowActive : YamiTheme.borderGlass,
+                    glowColor: isMe
+                        ? YamiTheme.glowActive
+                        : YamiTheme.borderGlass,
                     glowRadius: isMe ? 2.0 : 0.0,
                     borderRadius: 12.0,
                   ),
-                  child: Text(
-                    message.content,
-                    style: YamiTheme.bodyStyle,
-                  ),
+                  child: Text(message.content, style: YamiTheme.bodyStyle),
                 ),
-                
+
                 // Telemetry footer
                 Padding(
-                  padding: const EdgeInsets.only(top: 2.0, left: 4.0, right: 4.0),
+                  padding: const EdgeInsets.only(
+                    top: 2.0,
+                    left: 4.0,
+                    right: 4.0,
+                  ),
                   child: Text(
                     'PK: ${message.senderId.substring(0, 4)}... | ${message.hopCount}-HOP RELAY',
                     style: YamiTheme.captionStyle.copyWith(
@@ -311,7 +344,7 @@ class _RoomScreenState extends State<RoomScreen> {
               ],
             ),
           ),
-          
+
           if (isMe) ...[
             const SizedBox(width: 8),
             YamiAvatar(
