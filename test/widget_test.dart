@@ -19,6 +19,6 @@ void main() {
 
     // Verify that the entry input field and action button exist
     expect(find.text('EPHEMERAL ALIAS'), findsOneWidget);
-    expect(find.text('INITIALIZE LINK'), findsOneWidget);
+    expect(find.text('INITIALIZE CONNECTION'), findsOneWidget);
   });
 }
