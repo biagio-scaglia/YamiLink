@@ -11,6 +11,7 @@ class PendingTransmission {
 }
 
 class SessionManager {
+  final String localNodeId;
   final List<Message> _roomMessages = [];
   final Map<String, List<Message>> _directMessages = {};
   final List<Conversation> _conversations = [];
@@ -25,6 +26,7 @@ class SessionManager {
   final Map<String, PendingTransmission> _pendingTransmissions = {};
 
   SessionManager({
+    required this.localNodeId,
     required void Function() onChanged,
     required void Function(Frame frame) onRetransmit,
   }) : _onChanged = onChanged,
@@ -59,7 +61,6 @@ class SessionManager {
     return _conversations[index];
   }
 
-  /// Adds a message sent by the user to the local list, initializing its status to sending.
   void addOutgoingMessage(
     Message message,
     Frame frame, {
@@ -93,7 +94,6 @@ class SessionManager {
     _onChanged();
   }
 
-  /// Process incoming frames
   void processIncomingFrame(
     Frame frame,
     String senderAlias,
@@ -126,6 +126,7 @@ class SessionManager {
           content: frame.payloadBody,
           timestamp: DateTime.fromMillisecondsSinceEpoch(frame.timestamp),
           status: MessageStatus.delivered,
+          hopCount: frame.hopCount,
           isFlagged: isFlagged,
           isBlurred: isBlurred,
           moderationExplanation: moderationExplanation,
@@ -135,6 +136,7 @@ class SessionManager {
         break;
 
       case FrameType.directMsg:
+        if (frame.recipientId != localNodeId) return;
         final msg = Message(
           id: 'msg_dm_recv_${frame.timestamp}_${frame.messageId}',
           senderId: frame.senderId,
@@ -143,6 +145,7 @@ class SessionManager {
           content: frame.payloadBody,
           timestamp: DateTime.fromMillisecondsSinceEpoch(frame.timestamp),
           status: MessageStatus.delivered,
+          hopCount: frame.hopCount,
           isFlagged: isFlagged,
           isBlurred: isBlurred,
           moderationExplanation: moderationExplanation,
@@ -172,6 +175,7 @@ class SessionManager {
         break;
 
       case FrameType.ack:
+        if (frame.recipientId != localNodeId) return;
         final ackKey = '${frame.senderId}:${frame.messageId}';
         final pending = _pendingTransmissions.remove(ackKey);
         if (pending != null) {

@@ -650,10 +650,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   ),
                 ] else ...[
                   Text(
-                    '1-HOP P2P',
+                    message.hopCount == 1 ? '1-HOP P2P' : '${message.hopCount}-HOP MESH',
                     style: YamiTheme.monoStyle.copyWith(
                       fontSize: 7.5,
-                      color: YamiTheme.textMuted,
+                      color: message.hopCount == 1 ? YamiTheme.textMuted : YamiTheme.glowActive,
                     ),
                   ),
                 ],

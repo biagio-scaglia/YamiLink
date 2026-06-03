@@ -118,8 +118,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   Expanded(
                     child: _buildMetricCard(
                       title: 'RELAY LIMIT',
-                      value: '1-HOP',
-                      subtitle: 'Direct bounds',
+                      value: '3-HOPS',
+                      subtitle: 'Epidemic bounds',
                       icon: Icons.alt_route,
                       accentColor: YamiTheme.glowAmbient,
                     ),

@@ -52,6 +52,7 @@ class Frame {
   final int messageId;
   final int timestamp;
   final int flags;
+  final int hopCount;
   final String payloadType;
   final String payloadBody;
 
@@ -64,6 +65,7 @@ class Frame {
     required this.messageId,
     required this.timestamp,
     this.flags = 0,
+    this.hopCount = 1,
     this.payloadType = 'text',
     required this.payloadBody,
   });
@@ -73,16 +75,16 @@ class Frame {
   String serialize() {
     final bodyBytes = utf8.encode(payloadBody);
     final bodyBase64 = base64.encode(bodyBytes);
-    return '$version:${type.code}:$senderId:$recipientId:$sessionId:$messageId:$timestamp:$flags:$payloadType:$bodyBase64';
+    return '$version:${type.code}:$senderId:$recipientId:$sessionId:$messageId:$timestamp:$flags:$hopCount:$payloadType:$bodyBase64';
   }
 
   /// Deserializes a delimited String envelope into a Frame instance.
   /// Throws FormatException if parsing fails.
   factory Frame.deserialize(String data) {
     final parts = data.split(':');
-    if (parts.length < 10) {
+    if (parts.length < 11) {
       throw FormatException(
-        'Invalid frame format: expected at least 10 fields, got ${parts.length}',
+        'Invalid frame format: expected at least 11 fields, got ${parts.length}',
       );
     }
 
@@ -107,9 +109,10 @@ class Frame {
     }
 
     final flags = int.tryParse(parts[7]) ?? 0;
-    final payloadType = parts[8];
+    final hopCount = int.tryParse(parts[8]) ?? 1;
+    final payloadType = parts[9];
 
-    final bodyBase64 = parts[9];
+    final bodyBase64 = parts[10];
     String payloadBody;
     try {
       final decodedBytes = base64.decode(bodyBase64);
@@ -127,6 +130,7 @@ class Frame {
       messageId: messageId,
       timestamp: timestamp,
       flags: flags,
+      hopCount: hopCount,
       payloadType: payloadType,
       payloadBody: payloadBody,
     );

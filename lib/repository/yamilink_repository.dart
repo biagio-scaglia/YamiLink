@@ -35,6 +35,7 @@ class YamiLinkRepository extends ChangeNotifier {
     (_) => Random().nextInt(16).toRadixString(16),
   ).join();
   int _nextMessageId = 100;
+  final Set<String> _relayedMessageKeys = {};
 
   final List<String> _diagnosticsLogs = [];
   List<String> get diagnosticsLogs => List.unmodifiable(_diagnosticsLogs);
@@ -50,13 +51,21 @@ class YamiLinkRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  YamiLinkRepository({required this.profile}) {
+  YamiLinkRepository({
+    required this.profile,
+    DiscoveryTransport? discoveryTransport,
+    MessageTransport? messageTransport,
+  }) {
     YamiLinkFfiBridge.instance.load();
 
     logDiagnostic('SEC: Initialized ephemeral cryptosystem');
     logDiagnostic('NET: Core 1-hop socket listening on port 8099');
 
-    if (YamiLinkFfiBridge.instance.isSupported) {
+    if (discoveryTransport != null && messageTransport != null) {
+      _discoveryTransport = discoveryTransport;
+      _messageTransport = messageTransport;
+      _packetsProcessed = 0;
+    } else if (YamiLinkFfiBridge.instance.isSupported) {
       final winTransport = WinUdpTransport();
       _discoveryTransport = winTransport;
       _messageTransport = winTransport;
@@ -81,6 +90,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
     _peerManager = PeerManager(onChanged: notifyListeners);
     _sessionManager = SessionManager(
+      localNodeId: profile.id,
       onChanged: notifyListeners,
       onRetransmit: (Frame frame) {
         final frameBytes = utf8.encode(frame.serialize());
@@ -101,8 +111,34 @@ class YamiLinkRepository extends ChangeNotifier {
 
         if (frame.senderId == profile.id) return;
 
+        final dupKey = '${frame.senderId}:${frame.messageId}:${frame.type.name}';
+        if (_relayedMessageKeys.contains(dupKey)) {
+          if (frame.type == FrameType.directMsg && frame.recipientId == profile.id) {
+            String senderAlias = 'External Peer';
+            int avatarSeed = 0;
+            for (var p in _peerManager.peers) {
+              if (p.id == frame.senderId) {
+                senderAlias = p.alias;
+                avatarSeed = p.avatarSeed;
+                break;
+              }
+            }
+            _sessionManager.processIncomingFrame(
+              frame,
+              senderAlias,
+              avatarSeed,
+            );
+          }
+          return;
+        }
+
+        _relayedMessageKeys.add(dupKey);
+        if (_relayedMessageKeys.length > 200) {
+          _relayedMessageKeys.remove(_relayedMessageKeys.first);
+        }
+
         logDiagnostic(
-          'NET: Received frame type: ${frame.type.name} from ${frame.senderId}',
+          'NET: Received frame type: ${frame.type.name} from ${frame.senderId} (Hop: ${frame.hopCount})',
         );
 
         if (isPeerBlocked(frame.senderId)) {
@@ -112,51 +148,86 @@ class YamiLinkRepository extends ChangeNotifier {
           return;
         }
 
-        bool isFlagged = false;
-        bool isBlurred = false;
-        String? moderationExplanation;
+        final isDirectForOthers = frame.recipientId != '*' && frame.recipientId != profile.id;
+        final isRoomMsg = frame.type == FrameType.roomMsg;
+        final isDM = frame.type == FrameType.directMsg;
+        final isAck = frame.type == FrameType.ack;
 
-        if (frame.type == FrameType.roomMsg ||
-            frame.type == FrameType.directMsg) {
-          final decision = ModerationService.instance.moderateIncoming(
-            frame.senderId,
-            frame.messageId.toString(),
-            frame.payloadBody,
-          );
-
-          if (decision.action == ModerationAction.block) {
-            logDiagnostic(
-              'SEC: Blocked message from ${frame.senderId} due to: ${decision.explanation}',
+        if (_relayEnabled && frame.hopCount < 3) {
+          if (isRoomMsg || ((isDM || isAck) && isDirectForOthers)) {
+            final relayedFrame = Frame(
+              type: frame.type,
+              senderId: frame.senderId,
+              recipientId: frame.recipientId,
+              sessionId: frame.sessionId,
+              messageId: frame.messageId,
+              timestamp: frame.timestamp,
+              flags: frame.flags,
+              hopCount: frame.hopCount + 1,
+              payloadType: frame.payloadType,
+              payloadBody: frame.payloadBody,
             );
-            notifyListeners();
-            return;
-          }
 
-          isFlagged =
-              decision.action == ModerationAction.hide ||
-              decision.action == ModerationAction.block;
-          isBlurred = decision.action == ModerationAction.hide;
-          moderationExplanation = decision.explanation;
-        }
+            final relayedBytes = utf8.encode(relayedFrame.serialize());
+            if (relayedFrame.recipientId == '*') {
+              _messageTransport.sendBroadcast(relayedBytes);
+            } else {
+              _messageTransport.sendDirect(relayedFrame.recipientId, relayedBytes);
+            }
 
-        String senderAlias = 'External Peer';
-        int avatarSeed = 0;
-        for (var p in _peerManager.peers) {
-          if (p.id == frame.senderId) {
-            senderAlias = p.alias;
-            avatarSeed = p.avatarSeed;
-            break;
+            logDiagnostic(
+              'SEC: [MESH] Relayed ${frame.type.name} from ${frame.senderId} to ${frame.recipientId} (Hop ${frame.hopCount} -> ${relayedFrame.hopCount})',
+            );
           }
         }
 
-        _sessionManager.processIncomingFrame(
-          frame,
-          senderAlias,
-          avatarSeed,
-          isFlagged: isFlagged,
-          isBlurred: isBlurred,
-          moderationExplanation: moderationExplanation,
-        );
+        if (frame.recipientId == profile.id || frame.recipientId == '*') {
+          bool isFlagged = false;
+          bool isBlurred = false;
+          String? moderationExplanation;
+
+          if (frame.type == FrameType.roomMsg ||
+              frame.type == FrameType.directMsg) {
+            final decision = ModerationService.instance.moderateIncoming(
+              frame.senderId,
+              frame.messageId.toString(),
+              frame.payloadBody,
+            );
+
+            if (decision.action == ModerationAction.block) {
+              logDiagnostic(
+                'SEC: Blocked message from ${frame.senderId} due to: ${decision.explanation}',
+              );
+              notifyListeners();
+              return;
+            }
+
+            isFlagged =
+                decision.action == ModerationAction.hide ||
+                decision.action == ModerationAction.block;
+            isBlurred = decision.action == ModerationAction.hide;
+            moderationExplanation = decision.explanation;
+          }
+
+          String senderAlias = 'External Peer';
+          int avatarSeed = 0;
+          for (var p in _peerManager.peers) {
+            if (p.id == frame.senderId) {
+              senderAlias = p.alias;
+              avatarSeed = p.avatarSeed;
+              break;
+            }
+          }
+
+          _sessionManager.processIncomingFrame(
+            frame,
+            senderAlias,
+            avatarSeed,
+            isFlagged: isFlagged,
+            isBlurred: isBlurred,
+            moderationExplanation: moderationExplanation,
+          );
+        }
       } catch (e) {
         debugPrint('Failed to parse incoming protocol frame: $e');
       }
@@ -173,6 +244,12 @@ class YamiLinkRepository extends ChangeNotifier {
       );
     });
   }
+
+  @visibleForTesting
+  MessageTransport get messageTransport => _messageTransport;
+
+  @visibleForTesting
+  SessionManager get sessionManager => _sessionManager;
 
   List<Peer> get peers =>
       _peerManager.peers.where((p) => !isPeerBlocked(p.id)).toList();

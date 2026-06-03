@@ -13,6 +13,7 @@ void main() {
         int changesCount = 0;
 
         final sessionManager = SessionManager(
+          localNodeId: 'user_node',
           onChanged: () {
             changesCount++;
           },
@@ -54,6 +55,7 @@ void main() {
     test('Outgoing direct message status transitions to delivered on ACK', () {
       final List<Frame> retransmissions = [];
       final sessionManager = SessionManager(
+        localNodeId: 'user_node',
         onChanged: () {},
         onRetransmit: (frame) {
           retransmissions.add(frame);
@@ -105,6 +107,7 @@ void main() {
       () async {
         final List<Frame> retransmissions = [];
         final sessionManager = SessionManager(
+          localNodeId: 'user_node',
           onChanged: () {},
           onRetransmit: (frame) {
             retransmissions.add(frame);
@@ -181,6 +184,7 @@ void main() {
         'Conversation is created and sorted on direct message transmission',
         () {
           final sessionManager = SessionManager(
+            localNodeId: 'user_node',
             onChanged: () {},
             onRetransmit: (_) {},
           );
@@ -245,6 +249,7 @@ void main() {
 
       test('Unread counts increment only when conversation is not active', () {
         final sessionManager = SessionManager(
+          localNodeId: 'user_node',
           onChanged: () {},
           onRetransmit: (_) {},
         );
@@ -283,6 +288,7 @@ void main() {
 
       test('syncPeerOnlineStatus correctly updates online statuses', () {
         final sessionManager = SessionManager(
+          localNodeId: 'user_node',
           onChanged: () {},
           onRetransmit: (_) {},
         );

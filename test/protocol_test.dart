@@ -12,6 +12,7 @@ void main() {
         messageId: 42,
         timestamp: 1625000000000,
         flags: 1,
+        hopCount: 2,
         payloadType: 'text',
         payloadBody: 'Hello Proximity Network!',
       );
@@ -29,6 +30,7 @@ void main() {
       expect(deserialized.messageId, 42);
       expect(deserialized.timestamp, 1625000000000);
       expect(deserialized.flags, 1);
+      expect(deserialized.hopCount, 2);
       expect(deserialized.payloadType, 'text');
       expect(deserialized.payloadBody, 'Hello Proximity Network!');
     });
@@ -48,6 +50,7 @@ void main() {
       final deserialized = Frame.deserialize(serialized);
       expect(deserialized.type, FrameType.directMsg);
       expect(deserialized.recipientId, 'node_2');
+      expect(deserialized.hopCount, 1);
       expect(deserialized.payloadBody, 'Secret DM');
     });
 
@@ -57,7 +60,11 @@ void main() {
         throwsA(isA<FormatException>()),
       );
       expect(
-        () => Frame.deserialize('YML2:RM:s:r:sess:1:1:0:t:body'),
+        () => Frame.deserialize('YML1:RM:s:r:sess:1:1:0:t:body'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Frame.deserialize('YML2:RM:s:r:sess:1:1:0:1:t:body'),
         throwsA(isA<FormatException>()),
       );
     });
