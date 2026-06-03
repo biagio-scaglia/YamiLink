@@ -2,61 +2,60 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'models.dart';
+import 'ffi_bridge.dart';
 
 class SimulationService extends ChangeNotifier {
   final EphemeralProfile profile;
-
-  // State
-  List<Peer> _peers = [];
-  List<Message> _roomMessages = [];
-  Map<String, List<Message>> _directMessages = {}; // peerId -> messageList
+  
+  // App-wide state
+  final List<Peer> _peers = [];
+  final List<Message> _roomMessages = [];
+  final Map<String, List<Message>> _directMessages = {}; // peerId -> messageList
   bool _isScanning = false;
   bool _relayEnabled = true;
-  int _packetsProcessed = 142;
-  double _signalStrength = 0.85;
+  int _packetsProcessed = 0;
+  double _signalStrength = 1.0;
 
   Timer? _discoveryTimer;
   Timer? _peerActivityTimer;
   final Random _random = Random();
 
   SimulationService({required this.profile}) {
-    // Generate initial message history to make the app feel alive
-    _generateInitialHistory();
+    // Attempt to load the C FFI Core bridge
+    YamiLinkFfiBridge.instance.load();
+    
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      // Initialize native Winsock structures
+      YamiLinkFfiBridge.instance.initialize(profile.alias, profile.avatarSeed);
+      _packetsProcessed = 5; // Diagnostic baseline
+    } else {
+      // Generate simulated visual history for Chrome/Web fallbacks
+      _generateInitialHistory();
+      _packetsProcessed = 142;
+    }
   }
 
   // Getters
   List<Peer> get peers => _peers;
   List<Message> get roomMessages => _roomMessages;
-  List<Message> getDirectMessages(String peerId) =>
-      _directMessages[peerId] ?? [];
+  List<Message> getDirectMessages(String peerId) => _directMessages[peerId] ?? [];
   bool get isScanning => _isScanning;
   bool get relayEnabled => _relayEnabled;
   int get packetsProcessed => _packetsProcessed;
   double get signalStrength => _signalStrength;
 
-  // Preset cool names for simulated peers
   final List<String> _simulatedNames = [
-    'Alice_Proximity',
-    'Ghost-404',
-    'NebulaSeeker',
-    'QuantumPioneer',
-    'CyberShell',
-    'AtlasNode',
-    'EchoZero',
-    'ShadowNet',
-    'GridRouter-07',
-    'RescueBeacon_B3',
+    'Alice_Proximity', 'Ghost-404', 'NebulaSeeker', 'QuantumPioneer', 'CyberShell', 'AtlasNode'
   ];
 
   void _generateInitialHistory() {
     final now = DateTime.now();
-    _roomMessages = [
+    _roomMessages.addAll([
       Message(
         id: 'msg_init_1',
         senderId: 'peer_atlas',
         senderAlias: 'AtlasNode',
-        content:
-            'Benvenuti nel canale locale YamiLink! Qualcuno sa se il workshop di UX è iniziato?',
+        content: 'Welcome to YamiLink local room. Is the UX workshop starting?',
         timestamp: now.subtract(const Duration(minutes: 5)),
         status: MessageStatus.delivered,
       ),
@@ -64,11 +63,11 @@ class SimulationService extends ChangeNotifier {
         id: 'msg_init_2',
         senderId: 'peer_nebula',
         senderAlias: 'NebulaSeeker',
-        content: 'Sì, è in aula B. C\'è un sacco di gente però.',
+        content: 'Yes! Room B. It is quite crowded already.',
         timestamp: now.subtract(const Duration(minutes: 3)),
         status: MessageStatus.delivered,
       ),
-    ];
+    ]);
   }
 
   void startScanning() {
@@ -76,36 +75,195 @@ class SimulationService extends ChangeNotifier {
     _isScanning = true;
     notifyListeners();
 
-    // Populate initial peers
-    _spawnInitialPeers();
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      // 1. Run via Real UDP socket FFI engine
+      _peers.clear();
+      notifyListeners();
 
-    // Periodically search for new peers, updates distances or packets
-    _discoveryTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      _updatePeerList();
-    });
+      YamiLinkFfiBridge.instance.startDiscovery(
+        onPeerFound: (String id, String alias, int seed, double signal) {
+          final index = _peers.indexWhere((p) => p.id == id);
+          if (index == -1) {
+            _peers.add(Peer(
+              id: id,
+              alias: alias,
+              avatarSeed: seed,
+              proximityHint: ProximityHint.immediate,
+              relayCapability: true,
+              lastSeen: DateTime.now(),
+            ));
+            _packetsProcessed += 1;
+            notifyListeners();
+          } else {
+            _peers[index].lastSeen = DateTime.now();
+          }
+        },
+        onMessageReceived: (String senderHash, String senderAlias, String content) {
+          _packetsProcessed += 1;
+          
+          // Parse direct messages targeted to us: [DM_TO:node_id]msg
+          final dmPrefix = '[DM_TO:node_${profile.avatarSeed}_${profile.alias.length}]';
+          if (content.startsWith('[DM_TO:')) {
+            if (content.startsWith(dmPrefix)) {
+              final directMsgText = content.replaceFirst(dmPrefix, '');
+              final directMsg = Message(
+                id: 'msg_dm_recv_${DateTime.now().millisecondsSinceEpoch}',
+                senderId: senderHash,
+                senderAlias: senderAlias,
+                recipientId: profile.id,
+                content: directMsgText,
+                timestamp: DateTime.now(),
+                status: MessageStatus.delivered,
+              );
+              _directMessages.putIfAbsent(senderHash, () => []).add(directMsg);
+              notifyListeners();
+            }
+          } else {
+            // General room broadcast
+            final msg = Message(
+              id: 'msg_recv_${DateTime.now().millisecondsSinceEpoch}',
+              senderId: senderHash,
+              senderAlias: senderAlias,
+              content: content,
+              timestamp: DateTime.now(),
+              status: MessageStatus.delivered,
+            );
+            _roomMessages.add(msg);
+            notifyListeners();
+          }
+        },
+      );
+    } else {
+      // 2. Local fallback simulator loop
+      _spawnInitialPeers();
 
-    // Periodically send simulated messages in the Room chat
-    _peerActivityTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      _simulatePeerRoomMessage();
-    });
+      _discoveryTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+        _updatePeerListSimulated();
+      });
+
+      _peerActivityTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+        _simulatePeerRoomMessage();
+      });
+    }
   }
 
   void stopScanning() {
     _isScanning = false;
-    _discoveryTimer?.cancel();
-    _peerActivityTimer?.cancel();
+    
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      YamiLinkFfiBridge.instance.stop();
+    } else {
+      _discoveryTimer?.cancel();
+      _peerActivityTimer?.cancel();
+    }
+    
     notifyListeners();
   }
 
   void toggleRelay() {
     _relayEnabled = !_relayEnabled;
-    _packetsProcessed += 5;
+    _packetsProcessed += 2;
     notifyListeners();
   }
 
+  void sendBroadcastMessage(String content) {
+    if (content.trim().isEmpty) return;
+
+    final userMsg = Message(
+      id: 'msg_user_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: profile.id,
+      senderAlias: profile.alias,
+      content: content,
+      timestamp: DateTime.now(),
+      status: MessageStatus.delivered,
+    );
+
+    _roomMessages.add(userMsg);
+    _packetsProcessed += 1;
+    notifyListeners();
+
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      YamiLinkFfiBridge.instance.sendBroadcast(content);
+    } else {
+      // Simulate loop reply
+      Timer(Duration(milliseconds: 1000 + _random.nextInt(1500)), () {
+        _simulateReplyTo(content);
+      });
+    }
+  }
+
+  void sendDirectMessage(String peerId, String content) {
+    if (content.trim().isEmpty) return;
+
+    final userMsg = Message(
+      id: 'msg_dm_user_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: profile.id,
+      senderAlias: profile.alias,
+      recipientId: peerId,
+      content: content,
+      timestamp: DateTime.now(),
+      status: MessageStatus.sending,
+    );
+
+    _directMessages.putIfAbsent(peerId, () => []).add(userMsg);
+    notifyListeners();
+
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      YamiLinkFfiBridge.instance.sendDirect(peerId, content);
+      Timer(const Duration(milliseconds: 200), () {
+        userMsg.status = MessageStatus.delivered;
+        _packetsProcessed += 1;
+        notifyListeners();
+      });
+    } else {
+      // Simulation delay
+      Timer(const Duration(milliseconds: 600), () {
+        userMsg.status = MessageStatus.delivered;
+        _packetsProcessed += 1;
+        notifyListeners();
+
+        Timer(const Duration(seconds: 2), () {
+          final peer = _peers.firstWhere((p) => p.id == peerId, orElse: () => _createDummyPeer(peerId));
+          final replies = [
+            'Direct message processed securely.',
+            'Got it, meet you there!',
+            'Understood, over and out.'
+          ];
+          
+          final peerReply = Message(
+            id: 'msg_dm_sim_${DateTime.now().millisecondsSinceEpoch}',
+            senderId: peer.id,
+            senderAlias: peer.alias,
+            recipientId: profile.id,
+            content: replies[_random.nextInt(replies.length)],
+            timestamp: DateTime.now(),
+            status: MessageStatus.delivered,
+          );
+
+          _directMessages.putIfAbsent(peerId, () => []).add(peerReply);
+          _packetsProcessed += 1;
+          notifyListeners();
+        });
+      });
+    }
+  }
+
+  void togglePeerTrust(String peerId) {
+    final index = _peers.indexWhere((p) => p.id == peerId);
+    if (index != -1) {
+      final currentTrust = _peers[index].trustLevel;
+      _peers[index].trustLevel = currentTrust == TrustLevel.paired
+          ? TrustLevel.unverified
+          : TrustLevel.paired;
+      notifyListeners();
+    }
+  }
+
+  // --- Simulated Helpers ---
+
   void _spawnInitialPeers() {
     final now = DateTime.now();
-    _peers = [
+    _peers.addAll([
       Peer(
         id: 'peer_alice',
         alias: 'Alice_Proximity',
@@ -133,220 +291,98 @@ class SimulationService extends ChangeNotifier {
         relayCapability: true,
         lastSeen: now,
       ),
-    ];
+    ]);
     notifyListeners();
   }
 
-  void _updatePeerList() {
-    if (!_isScanning) return;
+  void _updatePeerListSimulated() {
+    _packetsProcessed += _random.nextInt(10) + 2;
+    _signalStrength = 0.75 + _random.nextDouble() * 0.2;
 
-    _packetsProcessed += _random.nextInt(12) + 3;
-    _signalStrength = 0.7 + _random.nextDouble() * 0.25;
-
-    // 1. Randomly update distance of existing peers
     for (var peer in _peers) {
-      if (_random.nextDouble() > 0.6) {
+      if (_random.nextDouble() > 0.65) {
         final hints = ProximityHint.values;
-        peer.proximityHint =
-            hints[_random.nextInt(hints.length - 1)]; // Avoid unknown
+        peer.proximityHint = hints[_random.nextInt(hints.length - 1)]; // Avoid unknown
         peer.lastSeen = DateTime.now();
       }
     }
 
-    // 2. Randomly add a new peer (up to max 8)
-    if (_peers.length < 8 && _random.nextDouble() > 0.7) {
-      final availableNames = _simulatedNames
-          .where((name) => !_peers.any((p) => p.alias == name))
-          .toList();
+    if (_peers.length < 8 && _random.nextDouble() > 0.75) {
+      final availableNames = _simulatedNames.where((name) => !_peers.any((p) => p.alias == name)).toList();
       if (availableNames.isNotEmpty) {
         final name = availableNames[_random.nextInt(availableNames.length)];
-        final newPeer = Peer(
+        _peers.add(Peer(
           id: 'peer_${name.toLowerCase()}',
           alias: name,
           avatarSeed: _random.nextInt(100000),
           proximityHint: ProximityHint.values[_random.nextInt(3)],
           relayCapability: _random.nextBool(),
           lastSeen: DateTime.now(),
-        );
-        _peers.add(newPeer);
+        ));
       }
     }
-
-    // 3. Randomly drop a far peer (leaving the physical space)
-    if (_peers.length > 3 && _random.nextDouble() > 0.85) {
-      final farPeers = _peers
-          .where((p) => p.proximityHint == ProximityHint.far)
-          .toList();
-      if (farPeers.isNotEmpty) {
-        final removeMe = farPeers[_random.nextInt(farPeers.length)];
-        _peers.remove(removeMe);
-      }
-    }
-
     notifyListeners();
-  }
-
-  void sendBroadcastMessage(String content) {
-    if (content.trim().isEmpty) return;
-
-    final userMsg = Message(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      senderId: profile.id,
-      senderAlias: profile.alias,
-      content: content,
-      timestamp: DateTime.now(),
-      status: MessageStatus.delivered,
-    );
-
-    _roomMessages.add(userMsg);
-    _packetsProcessed += 1;
-    notifyListeners();
-
-    // Trigger simulation response
-    Timer(Duration(milliseconds: 1000 + _random.nextInt(1500)), () {
-      _simulateReplyTo(content);
-    });
   }
 
   void _simulatePeerRoomMessage() {
     if (_peers.isEmpty) return;
     final randomPeer = _peers[_random.nextInt(_peers.length)];
     final sentences = [
-      'Qualcuno sa a che ora chiude il padiglione?',
-      'Il segnale qui è ottimo, il relay mesh funziona a meraviglia!',
-      'Avete visto il prototipo esposto all\'ingresso?',
-      'Ciao a tutti! Sono appena entrato in zona.',
-      'Rete locale stabilissima 👍',
+      'Who is going to the keynote in 10 minutes?',
+      'Awesome local connectivity network.',
+      'The 1-hop relay works perfectly here.'
     ];
 
-    final msg = Message(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+    _roomMessages.add(Message(
+      id: 'msg_sim_${DateTime.now().millisecondsSinceEpoch}',
       senderId: randomPeer.id,
       senderAlias: randomPeer.alias,
       content: sentences[_random.nextInt(sentences.length)],
       timestamp: DateTime.now(),
       status: MessageStatus.delivered,
-    );
-
-    _roomMessages.add(msg);
+    ));
     _packetsProcessed += 1;
     notifyListeners();
   }
 
   void _simulateReplyTo(String originalText) {
     if (_peers.isEmpty) return;
-
-    // Pick an active peer to reply
     final replier = _peers[_random.nextInt(_peers.length)];
-    String replyText = '';
-
+    String replyText = 'Received on my node! Clean connection.';
+    
     final lower = originalText.toLowerCase();
-    if (lower.contains('ciao') || lower.contains('hello')) {
-      replyText = 'Ciao ${profile.alias}! Come va qui a YamiLink?';
-    } else if (lower.contains('funziona') || lower.contains('mesh')) {
-      replyText =
-          'Sì! Sfrutta il Wi-Fi locale e il Bluetooth per fare routing 1-hop.';
-    } else if (lower.contains('chi sei') || lower.contains('identità')) {
-      replyText =
-          'Sono un peer temporaneo locale, la mia chiave scade quando esco.';
-    } else {
-      final answers = [
-        'Interessante, ne stavamo parlando proprio ora.',
-        'Ricevuto forte e chiaro sul mio nodo!',
-        'Concordo in pieno.',
-        'Chi c\'è per fare due chiacchiere tra poco?',
-      ];
-      replyText = answers[_random.nextInt(answers.length)];
+    if (lower.contains('hello') || lower.contains('hi')) {
+      replyText = 'Hi ${profile.alias}! Welcome to the physical space.';
+    } else if (lower.contains('mesh') || lower.contains('relay')) {
+      replyText = 'Yes, local packet broadcasting acts as our mesh.';
     }
 
-    final replyMsg = Message(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+    _roomMessages.add(Message(
+      id: 'msg_reply_sim_${DateTime.now().millisecondsSinceEpoch}',
       senderId: replier.id,
       senderAlias: replier.alias,
       content: replyText,
       timestamp: DateTime.now(),
       status: MessageStatus.delivered,
-    );
-
-    _roomMessages.add(replyMsg);
+    ));
     _packetsProcessed += 1;
     notifyListeners();
-  }
-
-  void sendDirectMessage(String peerId, String content) {
-    if (content.trim().isEmpty) return;
-
-    final userMsg = Message(
-      id: 'msg_dm_${DateTime.now().millisecondsSinceEpoch}',
-      senderId: profile.id,
-      senderAlias: profile.alias,
-      recipientId: peerId,
-      content: content,
-      timestamp: DateTime.now(),
-      status: MessageStatus.sending,
-    );
-
-    _directMessages.putIfAbsent(peerId, () => []).add(userMsg);
-    notifyListeners();
-
-    // Simulate 1-hop delay & delivery status
-    Timer(const Duration(milliseconds: 600), () {
-      userMsg.status = MessageStatus.delivered;
-      _packetsProcessed += 1;
-      notifyListeners();
-
-      // Trigger automatic peer reply
-      Timer(const Duration(seconds: 2), () {
-        final peer = _peers.firstWhere(
-          (p) => p.id == peerId,
-          orElse: () => _createDummyPeer(peerId),
-        );
-        final replies = [
-          'Messaggio cifrato ricevuto! Ottima questa connessione protetta.',
-          'Ti sento forte e chiaro peer-to-peer.',
-          'Sì, ci vediamo vicino allo stand tra 10 minuti.',
-          'Ricevuto! Ricordati che questa chat svanirà appena ci allontaniamo.',
-        ];
-
-        final peerReply = Message(
-          id: 'msg_dm_reply_${DateTime.now().millisecondsSinceEpoch}',
-          senderId: peer.id,
-          senderAlias: peer.alias,
-          recipientId: profile.id,
-          content: replies[_random.nextInt(replies.length)],
-          timestamp: DateTime.now(),
-          status: MessageStatus.delivered,
-        );
-
-        _directMessages.putIfAbsent(peerId, () => []).add(peerReply);
-        _packetsProcessed += 1;
-        notifyListeners();
-      });
-    });
   }
 
   Peer _createDummyPeer(String id) {
     return Peer(
       id: id,
-      alias: 'Unknown Peer',
-      avatarSeed: 999,
+      alias: 'External Peer',
+      avatarSeed: 888,
       lastSeen: DateTime.now(),
     );
   }
 
-  void togglePeerTrust(String peerId) {
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    if (index != -1) {
-      final currentTrust = _peers[index].trustLevel;
-      _peers[index].trustLevel = currentTrust == TrustLevel.paired
-          ? TrustLevel.unverified
-          : TrustLevel.paired;
-      notifyListeners();
-    }
-  }
-
   @override
   void dispose() {
+    if (YamiLinkFfiBridge.instance.isSupported) {
+      YamiLinkFfiBridge.instance.stop();
+    }
     _discoveryTimer?.cancel();
     _peerActivityTimer?.cancel();
     super.dispose();
