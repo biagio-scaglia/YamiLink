@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'simulation_service.dart';
+import 'repository/yamilink_repository.dart';
 import 'widgets/avatar.dart';
 
 class RoomScreen extends StatefulWidget {
@@ -34,7 +34,7 @@ class _RoomScreenState extends State<RoomScreen> {
     }
   }
 
-  void _sendMessage(SimulationService simulation) {
+  void _sendMessage(YamiLinkRepository simulation) {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
@@ -55,7 +55,7 @@ class _RoomScreenState extends State<RoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<SimulationService>(context);
+    final simulation = Provider.of<YamiLinkRepository>(context);
     final profile = simulation.profile;
     final messages = simulation.roomMessages;
 

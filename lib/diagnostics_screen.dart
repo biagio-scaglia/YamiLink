@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme.dart';
-import 'simulation_service.dart';
+import 'repository/yamilink_repository.dart';
 
 class DiagnosticsScreen extends StatefulWidget {
   const DiagnosticsScreen({super.key});
@@ -43,7 +43,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     _logTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) return;
 
-      final simulation = Provider.of<SimulationService>(context, listen: false);
+      final simulation = Provider.of<YamiLinkRepository>(context, listen: false);
       if (!simulation.isScanning) return;
 
       final logTime = _formatTime(DateTime.now());
@@ -91,7 +91,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<SimulationService>(context);
+    final simulation = Provider.of<YamiLinkRepository>(context);
 
     return Scaffold(
       appBar: AppBar(

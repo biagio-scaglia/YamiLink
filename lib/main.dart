@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'simulation_service.dart';
+import 'repository/yamilink_repository.dart';
 import 'entry_screen.dart';
 import 'nearby_screen.dart';
 import 'room_screen.dart';
@@ -36,20 +36,20 @@ class InitializerScreen extends StatefulWidget {
 
 class _InitializerScreenState extends State<InitializerScreen> {
   EphemeralProfile? _profile;
-  SimulationService? _simulationService;
+  YamiLinkRepository? _yamilinkRepository;
 
   void _onProfileCreated(EphemeralProfile profile) {
     setState(() {
       _profile = profile;
-      _simulationService = SimulationService(profile: profile);
+      _yamilinkRepository = YamiLinkRepository(profile: profile);
       // Auto-start scanning on profile creation
-      _simulationService!.startScanning();
+      _yamilinkRepository!.startScanning();
     });
   }
 
   @override
   void dispose() {
-    _simulationService?.dispose();
+    _yamilinkRepository?.dispose();
     super.dispose();
   }
 
@@ -59,8 +59,8 @@ class _InitializerScreenState extends State<InitializerScreen> {
       return EntryScreen(onProfileCreated: _onProfileCreated);
     }
 
-    return ChangeNotifierProvider<SimulationService>.value(
-      value: _simulationService!,
+    return ChangeNotifierProvider<YamiLinkRepository>.value(
+      value: _yamilinkRepository!,
       child: const MainShell(),
     );
   }
@@ -87,8 +87,8 @@ class _MainShellState extends State<MainShell> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ChangeNotifierProvider<SimulationService>.value(
-                value: Provider.of<SimulationService>(context, listen: false),
+              builder: (_) => ChangeNotifierProvider<YamiLinkRepository>.value(
+                value: Provider.of<YamiLinkRepository>(context, listen: false),
                 child: DirectChatScreen(peer: peer),
               ),
             ),
@@ -102,7 +102,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<SimulationService>(context);
+    final simulation = Provider.of<YamiLinkRepository>(context);
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),

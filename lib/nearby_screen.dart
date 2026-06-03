@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'simulation_service.dart';
+import 'repository/yamilink_repository.dart';
 import 'widgets/avatar.dart';
 
 class NearbyScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _NearbyScreenState extends State<NearbyScreen>
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<SimulationService>(context);
+    final simulation = Provider.of<YamiLinkRepository>(context);
     final isScanning = simulation.isScanning;
 
     return Scaffold(
@@ -301,7 +301,7 @@ class _NearbyScreenState extends State<NearbyScreen>
   Widget _buildPeerTile(
     BuildContext context,
     Peer peer,
-    SimulationService simulation,
+    YamiLinkRepository simulation,
   ) {
     Color proximityColor;
     String proximityText;
@@ -462,7 +462,7 @@ class _NearbyScreenState extends State<NearbyScreen>
   void _showPeerDetailsSheet(
     BuildContext context,
     Peer peer,
-    SimulationService simulation,
+    YamiLinkRepository simulation,
   ) {
     showModalBottomSheet(
       context: context,
