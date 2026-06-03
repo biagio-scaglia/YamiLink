@@ -44,6 +44,7 @@ add_library(yamilink_core SHARED
   "../src/yamilink_core.c"
 )
 apply_standard_settings(yamilink_core)
+target_compile_definitions(yamilink_core PRIVATE "_CRT_SECURE_NO_WARNINGS")
 target_link_libraries(yamilink_core PRIVATE ws2_32)
 
 # Direct DLL output to runner folder to make it available for local loading

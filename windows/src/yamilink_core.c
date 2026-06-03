@@ -168,7 +168,7 @@ void* RecvThreadFunc(void* lpParam) {
 DART_EXPORT int32_t yamilink_core_start(const char* alias, uint32_t seed, EventDispatcher dispatcher) {
     if (g_running) return 0;
 
-    strncpy(g_alias, alias, sizeof(g_alias) - 1);
+    snprintf(g_alias, sizeof(g_alias), "%s", alias);
     g_seed = seed;
     g_dispatcher = dispatcher;
 
