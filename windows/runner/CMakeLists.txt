@@ -38,3 +38,16 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# Compile native YamiLink C core library
+add_library(yamilink_core SHARED
+  "../src/yamilink_core.c"
+)
+apply_standard_settings(yamilink_core)
+target_link_libraries(yamilink_core PRIVATE ws2_32)
+
+# Direct DLL output to runner folder to make it available for local loading
+set_target_properties(yamilink_core PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runner"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runner"
+)
