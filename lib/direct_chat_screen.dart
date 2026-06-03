@@ -44,11 +44,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     }
   }
 
-  void _sendMessage(YamiLinkRepository simulation) {
+  Future<void> _sendMessage(YamiLinkRepository simulation) async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final decision = simulation.sendDirectMessage(widget.peer.id, text);
+    final decision = await simulation.sendDirectMessage(widget.peer.id, text);
+    if (!mounted) return;
     if (decision == null) return;
 
     if (decision.action == ModerationAction.block) {

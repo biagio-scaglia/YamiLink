@@ -9,7 +9,14 @@ YamiLink e' un'applicazione di comunicazione locale e decentralizzata progettata
 * **Definizione:** Un livello sociale locale che esiste unicamente laddove si trova l'utente.
 * **Promessa Fondamentale:** Identificare i nodi limitrofi, stabilire canali di comunicazione locale, non memorizzare alcuna informazione permanente.
 * **Tono del Progetto:** Minimale, orientato alla sicurezza e alla privacy, improntato ad uno stile cyberpunk pulito e funzionale.
-* **Ambito Tecnico:** Scoperta dei nodi a 1-hop, profili effimeri, comunicazioni broadast locali, abbinamento sicuro delle chiavi crittografiche dei peer e diagnostica di telemetria a basso livello.
+* **Ambito Tecnico:** Scoperta dei nodi a 1-hop, profili effimeri, comunicazioni broadast locali, abbinamento sicuro delle chiavi crittografiche dei peer (ECDH) e diagnostica di telemetria a basso livello.
+
+---
+
+## Funzionalità Principali
+
+* **Routing Mesh Epidemico (Store-and-Forward):** I messaggi broadcast vengono ritrasmessi dai nodi della rete adiacenti incrementando il contatore degli hop. Il sistema implementa una cache di deduplica `_processedMessageKeys` nel `SessionManager` che scarta i messaggi già visti per prevenire tempeste di broadcast (loop infiniti).
+* **Accoppiamento Crittografico (Diffie-Hellman):** I nodi possono avviare uno scambio effimero di chiavi X25519 (ECDH) tramite pacchetti HELLO. Questo genera un segreto condiviso utilizzato per crittografare i Direct Message con AES-GCM.
 
 ---
 
@@ -40,7 +47,7 @@ graph TD
 Le comunicazioni di rete utilizzano un protocollo a livello applicativo basato su stringhe ASCII delimitate. Questo formato garantisce la compatibilita' cross-platform evitando problemi di endianness o padding delle strutture binarie C:
 
 ```
-VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:PAYLOAD_TYPE:BASE64_PAYLOAD
+VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:HOP_COUNT:PAYLOAD_TYPE:BASE64_PAYLOAD
 ```
 
 ### Componenti del Frame
@@ -55,8 +62,9 @@ VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:PAYLO
 | MESSAGE_ID | Contatore sequenziale dei messaggi per la rilevazione dei duplicati e gestione ACK. |
 | TIMESTAMP | Tempo Unix Epoch in millisecondi. |
 | FLAGS | Maschera di bit per opzioni speciali (es. inoltro abilitato). |
-| PAYLOAD_TYPE | Formato del corpo del pacchetto (es. text/plain). |
-| BASE64_PAYLOAD | Corpo del messaggio codificato in Base64 per supportare caratteri speciali e binari. |
+| HOP_COUNT | Contatore dei salti per il routing mesh (incrementato ad ogni relay). |
+| PAYLOAD_TYPE | Formato del corpo del pacchetto (es. text/plain o crypto/aes). |
+| BASE64_PAYLOAD | Corpo del messaggio codificato in Base64 (contenente il ciphertext se criptato). |
 
 ---
 
@@ -177,5 +185,3 @@ yamilink/
 ## Sviluppi Futuri
 
 * **Supporto Cross-Platform Nativo:** Sviluppo dei bridge nativi per iOS (Multipeer Connectivity) ed Android (Nearby Connections / Wi-Fi Direct Sockets).
-* **Protocollo Mesh Multi-Hop:** Integrazione di algoritmi di routing epidemico (Store-and-Forward) per consentire il transito dei messaggi attraverso nodi intermedi quando il destinatario si trova al di fuori del raggio di trasmissione diretta.
-* **Scambio di Chiavi Crittografiche:** Generazione di coppie di chiavi asimmetriche ed esecuzione del protocollo Diffie-Hellman tramite l'ausilio di codici QR o scansione BLE di prossimita'.

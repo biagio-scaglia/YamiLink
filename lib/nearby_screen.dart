@@ -467,8 +467,13 @@ class _NearbyScreenState extends State<NearbyScreen>
             );
             final isTrusted = currentPeer.trustLevel == TrustLevel.paired;
 
-            final pairCode =
-                '${(currentPeer.id.hashCode % 900 + 100)} ${(currentPeer.alias.hashCode % 900 + 100)}';
+            final sharedKey = simulation.getSharedKey(currentPeer.id);
+            String pairCode = 'WAITING FOR DH KEY...';
+            if (sharedKey != null) {
+              final hash = sharedKey.take(4).toList();
+              final code = (hash[0] << 24 | hash[1] << 16 | hash[2] << 8 | hash[3]).abs();
+              pairCode = '${code % 9000 + 1000} ${code ~/ 9000 % 9000 + 1000}';
+            }
 
             return Container(
               padding: const EdgeInsets.symmetric(
@@ -707,7 +712,12 @@ class _NearbyScreenState extends State<NearbyScreen>
                               ),
                             ),
                             onPressed: () {
-                              simulation.togglePeerTrust(currentPeer.id);
+                              if (!isTrusted) {
+                                simulation.initiatePairing(currentPeer.id);
+                                // Polling or just wait for state change
+                              } else {
+                                simulation.togglePeerTrust(currentPeer.id);
+                              }
                               setModalState(() {});
                             },
                             child: Text(

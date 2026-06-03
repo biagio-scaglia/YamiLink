@@ -5,12 +5,31 @@ class PeerManager {
   final void Function() _onChanged;
 
   final Set<String> _blockedPeerIds = {};
-
   final Map<String, List<DateTime>> _msgTimestamps = {};
+  final Map<String, List<int>> _sharedKeys = {}; // Stores AES keys for paired peers
 
   PeerManager({required void Function() onChanged}) : _onChanged = onChanged;
 
   List<Peer> get peers => List.unmodifiable(_peers);
+
+  List<int>? getSharedKey(String peerId) => _sharedKeys[peerId];
+
+  void setSharedKey(String peerId, List<int> key) {
+    _sharedKeys[peerId] = key;
+  }
+
+  bool isPaired(String peerId) {
+    final index = _peers.indexWhere((p) => p.id == peerId);
+    return index != -1 && _peers[index].trustLevel == TrustLevel.paired;
+  }
+
+  void setPaired(String peerId) {
+    final index = _peers.indexWhere((p) => p.id == peerId);
+    if (index != -1) {
+      _peers[index] = _peers[index].copyWith(trustLevel: TrustLevel.paired);
+      _onChanged();
+    }
+  }
 
   void handlePeerFound({
     required String id,
