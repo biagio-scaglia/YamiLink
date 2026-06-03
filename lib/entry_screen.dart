@@ -13,40 +13,27 @@ class EntryScreen extends StatefulWidget {
   State<EntryScreen> createState() => _EntryScreenState();
 }
 
-class _EntryScreenState extends State<EntryScreen> {
+class _EntryScreenState extends State<EntryScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _aliasController = TextEditingController();
   int _currentSeed = 12345;
   final Random _random = Random();
+  late AnimationController _pulseController;
 
   final List<String> _prefixes = [
-    'Ghost',
-    'Neon',
-    'Echo',
-    'Vector',
-    'Quantum',
-    'Shadow',
-    'Solar',
-    'Void',
-    'Grid',
-    'Net',
+    'Ghost', 'Neon', 'Echo', 'Vector', 'Quantum', 'Shadow', 'Solar', 'Void', 'Grid', 'Net'
   ];
   final List<String> _suffixes = [
-    'Seeker',
-    'Rider',
-    'Node',
-    'Beacon',
-    'Phantom',
-    'Runner',
-    'Pulse',
-    'Link',
-    'Signal',
-    'Zero',
+    'Seeker', 'Rider', 'Node', 'Beacon', 'Phantom', 'Runner', 'Pulse', 'Link', 'Signal', 'Zero'
   ];
 
   @override
   void initState() {
     super.initState();
     _generateRandomAlias();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
   }
 
   void _generateRandomAlias() {
@@ -80,6 +67,7 @@ class _EntryScreenState extends State<EntryScreen> {
   @override
   void dispose() {
     _aliasController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -88,34 +76,31 @@ class _EntryScreenState extends State<EntryScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background atmospheric glows
-          Positioned.fill(child: Container(color: YamiTheme.bgDeep)),
-          Positioned(
-            right: -100,
-            top: -100,
-            width: 400,
-            height: 400,
-            child: Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x117000FF), // Subtle ambient purple glow
-              ),
-            ),
+          // Background Slate Base
+          Positioned.fill(
+            child: Container(color: YamiTheme.bgDeep),
           ),
-          Positioned(
-            left: -150,
-            bottom: -150,
-            width: 500,
-            height: 500,
-            child: Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x0E00F0FF), // Subtle ambient cyan glow
-              ),
-            ),
+          
+          // Slow pulsating background radial glow
+          AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              return Positioned(
+                right: -100 + (30 * _pulseController.value),
+                top: -100 + (20 * _pulseController.value),
+                width: 450,
+                height: 450,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: YamiTheme.glowAmbient.withOpacity(0.04 + (0.04 * _pulseController.value)),
+                  ),
+                ),
+              );
+            },
           ),
 
-          // Form Content
+          // Safe Form container
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -123,23 +108,24 @@ class _EntryScreenState extends State<EntryScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Brand / Logo Header
-                    const Icon(
+                    // Brand Identity Icon
+                    Icon(
                       Icons.blur_on,
                       size: 64,
-                      color: YamiTheme.glowActive,
+                      color: YamiTheme.glowActive.withOpacity(0.8),
                     ),
                     const SizedBox(height: 12),
+                    
+                    // SpaceGrotesk styling title
                     Text(
                       'YAMILINK',
                       style: YamiTheme.titleStyle.copyWith(
                         fontSize: 32,
-                        letterSpacing: 4.0,
-                        color: YamiTheme.textPrimary,
+                        letterSpacing: 6.0,
                         shadows: [
                           BoxShadow(
-                            color: YamiTheme.glowActive.withOpacity(0.4),
-                            blurRadius: 12.0,
+                            color: YamiTheme.glowActive.withOpacity(0.35),
+                            blurRadius: 16.0,
                           ),
                         ],
                       ),
@@ -148,34 +134,30 @@ class _EntryScreenState extends State<EntryScreen> {
                     Text(
                       'A social layer that exists only when you are there.',
                       textAlign: TextAlign.center,
-                      style: YamiTheme.subtitleStyle.copyWith(
-                        color: YamiTheme.textSecondary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                      ),
+                      style: YamiTheme.subtitleStyle,
                     ),
                     const SizedBox(height: 40),
 
-                    // Avatar custom preview card
+                    // Ephemeral Profile Card (Double border Glassmorphism)
                     Container(
                       padding: const EdgeInsets.all(24.0),
                       decoration: YamiTheme.glassDecoration(
                         backgroundColor: YamiTheme.surfaceDark,
-                        opacity: 0.6,
+                        opacity: 0.65,
                         glowColor: YamiTheme.glowActive,
-                        glowRadius: 10.0,
+                        glowRadius: 12.0,
+                        doubleBorder: true,
                       ),
                       child: Column(
                         children: [
-                          // Interactive Procedural Avatar preview
                           YamiAvatar(
                             seed: _currentSeed,
-                            size: 80,
+                            size: 84,
                             isGlowing: true,
                           ),
                           const SizedBox(height: 24),
-
-                          // Input text field
+                          
+                          // TextField with design styles
                           TextField(
                             controller: _aliasController,
                             style: YamiTheme.bodyStyle.copyWith(
@@ -189,43 +171,43 @@ class _EntryScreenState extends State<EntryScreen> {
                                 letterSpacing: 1.5,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: YamiTheme.borderGlass,
-                                ),
+                                borderSide: const BorderSide(color: YamiTheme.borderGlass),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: YamiTheme.glowActive,
-                                ),
+                                borderSide: const BorderSide(color: YamiTheme.glowActive),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              prefixIcon: const Icon(
-                                Icons.face,
-                                color: YamiTheme.textSecondary,
-                              ),
+                              prefixIcon: const Icon(Icons.face, color: YamiTheme.textSecondary),
                               suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.refresh,
-                                  color: YamiTheme.glowActive,
-                                ),
+                                icon: const Icon(Icons.refresh, color: YamiTheme.glowActive),
                                 onPressed: _generateRandomAlias,
-                                tooltip: 'Regenerate Identity',
+                                tooltip: 'Regenerate',
                               ),
                             ),
                             onChanged: (val) {
                               setState(() {
-                                // Keep seed locked or change slightly based on text change
                                 _currentSeed = val.hashCode;
                               });
                             },
                           ),
+                          const SizedBox(height: 12),
+                          
+                          // Ephemeral warning banner
+                          Text(
+                            'Saved in memory only. Keys evaporate on exit.',
+                            style: YamiTheme.monoStyle.copyWith(
+                              color: YamiTheme.glowActive.withOpacity(0.85),
+                              fontSize: 9,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 36),
 
-                    // Action buttons
+                    // ElevatedButton styled
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -233,19 +215,19 @@ class _EntryScreenState extends State<EntryScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: YamiTheme.glowActive,
                           foregroundColor: YamiTheme.bgDeep,
-                          elevation: 6,
-                          shadowColor: YamiTheme.glowActive.withOpacity(0.5),
+                          elevation: 8,
+                          shadowColor: YamiTheme.glowActive.withOpacity(0.4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: _onEnter,
                         child: Text(
-                          'INITIALIZE LINK',
+                          'INITIALIZE CONNECTION',
                           style: YamiTheme.bodyStyle.copyWith(
                             color: YamiTheme.bgDeep,
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 2.0,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ),
@@ -261,8 +243,8 @@ class _EntryScreenState extends State<EntryScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Fully offline. Zero data saved to servers.',
-                          style: YamiTheme.captionStyle.copyWith(fontSize: 11),
+                          'Fully offline. Zero trace left behind.',
+                          style: YamiTheme.captionStyle,
                         ),
                       ],
                     ),
