@@ -1,95 +1,181 @@
 # YamiLink
 
-*“A social layer that exists only when you are there.”*
-
-**YamiLink** is an offline-first, proximity-based communication app designed for temporary physical spaces like conventions, campus grounds, LAN parties, transit systems, and emergency scenarios. It acts as an ephemeral social layer that surfaces automatically when peers are physically close and completely disappears without leaving a trace once they leave.
+YamiLink e' un'applicazione di comunicazione locale e decentralizzata progettata per operare offline, sfruttando la prossimita' fisica delle stazioni peer. Pensata per scenari temporanei o a infrastruttura assente (come conferenze, campus universitari, LAN party, sistemi di transito o contesti di emergenza), YamiLink implementa un livello sociale effimero che si attiva esclusivamente quando i partecipanti sono fisicamente vicini, per poi svanire senza lasciare tracce persistenti una volta che le stazioni si allontanano.
 
 ---
 
-## 🌌 Product Positioning
+## Posizionamento del Prodotto
 
-* **Tagline:** A social layer that exists only when you are there.
-* **Core Promise:** See who is around. Connect locally. Leave nothing behind.
-* **Tone:** Calm, atmospheric, subtle sci-fi, privacy-first.
-* **Scope (MVP v1):** 1-hop adjacency discovery, ephemeral identities, environment broadcasts, trust pairing verification, and system telemetry diagnostics.
-
----
-
-## 🛠️ Key Features (MVP v1)
-
-1. **Ephemeral Profile Generation:**
-   * Instant setup with zero signup or servers.
-   * Auto-generates cryptographic node IDs in memory.
-   * Generates a unique, procedurally drawn vector geometric avatar (`YamiAvatar`) from name seeds.
-2. **Nearby Proximity Radar:**
-   * Animated pulsing radar interface scanning for active local beacons.
-   * Proximity badges indicating distance classes: `IMMEDIATE` (0-3m), `NEAR` (3-10m), and `FAR` (10-30m).
-3. **Local Room Chat (1-Hop Broadcast):**
-   * Infrastructure-less multi-user chat room for local announcements.
-   * Fades entries dynamically, automatically destroying message caches upon exit.
-4. **Direct Encrypted Chat & Trust Pairing:**
-   * Private point-to-point chats between adjacent peers.
-   * Slide-up Bottom Sheets for pairing verification, using simulated mutual passcode handshakes.
-5. **System Diagnostics Console:**
-   * HUD gauges monitoring peers in range, packet exchange rate, and signal strength.
-   * Live streaming of system events and background packet telemetry logs.
-   * Mesh relay toggling capability.
+* **Definizione:** Un livello sociale locale che esiste unicamente laddove si trova l'utente.
+* **Promessa Fondamentale:** Identificare i nodi limitrofi, stabilire canali di comunicazione locale, non memorizzare alcuna informazione permanente.
+* **Tono del Progetto:** Minimale, orientato alla sicurezza e alla privacy, improntato ad uno stile cyberpunk pulito e funzionale.
+* **Ambito Tecnico:** Scoperta dei nodi a 1-hop, profili effimeri, comunicazioni broadast locali, abbinamento sicuro delle chiavi crittografiche dei peer e diagnostica di telemetria a basso livello.
 
 ---
 
-## 📂 Architecture & Modularity
+## Architettura di Sistema
 
-The codebase is organized modularly to isolate the interface from the transport layer:
+L'architettura dell'applicazione segue una chiara separazione dei compiti tra l'interfaccia utente in Flutter, lo strato di controller Dart e il core nativo in linguaggio C per la gestione dei socket.
 
-```
-lib/
-├── models.dart              # Core domain models (Profile, Peer, Message, Session)
-├── theme.dart               # Visual tokens, glassmorphism decorations, and neon colors
-├── simulation_service.dart  # State engine simulating peer discovery and messaging
-├── entry_screen.dart        # Onboarding profile setup
-├── nearby_screen.dart       # Proximity scanner and trust pairing sheet
-├── room_screen.dart         # Broadcast room environment chat
-├── direct_chat_screen.dart  # 1-hop private secure chat
-├── diagnostics_screen.dart  # Telemetry console dashboard and streaming logs
-├── main.dart                # Main entry point and bottom tab shell
-└── widgets/
-    └── avatar.dart          # CustomPainter rendering procedural vector shapes
+Il seguente diagramma illustra il flusso dei dati e l'interazione tra i componenti:
+
+```mermaid
+graph TD
+    UI[Interfaccia Utente - Flutter] --> |Richieste Azioni / Stato| Repo[YamiLinkRepository - ChangeNotifier]
+    Repo --> |Filtro Peer Bloccati / Stato Radar| PM[PeerManager]
+    Repo --> |Gestione Messaggi / Coda Affidabilita| SM[SessionManager]
+    Repo --> |Invio Byte| Trans[TransportInterface - WinUdpTransport / MockSimulator]
+    Trans --> |Integrazione FFI| FFI[YamiLinkFfiBridge]
+    FFI --> |Background Threads| C[Core C Nativo - Win32 / POSIX]
+    C --> |Ricezione Pacchetti UDP| FFI
+    FFI --> |Callback Eventi Raw| Repo
+    Repo --> |Controllo Antispam e Keywords| Mod[ModerationEngine]
+    Mod --> |Se Valido| SM
 ```
 
 ---
 
-## 🚀 Getting Started
+## Struttura del Protocollo Frame
 
-### Prerequisites
+Le comunicazioni di rete utilizzano un protocollo a livello applicativo basato su stringhe ASCII delimitate. Questo formato garantisce la compatibilita' cross-platform evitando problemi di endianness o padding delle strutture binarie C:
 
-* Flutter SDK (compatible with Dart 3.x)
-* Android Studio / Xcode / VS Code configured with emulator/device
+```
+VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:PAYLOAD_TYPE:BASE64_PAYLOAD
+```
 
-### Installation
+### Componenti del Frame
 
-1. Clone this repository to your local workspace.
-2. Fetch dependencies:
+| Campo | Descrizione |
+| --- | --- |
+| VERSIONE | Identificatore del protocollo applicativo (es. YML1). |
+| TIPO | Tipologia di pacchetto (RM = Room Message, DM = Direct Message, ACK = Acknowledgment, BC = Beacon). |
+| SENDER_ID | Hash esadecimale a 16 caratteri che identifica univocamente la stazione trasmittente. |
+| RECIPIENT_ID | Hash esadecimale del destinatario per i DM, oppure "*" per i messaggi broadcast. |
+| SESSION_ID | Identificatore casuale della sessione temporanea della stazione trasmittente. |
+| MESSAGE_ID | Contatore sequenziale dei messaggi per la rilevazione dei duplicati e gestione ACK. |
+| TIMESTAMP | Tempo Unix Epoch in millisecondi. |
+| FLAGS | Maschera di bit per opzioni speciali (es. inoltro abilitato). |
+| PAYLOAD_TYPE | Formato del corpo del pacchetto (es. text/plain). |
+| BASE64_PAYLOAD | Corpo del messaggio codificato in Base64 per supportare caratteri speciali e binari. |
+
+---
+
+## Sistema di Moderazione e Antispam Locale
+
+La moderazione dei contenuti in YamiLink e' decentralizzata ed in-memory. Non dipende da server centrali e opera in tempo reale su ogni singolo client.
+
+Il flusso di elaborazione dei pacchetti ricevuti segue questo schema decisionale:
+
+```mermaid
+graph TD
+    Packet[Pacchetto Ricevuto] --> CheckBlock{Mittente Bloccato?}
+    CheckBlock -->|Si| Discard[Scarta Pacchetto]
+    CheckBlock -->|No| CheckSpam{Spam Burst? >5 msg / 3s}
+    CheckSpam -->|Si| BlockPeer[Segna come Bloccato ed Escludi dai Radar]
+    BlockPeer --> Discard
+    CheckSpam -->|No| Normalize[Normalizzazione Testo]
+    Normalize --> FilterRed{Keyword Proibita - Red Card?}
+    FilterRed -->|Si| LogRed[Log SEC in Console e Scarta]
+    LogRed --> Discard
+    FilterRed -->|No| FilterYellow{Keyword Sensibile - Yellow Card?}
+    FilterYellow -->|Si| AddSensitive[Salva Messaggio con Blur e Tap-to-Reveal]
+    FilterYellow -->|No| AddClean[Salva Messaggio Pulito in Chiaro]
+    AddSensitive --> Deliver[Disponibile per la UI]
+    AddClean --> Deliver
+```
+
+### Dettaglio dei Sotto-Sistemi
+
+* **Rilevazione dello Spam (Burst Rate-Limiting):** Per ogni peer viene mantenuta una finestra scorrevole temporale. Se un peer trasmette piu' di 5 messaggi entro un intervallo di 3 secondi, viene automaticamente identificato come spammer. Il suo stato di confidenza passa a `blocked`, tutti i suoi pacchetti futuri vengono rifiutati all'ingresso ed il peer svanisce dalla lista radar.
+* **Normalizzazione del Testo:** Al fine di prevenire l'aggiramento dei filtri tramite l'uso di spazi, punteggiatura o simboli speciali, la stringa viene normalizzata convertendola in minuscolo e rimuovendo qualsiasi carattere non alfanumerico prima del controllo (es. `s.p.a.m_m_i_n.g` viene normalizzato in `spamming`).
+* **Regole a Semaforo:**
+  * **Rosso (Disallowed):** Parole chiave associate a violazioni gravi dei termini d'uso (es. minacce o doxxing). I messaggi vengono bloccati immediatamente alla ricezione e scartati. L'evento viene registrato nella console di diagnostica con tag `SEC:`.
+  * **Giallo (Sensitive):** Termini sensibili o volgari. Il messaggio viene accettato, ma visualizzato nella chat con un filtro grafico offuscato (sfocatura). Il destinatario puo' toccare la bolla per rimuovere la sfocatura (meccanismo Tap-to-Reveal).
+
+---
+
+## Affidabilita' delle Connessioni P2P (Strato di Trasporto)
+
+Dato che il protocollo UDP non garantisce la consegna o l'ordinamento dei pacchetti, YamiLink implementa un sistema di conferma a livello applicativo:
+
+1. **Trasmissione e Timeout:** Quando viene inviato un pacchetto diretto (DM), questo viene inserito in una coda temporanea e marcato come `sending`. Viene contemporaneamente impostato un timer a 400ms.
+2. **Ricezione ACK:** Il destinatario, alla ricezione del pacchetto di tipo `directMsg`, risponde immediatamente con un frame di tipo `ack`.
+3. **Retransmit Loop:** Se il mittente riceve l'ACK entro 400ms, cancella il timer e aggiorna lo stato in `delivered`. In caso contrario, esegue un tentativo di reinvio del pacchetto, fino a un massimo di 3 tentativi. Raggiunto il limite senza riscontro, il messaggio assume lo stato `failed`.
+4. **Deduplicazione:** Per evitare di elaborare piu' volte messaggi duplicati a causa di ACK persi, ogni stazione mantiene una lista degli ultimi 50 ID messaggio elaborati per ciascun peer. I messaggi duplicati vengono scartati ma l'ACK viene inviato nuovamente al mittente.
+
+---
+
+## Struttura delle Directory
+
+```
+yamilink/
+├── lib/
+│   ├── core/
+│   │   ├── moderation/
+│   │   │   └── moderation_engine.dart   # Motore di normalizzazione e analisi semantica
+│   │   ├── protocol/
+│   │   │   └── frame.dart               # Serializzazione/Deserializzazione protocollo applicativo
+│   │   ├── state/
+│   │   │   ├── peer_manager.dart        # Gestione liveness del radar, blocchi ed antispam
+│   │   │   └── session_manager.dart     # Storia dei messaggi, code ACK e rilevazione duplicati
+│   │   └── transport/
+│   │       ├── mock_simulator.dart      # Simulatore in-memory per piattaforme sprovviste di FFI
+│   │       ├── transport_interface.dart # Interfacce astratte per la trasmissione di rete
+│   │       └── win_udp_transport.dart   # Implementazione Winsock per Windows
+│   ├── repository/
+│   │   └── yamilink_repository.dart     # Controller centralizzato ChangeNotifier
+│   ├── chats_screen.dart                # Lista delle conversazioni private attive
+│   ├── diagnostics_screen.dart          # Telemetria di sistema e log di sicurezza SEC
+│   ├── direct_chat_screen.dart          # Chat diretta crittografata con gestione blocchi e blur
+│   ├── entry_screen.dart                # Configurazione del profilo temporaneo
+│   ├── main.dart                        # Struttura di navigazione e gestione del badge notifiche
+│   ├── nearby_screen.dart               # Radar di prossimita' spaziale e foglio di accoppiamento
+│   ├── room_screen.dart                 # Chat di gruppo broadcast locale
+│   ├── theme.dart                       # Sistema di design cyberpunk, sfumature neon e glassmorfismo
+│   └── widgets/
+│       └── avatar.dart                  # Generatore vettoriale di avatar basato su seed
+├── test/
+│   ├── moderation_test.dart             # Test unitari per moderazione, spam rate-limit e normalizzazione
+│   ├── protocol_test.dart               # Test di conformita' della serializzazione dei frame
+│   └── reliability_test.dart            # Test delle code di re-invio, deduplicazione e logica unread
+└── windows/
+    └── src/
+        └── yamilink_core.c              # Logica UDP nativa multithread per la piattaforma Windows
+```
+
+---
+
+## Istruzioni per l'Avvio
+
+### Prerequisiti
+
+* SDK Flutter (compatibile con Dart 3.x)
+* Compilatore C++ (MSVC su Windows per il build nativo)
+
+### Configurazione
+
+1. Clonare il repository nella cartella di lavoro locale.
+2. Scaricare le dipendenze del framework:
    ```bash
    flutter pub get
    ```
-3. Run the linter and format code:
+3. Eseguire l'analisi statica per verificare l'assenza di warning di compilazione:
    ```bash
-   dart format .
    flutter analyze
    ```
-4. Run the widget tests:
+4. Avviare i test unitari integrati:
    ```bash
    flutter test
    ```
-5. Deploy to a device/emulator:
+5. Eseguire l'applicazione in modalita' debug:
    ```bash
-   flutter run
+   flutter run -d windows
    ```
 
 ---
 
-## 🔮 Future Roadmap
+## Sviluppi Futuri
 
-* **Phase 2 - Direct Transport:** Integrate iOS Multipeer Connectivity and Android Nearby Connections/Wi-Fi Direct sockets.
-* **Phase 3 - Multi-Hop Mesh:** Implement Epidemic routing Protocols (store-and-forward packet buffers) across adjacent terminal nodes.
-* **Phase 4 - Cryptographic Pair Handshakes:** QR-code exchanges and cryptographic Diffie-Hellman key exchanges over BLE.
+* **Supporto Cross-Platform Nativo:** Sviluppo dei bridge nativi per iOS (Multipeer Connectivity) ed Android (Nearby Connections / Wi-Fi Direct Sockets).
+* **Protocollo Mesh Multi-Hop:** Integrazione di algoritmi di routing epidemico (Store-and-Forward) per consentire il transito dei messaggi attraverso nodi intermedi quando il destinatario si trova al di fuori del raggio di trasmissione diretta.
+* **Scambio di Chiavi Crittografiche:** Generazione di coppie di chiavi asimmetriche ed esecuzione del protocollo Diffie-Hellman tramite l'ausilio di codici QR o scansione BLE di prossimita'.
