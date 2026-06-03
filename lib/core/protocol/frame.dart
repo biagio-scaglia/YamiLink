@@ -1,14 +1,6 @@
 import 'dart:convert';
 
-enum FrameType {
-  beacon, // BCN
-  hello, // HLO
-  roomMsg, // RM
-  directMsg, // DM
-  ack, // ACK
-  goodbye, // BYE
-  error, // ERR
-}
+enum FrameType { beacon, hello, roomMsg, directMsg, ack, goodbye, error }
 
 extension FrameTypeExtension on FrameType {
   String get code {
@@ -52,13 +44,13 @@ extension FrameTypeExtension on FrameType {
 }
 
 class Frame {
-  final String version; // 'YML1'
+  final String version;
   final FrameType type;
   final String senderId;
-  final String recipientId; // '*' for broadcast
+  final String recipientId;
   final String sessionId;
   final int messageId;
-  final int timestamp; // Milliseconds since epoch
+  final int timestamp;
   final int flags;
   final String payloadType;
   final String payloadBody;

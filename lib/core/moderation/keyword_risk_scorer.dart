@@ -4,9 +4,7 @@ class KeywordRiskScorer {
   static final KeywordRiskScorer instance = KeywordRiskScorer._();
   KeywordRiskScorer._();
 
-  // Rules dictionary matching normalized keywords to risk weights and explanations
   final Map<String, ModerationRule> _rules = {
-    // Red cards (Severe: weight >= 4.0)
     'killyou': ModerationRule(
       name: 'Minaccia di violenza',
       description: 'Rilevato intento violento o minaccia fisica.',
@@ -24,11 +22,11 @@ class KeywordRiskScorer {
     ),
     'doxx': ModerationRule(
       name: 'Doxxing',
-      description: 'Tentativo di pubblicazione non autorizzata di dati personali.',
+      description:
+          'Tentativo di pubblicazione non autorizzata di dati personali.',
       riskWeight: 5.0,
     ),
 
-    // Yellow cards (Warning: weight >= 1.0)
     'scam': ModerationRule(
       name: 'Sospetta truffa',
       description: 'Parola associata a truffe finanziarie o phishing.',
@@ -85,7 +83,8 @@ class KeywordRiskScorer {
         if (explanation == 'Testo pulito.') {
           explanation = entry.value.description;
         } else {
-          explanation = '$explanation Inoltre rilevato: ${entry.value.description}';
+          explanation =
+              '$explanation Inoltre rilevato: ${entry.value.description}';
         }
       }
     }

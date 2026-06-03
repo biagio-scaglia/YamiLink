@@ -19,12 +19,9 @@ class SessionManager {
 
   String? activeConversationId;
 
-  // Deduplication: maximum 50 processed message IDs per sender hash
-  // Keep key as "senderId:messageId"
   final Set<String> _processedMessageKeys = {};
   final List<String> _processedMessageHistory = [];
 
-  // Reliability Queue: "recipientId:messageId" -> pending transmission
   final Map<String, PendingTransmission> _pendingTransmissions = {};
 
   SessionManager({
@@ -75,7 +72,6 @@ class SessionManager {
       final peerId = message.recipientId!;
       _directMessages.putIfAbsent(peerId, () => []).add(message);
 
-      // Update/Create Conversation
       final conv = _getOrCreateConversation(
         peerId,
         peerAlias ?? 'External Peer',
@@ -84,13 +80,11 @@ class SessionManager {
       conv.messages.add(message);
       conv.lastMessage = message.content;
       conv.lastTimestamp = message.timestamp;
-      conv.isPeerOnline = true; // Assume online if we are chatting
+      conv.isPeerOnline = true;
 
-      // Move to top of conversations list
       _conversations.remove(conv);
       _conversations.insert(0, conv);
 
-      // Direct message requires reliability tracking
       final key = '$peerId:${frame.messageId}';
       final pending = PendingTransmission(frame: frame);
       _pendingTransmissions[key] = pending;
@@ -108,18 +102,14 @@ class SessionManager {
     bool isBlurred = false,
     String? moderationExplanation,
   }) {
-    // 1. Deduplication check
     final dupKey = '${frame.senderId}:${frame.messageId}';
     if (_processedMessageKeys.contains(dupKey)) {
-      // Discard duplicate payloads, but if it is a message type that requires ACKs (like directMsg),
-      // we must still send back the ACK just in case our previous ACK was lost.
       if (frame.type == FrameType.directMsg) {
         _sendAck(frame);
       }
       return;
     }
 
-    // Cache message key for deduplication
     _processedMessageKeys.add(dupKey);
     _processedMessageHistory.add(dupKey);
     if (_processedMessageHistory.length > 50) {
@@ -127,7 +117,6 @@ class SessionManager {
       _processedMessageKeys.remove(oldKey);
     }
 
-    // 2. Route by type
     switch (frame.type) {
       case FrameType.roomMsg:
         final msg = Message(
@@ -146,7 +135,6 @@ class SessionManager {
         break;
 
       case FrameType.directMsg:
-        // Add direct message
         final msg = Message(
           id: 'msg_dm_recv_${frame.timestamp}_${frame.messageId}',
           senderId: frame.senderId,
@@ -161,7 +149,6 @@ class SessionManager {
         );
         _directMessages.putIfAbsent(frame.senderId, () => []).add(msg);
 
-        // Update/Create Conversation
         final conv = _getOrCreateConversation(
           frame.senderId,
           senderAlias,
@@ -172,28 +159,24 @@ class SessionManager {
         conv.lastTimestamp = msg.timestamp;
         conv.isPeerOnline = true;
 
-        // Unread logic
         if (activeConversationId != frame.senderId) {
           conv.unreadCount++;
         }
 
-        // Move to top of conversations list
         _conversations.remove(conv);
         _conversations.insert(0, conv);
 
         _onChanged();
 
-        // Immediately send back an ACK frame
         _sendAck(frame);
         break;
 
       case FrameType.ack:
-        // Match ACK
         final ackKey = '${frame.senderId}:${frame.messageId}';
         final pending = _pendingTransmissions.remove(ackKey);
         if (pending != null) {
           pending.timer?.cancel();
-          // Update message status in our direct message history
+
           final peerId = frame.senderId;
           final dms = _directMessages[peerId];
           if (dms != null) {
@@ -212,19 +195,17 @@ class SessionManager {
       case FrameType.hello:
       case FrameType.goodbye:
       case FrameType.error:
-        // Handled by PeerManager or discarded for now
         break;
     }
   }
 
   void _sendAck(Frame frame) {
-    // Send ACK to sender of the message
     final ackFrame = Frame(
       type: FrameType.ack,
-      senderId: frame.recipientId, // We are sender of the ACK
+      senderId: frame.recipientId,
       recipientId: frame.senderId,
       sessionId: frame.sessionId,
-      messageId: frame.messageId, // Message ID being acknowledged
+      messageId: frame.messageId,
       timestamp: DateTime.now().millisecondsSinceEpoch,
       payloadBody: '',
     );
@@ -250,7 +231,6 @@ class SessionManager {
       _onRetransmit(pending.frame);
       _startRetryTimer(key);
     } else {
-      // Max retries reached. Mark message as failed.
       _pendingTransmissions.remove(key);
       final parts = key.split(':');
       final peerId = parts[0];

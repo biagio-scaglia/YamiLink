@@ -36,13 +36,13 @@ class YamiLinkRepository extends ChangeNotifier {
   ).join();
   int _nextMessageId = 100;
 
-  // Real diagnostics logs list
   final List<String> _diagnosticsLogs = [];
   List<String> get diagnosticsLogs => List.unmodifiable(_diagnosticsLogs);
 
   void logDiagnostic(String message) {
     final now = DateTime.now();
-    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     _diagnosticsLogs.add('[$timeStr] $message');
     if (_diagnosticsLogs.length > 100) {
       _diagnosticsLogs.removeAt(0);
@@ -51,7 +51,6 @@ class YamiLinkRepository extends ChangeNotifier {
   }
 
   YamiLinkRepository({required this.profile}) {
-    // 1. Initialize FFI core if supported, otherwise fallback to simulator
     YamiLinkFfiBridge.instance.load();
 
     logDiagnostic('SEC: Initialized ephemeral cryptosystem');
@@ -80,7 +79,6 @@ class YamiLinkRepository extends ChangeNotifier {
       });
     }
 
-    // 2. Initialize State managers
     _peerManager = PeerManager(onChanged: notifyListeners);
     _sessionManager = SessionManager(
       onChanged: notifyListeners,
@@ -91,7 +89,6 @@ class YamiLinkRepository extends ChangeNotifier {
       },
     );
 
-    // 3. Register Data Receiver Callback
     _messageTransport.registerReceiveCallback((
       String senderHash,
       Uint8List packetBytes,
@@ -102,23 +99,25 @@ class YamiLinkRepository extends ChangeNotifier {
       try {
         final frame = Frame.deserialize(rawText);
 
-        // Skip loopback messages from ourselves
         if (frame.senderId == profile.id) return;
 
-        logDiagnostic('NET: Received frame type: ${frame.type.name} from ${frame.senderId}');
+        logDiagnostic(
+          'NET: Received frame type: ${frame.type.name} from ${frame.senderId}',
+        );
 
-        // A. Check if the sender is manually or auto-blocked
         if (isPeerBlocked(frame.senderId)) {
-          logDiagnostic('SEC: Discarded incoming frame from blocked peer ${frame.senderId}');
+          logDiagnostic(
+            'SEC: Discarded incoming frame from blocked peer ${frame.senderId}',
+          );
           return;
         }
 
-        // B. Run incoming moderation
         bool isFlagged = false;
         bool isBlurred = false;
         String? moderationExplanation;
 
-        if (frame.type == FrameType.roomMsg || frame.type == FrameType.directMsg) {
+        if (frame.type == FrameType.roomMsg ||
+            frame.type == FrameType.directMsg) {
           final decision = ModerationService.instance.moderateIncoming(
             frame.senderId,
             frame.messageId.toString(),
@@ -126,17 +125,20 @@ class YamiLinkRepository extends ChangeNotifier {
           );
 
           if (decision.action == ModerationAction.block) {
-            logDiagnostic('SEC: Blocked message from ${frame.senderId} due to: ${decision.explanation}');
+            logDiagnostic(
+              'SEC: Blocked message from ${frame.senderId} due to: ${decision.explanation}',
+            );
             notifyListeners();
             return;
           }
 
-          isFlagged = decision.action == ModerationAction.hide || decision.action == ModerationAction.block;
+          isFlagged =
+              decision.action == ModerationAction.hide ||
+              decision.action == ModerationAction.block;
           isBlurred = decision.action == ModerationAction.hide;
           moderationExplanation = decision.explanation;
         }
 
-        // Retrieve sender alias and seed from current discovered peers
         String senderAlias = 'External Peer';
         int avatarSeed = 0;
         for (var p in _peerManager.peers) {
@@ -160,12 +162,10 @@ class YamiLinkRepository extends ChangeNotifier {
       }
     });
 
-    // 4. Launch simulated history (fallback only)
     if (!YamiLinkFfiBridge.instance.isSupported) {
       _loadInitialSimulatedHistory();
     }
 
-    // Start liveness sweep checks
     _sweepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _peerManager.sweepStalePeers();
       _sessionManager.syncPeerOnlineStatus(
@@ -174,25 +174,22 @@ class YamiLinkRepository extends ChangeNotifier {
     });
   }
 
-  // --- Getters mirroring SimulationService interface ---
-  // Filter out blocked peers
-  List<Peer> get peers => _peerManager.peers.where((p) => !isPeerBlocked(p.id)).toList();
+  List<Peer> get peers =>
+      _peerManager.peers.where((p) => !isPeerBlocked(p.id)).toList();
   List<Message> get roomMessages => _sessionManager.roomMessages;
-  // Filter out conversations with blocked peers
-  List<Conversation> get conversations => _sessionManager.conversations.where((c) => !isPeerBlocked(c.peerId)).toList();
-  
-  int get totalUnreadCount => conversations.fold<int>(
-    0,
-    (sum, c) => sum + c.unreadCount,
-  );
+
+  List<Conversation> get conversations => _sessionManager.conversations
+      .where((c) => !isPeerBlocked(c.peerId))
+      .toList();
+
+  int get totalUnreadCount =>
+      conversations.fold<int>(0, (sum, c) => sum + c.unreadCount);
   List<Message> getDirectMessages(String peerId) =>
       _sessionManager.getDirectMessages(peerId);
   bool get isScanning => _isScanning;
   bool get relayEnabled => _relayEnabled;
   int get packetsProcessed => _packetsProcessed;
   double get signalStrength => _signalStrength;
-
-  // --- Actions ---
 
   void startScanning() {
     if (_isScanning) return;
@@ -233,12 +230,17 @@ class YamiLinkRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  ModerationDecision? sendBroadcastMessage(String content, {bool force = false}) {
+  ModerationDecision? sendBroadcastMessage(
+    String content, {
+    bool force = false,
+  }) {
     if (content.trim().isEmpty) return null;
 
     final decision = ModerationService.instance.moderateOutgoing(content);
     if (decision.action == ModerationAction.block) {
-      logDiagnostic('SEC: Outgoing room broadcast blocked: ${decision.explanation}');
+      logDiagnostic(
+        'SEC: Outgoing room broadcast blocked: ${decision.explanation}',
+      );
       return decision;
     }
     if (decision.action == ModerationAction.warn && !force) {
@@ -268,7 +270,9 @@ class YamiLinkRepository extends ChangeNotifier {
       status: MessageStatus.delivered,
       isFlagged: decision.action == ModerationAction.warn,
       isBlurred: false,
-      moderationExplanation: decision.action == ModerationAction.warn ? decision.explanation : null,
+      moderationExplanation: decision.action == ModerationAction.warn
+          ? decision.explanation
+          : null,
     );
 
     _sessionManager.addOutgoingMessage(userMsg, frame);
@@ -276,12 +280,18 @@ class YamiLinkRepository extends ChangeNotifier {
     return decision;
   }
 
-  ModerationDecision? sendDirectMessage(String peerId, String content, {bool force = false}) {
+  ModerationDecision? sendDirectMessage(
+    String peerId,
+    String content, {
+    bool force = false,
+  }) {
     if (content.trim().isEmpty) return null;
 
     final decision = ModerationService.instance.moderateOutgoing(content);
     if (decision.action == ModerationAction.block) {
-      logDiagnostic('SEC: Outgoing direct message blocked: ${decision.explanation}');
+      logDiagnostic(
+        'SEC: Outgoing direct message blocked: ${decision.explanation}',
+      );
       return decision;
     }
     if (decision.action == ModerationAction.warn && !force) {
@@ -300,7 +310,9 @@ class YamiLinkRepository extends ChangeNotifier {
 
     final frameBytes = utf8.encode(frame.serialize());
     _messageTransport.sendDirect(peerId, frameBytes);
-    logDiagnostic('DBG: Sent direct message to peer $peerId: [${content.length} chars]');
+    logDiagnostic(
+      'DBG: Sent direct message to peer $peerId: [${content.length} chars]',
+    );
 
     final peer = _peerManager.peers.firstWhere(
       (p) => p.id == peerId,
@@ -322,7 +334,9 @@ class YamiLinkRepository extends ChangeNotifier {
       status: MessageStatus.sending,
       isFlagged: decision.action == ModerationAction.warn,
       isBlurred: false,
-      moderationExplanation: decision.action == ModerationAction.warn ? decision.explanation : null,
+      moderationExplanation: decision.action == ModerationAction.warn
+          ? decision.explanation
+          : null,
     );
 
     _sessionManager.addOutgoingMessage(
@@ -339,11 +353,11 @@ class YamiLinkRepository extends ChangeNotifier {
     _peerManager.toggleTrust(peerId);
   }
 
-  // --- Local Moderator Controls ---
-
   void mutePeer(String peerId, Duration duration) {
     ModerationService.instance.mutePeer(peerId, duration);
-    logDiagnostic('SEC: Peer $peerId silenziato per ${duration.inSeconds} secondi');
+    logDiagnostic(
+      'SEC: Peer $peerId silenziato per ${duration.inSeconds} secondi',
+    );
     notifyListeners();
   }
 
@@ -372,7 +386,8 @@ class YamiLinkRepository extends ChangeNotifier {
   }
 
   bool isPeerBlocked(String peerId) {
-    return _peerManager.isBlocked(peerId) || ModerationService.instance.isPeerBlocked(peerId);
+    return _peerManager.isBlocked(peerId) ||
+        ModerationService.instance.isPeerBlocked(peerId);
   }
 
   void setActiveConversation(String? peerId) {

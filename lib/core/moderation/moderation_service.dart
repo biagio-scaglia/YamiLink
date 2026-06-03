@@ -6,14 +6,14 @@ class ModerationService {
   static final ModerationService instance = ModerationService._();
   ModerationService._();
 
-  // Scoped peer moderation states for the current session
   final Map<String, PeerModerationState> _peerStates = {};
 
   /// Normalizes message text: lowercases, strips spaces & symbols, and compresses repeats of 3+ letters to 1.
   String normalize(String text) {
-    String normalized = text
-        .toLowerCase()
-        .replaceAll(RegExp(r'[\s\.\-_!\?,\*@#\$%\^&]'), '');
+    String normalized = text.toLowerCase().replaceAll(
+      RegExp(r'[\s\.\-_!\?,\*@#\$%\^&]'),
+      '',
+    );
     if (normalized.isEmpty) return normalized;
 
     return normalized.replaceAllMapped(RegExp(r'(.)\1{2,}'), (match) {
@@ -27,7 +27,6 @@ class ModerationService {
     String messageId,
     String content,
   ) {
-    // 1. Check if the peer is already blocked
     if (isPeerBlocked(peerId)) {
       return ModerationDecision(
         messageId: messageId,
@@ -54,7 +53,6 @@ class ModerationService {
     );
     peerState.lastEventTimestamp = DateTime.now();
 
-    // 2. Check spam and duplication
     final isFlooding = SpamHeuristicEngine.instance.checkFlood(peerId);
     final isDuplicate = SpamHeuristicEngine.instance.checkDuplicate(
       peerId,
@@ -87,7 +85,6 @@ class ModerationService {
       );
     }
 
-    // 3. Check keywords
     final scoreResult = KeywordRiskScorer.instance.score(normalized);
     final List<String> matched = List<String>.from(scoreResult['matchedRules']);
     final double riskScore = scoreResult['riskScore'];
@@ -116,15 +113,14 @@ class ModerationService {
         severity: severity,
         action: action,
         explanation: keywordExplanation,
-        shouldHide: action == ModerationAction.hide ||
-            action == ModerationAction.block,
+        shouldHide:
+            action == ModerationAction.hide || action == ModerationAction.block,
         requiresTapToReveal: action == ModerationAction.hide,
         shouldBlockSend: action == ModerationAction.block,
         shouldIncrementPeerRisk: true,
       );
     }
 
-    // 4. Check if peer is currently muted (either manually or via strikes)
     if (peerState.isMuted) {
       return ModerationDecision(
         messageId: messageId,
@@ -205,8 +201,6 @@ class ModerationService {
       state.isBlocked = true;
     }
   }
-
-  // --- Local Moderator Controls (Manual overrides) ---
 
   void mutePeer(String peerId, Duration duration) {
     final state = _peerStates.putIfAbsent(

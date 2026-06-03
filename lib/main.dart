@@ -9,6 +9,7 @@ import 'chats_screen.dart';
 import 'room_screen.dart';
 import 'diagnostics_screen.dart';
 import 'direct_chat_screen.dart';
+import 'core/tutorial/tutorial_helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -43,7 +44,7 @@ class _InitializerScreenState extends State<InitializerScreen> {
     setState(() {
       _profile = profile;
       _yamilinkRepository = YamiLinkRepository(profile: profile);
-      // Auto-start scanning on profile creation
+
       _yamilinkRepository!.startScanning();
     });
   }
@@ -77,6 +78,12 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
+  final GlobalKey _spaceTabKey = GlobalKey();
+  final GlobalKey _chatsTabKey = GlobalKey();
+  final GlobalKey _roomTabKey = GlobalKey();
+  final GlobalKey _diagsTabKey = GlobalKey();
+  bool _hasRunTutorial = false;
+
   late final List<Widget> _screens;
 
   @override
@@ -95,11 +102,33 @@ class _MainShellState extends State<MainShell> {
             ),
           );
         },
+        onRunTutorial: _runTutorial,
       ),
-      const ChatsScreen(),
-      const RoomScreen(),
+      ChatsScreen(onRunTutorial: _runTutorial),
+      RoomScreen(onRunTutorial: _runTutorial),
       const DiagnosticsScreen(),
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_hasRunTutorial) {
+        _hasRunTutorial = true;
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) {
+            _runTutorial();
+          }
+        });
+      }
+    });
+  }
+
+  void _runTutorial() {
+    YamiTutorialHelper.showOnboardingTutorial(
+      context: context,
+      spaceTabKey: _spaceTabKey,
+      chatsTabKey: _chatsTabKey,
+      roomTabKey: _roomTabKey,
+      diagsTabKey: _diagsTabKey,
+    );
   }
 
   @override
@@ -124,15 +153,22 @@ class _MainShellState extends State<MainShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.radar, 'SPACE', simulation.peers.length),
+                _buildNavItem(
+                  0,
+                  Icons.radar,
+                  'SPACE',
+                  simulation.peers.length,
+                  _spaceTabKey,
+                ),
                 _buildNavItem(
                   1,
                   Icons.chat_bubble_outline,
                   'CHATS',
                   simulation.totalUnreadCount,
+                  _chatsTabKey,
                 ),
-                _buildNavItem(2, Icons.forum, 'ROOM', 0),
-                _buildNavItem(3, Icons.analytics, 'DIAGS', 0),
+                _buildNavItem(2, Icons.forum, 'ROOM', 0, _roomTabKey),
+                _buildNavItem(3, Icons.analytics, 'DIAGS', 0, _diagsTabKey),
               ],
             ),
           ),
@@ -141,12 +177,19 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, int badgeCount) {
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    String label,
+    int badgeCount,
+    GlobalKey key,
+  ) {
     final isSelected = _currentIndex == index;
     final activeColor = YamiTheme.glowActive;
     final color = isSelected ? activeColor : YamiTheme.textMuted;
 
     return GestureDetector(
+      key: key,
       onTap: () {
         setState(() {
           _currentIndex = index;
@@ -199,7 +242,7 @@ class _MainShellState extends State<MainShell> {
             ),
           ),
           const SizedBox(height: 2),
-          // Custom glowing bottom highlight indicator line
+
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: isSelected ? 12 : 0,

@@ -4,11 +4,17 @@ import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
 import 'widgets/avatar.dart';
+import 'core/tutorial/tutorial_helper.dart';
 
 class NearbyScreen extends StatefulWidget {
   final Function(Peer) onOpenDirectChat;
+  final VoidCallback onRunTutorial;
 
-  const NearbyScreen({super.key, required this.onOpenDirectChat});
+  const NearbyScreen({
+    super.key,
+    required this.onOpenDirectChat,
+    required this.onRunTutorial,
+  });
 
   @override
   State<NearbyScreen> createState() => _NearbyScreenState();
@@ -41,7 +47,6 @@ class _NearbyScreenState extends State<NearbyScreen>
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Elevated spatial radar header
           SliverAppBar(
             expandedHeight: 230.0,
             floating: false,
@@ -56,15 +61,14 @@ class _NearbyScreenState extends State<NearbyScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 50),
-                      // Double pulsing outer circles for radar
+                      const SizedBox(height: 10),
+
                       AnimatedBuilder(
                         animation: _radarController,
                         builder: (context, child) {
                           return Stack(
                             alignment: Alignment.center,
                             children: [
-                              // Pulse Ring 1
                               Container(
                                 width: 110 * _radarController.value,
                                 height: 110 * _radarController.value,
@@ -80,7 +84,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                   ),
                                 ),
                               ),
-                              // Pulse Ring 2
+
                               Container(
                                 width:
                                     150 *
@@ -104,7 +108,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                   ),
                                 ),
                               ),
-                              // Central Core
+
                               Container(
                                 width: 28,
                                 height: 28,
@@ -153,6 +157,20 @@ class _NearbyScreenState extends State<NearbyScreen>
             ),
             actions: [
               IconButton(
+                icon: const Icon(
+                  Icons.help_outline,
+                  color: YamiTheme.textSecondary,
+                  size: 24,
+                ),
+                onPressed: () {
+                  YamiTutorialHelper.showHelpBottomSheet(
+                    context,
+                    widget.onRunTutorial,
+                  );
+                },
+                tooltip: 'Help',
+              ),
+              IconButton(
                 icon: Icon(
                   isScanning
                       ? Icons.pause_circle_filled
@@ -175,7 +193,6 @@ class _NearbyScreenState extends State<NearbyScreen>
             ],
           ),
 
-          // Proximity list header
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 10.0),
@@ -231,7 +248,6 @@ class _NearbyScreenState extends State<NearbyScreen>
             ),
           ),
 
-          // Discovered Peers list
           simulation.peers.isEmpty
               ? SliverFillRemaining(
                   hasScrollBody: false,
@@ -260,7 +276,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                             style: YamiTheme.captionStyle,
                           ),
                           const SizedBox(height: 24),
-                          // Empty state simulation trigger
+
                           if (!isScanning)
                             OutlinedButton.icon(
                               style: OutlinedButton.styleFrom(
@@ -346,7 +362,6 @@ class _NearbyScreenState extends State<NearbyScreen>
           ),
           child: Row(
             children: [
-              // Custom left state highlighter bar
               Container(
                 width: 3.5,
                 height: 38,
@@ -359,7 +374,6 @@ class _NearbyScreenState extends State<NearbyScreen>
               ),
               const SizedBox(width: 12),
 
-              // Generative Procedural Avatar
               YamiAvatar(
                 seed: peer.avatarSeed,
                 size: 46,
@@ -370,7 +384,6 @@ class _NearbyScreenState extends State<NearbyScreen>
               ),
               const SizedBox(width: 14),
 
-              // Peer Ident details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,10 +409,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                     ),
                     const SizedBox(height: 5),
 
-                    // Signal proximity telemetry indicators
                     Row(
                       children: [
-                        // Proximity visual bars
                         Row(
                           children: List.generate(3, (index) {
                             return Container(
@@ -477,7 +488,6 @@ class _NearbyScreenState extends State<NearbyScreen>
             );
             final isTrusted = currentPeer.trustLevel == TrustLevel.paired;
 
-            // Generate deterministic pair passcode
             final pairCode =
                 '${(currentPeer.id.hashCode % 900 + 100)} ${(currentPeer.alias.hashCode % 900 + 100)}';
 
@@ -496,7 +506,6 @@ class _NearbyScreenState extends State<NearbyScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Handle
                   Container(
                     width: 36,
                     height: 4,
@@ -507,7 +516,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // Big Glowing Avatar
                   YamiAvatar(
                     seed: currentPeer.avatarSeed,
                     size: 80,
@@ -521,7 +529,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                   Text(currentPeer.alias, style: YamiTheme.titleStyle),
                   const SizedBox(height: 4),
 
-                  // Monospace identity code
                   Text(
                     'NODE KEY: sha256::${currentPeer.id.substring(0, 8)}...${currentPeer.id.substring(currentPeer.id.length - 4)}',
                     style: YamiTheme.monoStyle.copyWith(
@@ -531,7 +538,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // Relative Telemetry HUD Card
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14.0),
@@ -604,7 +610,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                   ),
                   const SizedBox(height: 24),
 
-                  // Key comparison module
                   if (isTrusted) ...[
                     Container(
                       width: double.infinity,
@@ -680,7 +685,6 @@ class _NearbyScreenState extends State<NearbyScreen>
                     ),
                   ],
 
-                  // Action sheet buttons
                   Row(
                     children: [
                       Expanded(
@@ -772,7 +776,9 @@ class _NearbyScreenState extends State<NearbyScreen>
                           setModalState(() {});
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('${currentPeer.alias} non è più silenziato'),
+                              content: Text(
+                                '${currentPeer.alias} non è più silenziato',
+                              ),
                               backgroundColor: YamiTheme.glowSecure,
                             ),
                           );
@@ -783,50 +789,76 @@ class _NearbyScreenState extends State<NearbyScreen>
                               backgroundColor: YamiTheme.bgDeep,
                               title: Text(
                                 'SILENZIA PEER',
-                                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                                style: YamiTheme.monoStyle.copyWith(
+                                  color: YamiTheme.glowActive,
+                                ),
                               ),
                               children: [
                                 SimpleDialogOption(
                                   onPressed: () {
-                                    simulation.mutePeer(currentPeer.id, const Duration(seconds: 10));
+                                    simulation.mutePeer(
+                                      currentPeer.id,
+                                      const Duration(seconds: 10),
+                                    );
                                     Navigator.pop(context);
                                     setModalState(() {});
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Peer silenziato per 10 secondi'),
+                                        content: Text(
+                                          'Peer silenziato per 10 secondi',
+                                        ),
                                         backgroundColor: YamiTheme.glowWarning,
                                       ),
                                     );
                                   },
-                                  child: Text('10 Secondi', style: YamiTheme.bodyStyle),
+                                  child: Text(
+                                    '10 Secondi',
+                                    style: YamiTheme.bodyStyle,
+                                  ),
                                 ),
                                 SimpleDialogOption(
                                   onPressed: () {
-                                    simulation.mutePeer(currentPeer.id, const Duration(seconds: 30));
+                                    simulation.mutePeer(
+                                      currentPeer.id,
+                                      const Duration(seconds: 30),
+                                    );
                                     Navigator.pop(context);
                                     setModalState(() {});
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Peer silenziato per 30 secondi'),
+                                        content: Text(
+                                          'Peer silenziato per 30 secondi',
+                                        ),
                                         backgroundColor: YamiTheme.glowWarning,
                                       ),
                                     );
                                   },
-                                  child: Text('30 Secondi', style: YamiTheme.bodyStyle),
+                                  child: Text(
+                                    '30 Secondi',
+                                    style: YamiTheme.bodyStyle,
+                                  ),
                                 ),
                                 SimpleDialogOption(
                                   onPressed: () {
-                                    simulation.mutePeer(currentPeer.id, const Duration(minutes: 1));
+                                    simulation.mutePeer(
+                                      currentPeer.id,
+                                      const Duration(minutes: 1),
+                                    );
                                     Navigator.pop(context);
                                     setModalState(() {});
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Peer silenziato per 1 minuto'),
+                                        content: Text(
+                                          'Peer silenziato per 1 minuto',
+                                        ),
                                         backgroundColor: YamiTheme.glowWarning,
                                       ),
                                     );
                                   },
-                                  child: Text('1 Minuto', style: YamiTheme.bodyStyle),
+                                  child: Text(
+                                    '1 Minuto',
+                                    style: YamiTheme.bodyStyle,
+                                  ),
                                 ),
                               ],
                             ),
@@ -840,7 +872,11 @@ class _NearbyScreenState extends State<NearbyScreen>
                     width: double.infinity,
                     height: 44,
                     child: TextButton.icon(
-                      icon: const Icon(Icons.block, color: YamiTheme.glowWarning, size: 16),
+                      icon: const Icon(
+                        Icons.block,
+                        color: YamiTheme.glowWarning,
+                        size: 16,
+                      ),
                       label: Text(
                         'BLOCK PEER',
                         style: YamiTheme.monoStyle.copyWith(

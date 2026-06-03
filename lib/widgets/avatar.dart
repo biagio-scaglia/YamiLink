@@ -62,7 +62,6 @@ class YamiAvatarPainter extends CustomPainter {
     final center = Offset(width / 2, height / 2);
     final maxRadius = min(width, height) / 2;
 
-    // Draw background subtle gradient based on seed
     final bgPaint = Paint()
       ..shader = RadialGradient(
         colors: [
@@ -77,7 +76,6 @@ class YamiAvatarPainter extends CustomPainter {
       ).createShader(Rect.fromLTWH(0, 0, width, height));
     canvas.drawRect(Rect.fromLTWH(0, 0, width, height), bgPaint);
 
-    // Dynamic geometry drawing based on random seed
     final geometryType = random.nextInt(4);
     final strokePaint = Paint()
       ..color = glowColor.withOpacity(0.65)
@@ -88,7 +86,6 @@ class YamiAvatarPainter extends CustomPainter {
       ..color = glowColor.withOpacity(0.12)
       ..style = PaintingStyle.fill;
 
-    // 1. Draw fine outer boundary notches/marks (cyber telemetry scope look)
     final notchPaint = Paint()
       ..color = glowColor.withOpacity(0.3)
       ..style = PaintingStyle.stroke
@@ -106,16 +103,13 @@ class YamiAvatarPainter extends CustomPainter {
       canvas.drawLine(start, end, notchPaint);
     }
 
-    // 2. Draw central core
     canvas.drawCircle(
       center,
       maxRadius * 0.12,
       fillPaint..color = glowColor.withOpacity(0.25),
     );
 
-    // 3. Render Geometry
     if (geometryType == 0) {
-      // Concentric rings with rotating segments and crosshairs
       canvas.drawCircle(center, maxRadius * 0.45, strokePaint);
       canvas.drawCircle(
         center,
@@ -123,7 +117,6 @@ class YamiAvatarPainter extends CustomPainter {
         strokePaint..strokeWidth = 0.6,
       );
 
-      // Fine crosshair lines
       canvas.drawLine(
         Offset(width * 0.18, height / 2),
         Offset(width * 0.82, height / 2),
@@ -135,7 +128,6 @@ class YamiAvatarPainter extends CustomPainter {
         strokePaint,
       );
 
-      // Orbiting node points
       final angle1 = random.nextDouble() * 2 * pi;
       final angle2 = angle1 + pi / 3;
       canvas.drawCircle(
@@ -155,7 +147,6 @@ class YamiAvatarPainter extends CustomPainter {
         fillPaint..color = glowColor.withOpacity(0.8),
       );
     } else if (geometryType == 1) {
-      // Triangle structures
       final path = Path();
       path.moveTo(center.dx, center.dy - maxRadius * 0.7);
       path.lineTo(center.dx - maxRadius * 0.6, center.dy + maxRadius * 0.4);
@@ -164,7 +155,6 @@ class YamiAvatarPainter extends CustomPainter {
       canvas.drawPath(path, fillPaint);
       canvas.drawPath(path, strokePaint);
 
-      // Inverted inner triangle
       final innerPath = Path();
       innerPath.moveTo(center.dx, center.dy + maxRadius * 0.35);
       innerPath.lineTo(
@@ -181,7 +171,6 @@ class YamiAvatarPainter extends CustomPainter {
         strokePaint..color = YamiTheme.glowAmbient.withOpacity(0.5),
       );
     } else if (geometryType == 2) {
-      // Intersecting nodes (graph network visual)
       final points = <Offset>[];
       final nodeCount = 5 + random.nextInt(3);
       for (int i = 0; i < nodeCount; i++) {
@@ -192,7 +181,6 @@ class YamiAvatarPainter extends CustomPainter {
         );
       }
 
-      // Draw connections
       for (int i = 0; i < points.length; i++) {
         for (int j = i + 1; j < points.length; j++) {
           if (random.nextDouble() > 0.4) {
@@ -205,7 +193,6 @@ class YamiAvatarPainter extends CustomPainter {
         }
       }
 
-      // Draw nodes
       for (var point in points) {
         canvas.drawCircle(point, 3, fillPaint..color = glowColor);
         canvas.drawCircle(
@@ -217,7 +204,6 @@ class YamiAvatarPainter extends CustomPainter {
         );
       }
     } else {
-      // Circular radar scan arc with orbiting satellites
       canvas.drawCircle(
         center,
         maxRadius * 0.6,

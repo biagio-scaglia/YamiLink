@@ -9,7 +9,6 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
   bool _isScanning = false;
 
   WinUdpTransport() {
-    // Register event routing from the FFI Bridge
     YamiLinkFfiBridge.instance.onEvent = _handleFfiEvent;
   }
 
@@ -67,10 +66,8 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
     if (!_isScanning) return;
 
     if (eventType == 0) {
-      // NodeDiscovered
       _onPeerFound?.call(senderHash, senderAlias, seed, signal);
     } else if (eventType == 1) {
-      // PacketReceived
       _onDataReceived?.call(senderHash, payload);
     }
   }

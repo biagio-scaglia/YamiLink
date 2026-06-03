@@ -2,12 +2,7 @@ import 'dart:math';
 
 enum TrustLevel { unverified, paired, blocked }
 
-enum ProximityHint {
-  immediate, // 0-3m
-  near, // 3-10m
-  far, // 10-30m
-  unknown,
-}
+enum ProximityHint { immediate, near, far, unknown }
 
 enum MessageStatus { sending, delivered, failed }
 
@@ -82,7 +77,7 @@ class Message {
   final String id;
   final String senderId;
   final String senderAlias;
-  final String? recipientId; // null means local broadcast (room chat)
+  final String? recipientId;
   final String content;
   final DateTime timestamp;
   MessageStatus status;
@@ -115,7 +110,7 @@ class Session {
 }
 
 class Conversation {
-  final String id; // Matches peerId
+  final String id;
   final String peerId;
   final String peerAlias;
   final int peerAvatarSeed;

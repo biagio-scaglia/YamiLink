@@ -69,7 +69,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'OK',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.glowActive,
+                ),
               ),
             ),
           ],
@@ -96,7 +98,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'ANNULLA',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.textSecondary),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.textSecondary,
+                ),
               ),
             ),
             TextButton(
@@ -104,11 +108,16 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 Navigator.pop(context);
                 simulation.sendDirectMessage(widget.peer.id, text, force: true);
                 _messageController.clear();
-                Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+                Future.delayed(
+                  const Duration(milliseconds: 80),
+                  () => _scrollToBottom(),
+                );
               },
               child: Text(
                 'INVIA COMUNQUE',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.glowWarning,
+                ),
               ),
             ),
           ],
@@ -133,7 +142,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Widget build(BuildContext context) {
     final simulation = Provider.of<YamiLinkRepository>(context);
 
-    // Retrieve active peer status, checking if blocked
     final isBlocked = simulation.isPeerBlocked(widget.peer.id);
     final isMuted = simulation.isPeerMuted(widget.peer.id);
 
@@ -143,7 +151,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
     final isTrusted = livePeer.trustLevel == TrustLevel.paired;
 
-    // Check conversation online status and retrieve messages list
     final conv = simulation.conversations.firstWhere(
       (c) => c.peerId == livePeer.id,
       orElse: () {
@@ -209,23 +216,23 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     isBlocked
                         ? 'PEER BLOCCATO'
                         : (isMuted
-                            ? 'PEER SILENZIATO'
-                            : (!isPeerOnline
-                                ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
-                                : (isTrusted
-                                      ? 'ENCRYPTED P2P CHANNEL'
-                                      : 'UNVERIFIED P2P CHANNEL'))),
+                              ? 'PEER SILENZIATO'
+                              : (!isPeerOnline
+                                    ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
+                                    : (isTrusted
+                                          ? 'ENCRYPTED P2P CHANNEL'
+                                          : 'UNVERIFIED P2P CHANNEL'))),
                     style: YamiTheme.captionStyle.copyWith(
                       fontSize: 8.5,
                       color: isBlocked
                           ? YamiTheme.glowWarning
                           : (isMuted
-                              ? YamiTheme.glowWarning
-                              : (!isPeerOnline
-                                  ? YamiTheme.textMuted
-                                  : (isTrusted
-                                        ? YamiTheme.glowSecure
-                                        : YamiTheme.glowActive))),
+                                ? YamiTheme.glowWarning
+                                : (!isPeerOnline
+                                      ? YamiTheme.textMuted
+                                      : (isTrusted
+                                            ? YamiTheme.glowSecure
+                                            : YamiTheme.glowActive))),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -256,12 +263,17 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     backgroundColor: YamiTheme.bgDeep,
                     title: Text(
                       'SILENZIA PEER',
-                      style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                      style: YamiTheme.monoStyle.copyWith(
+                        color: YamiTheme.glowActive,
+                      ),
                     ),
                     children: [
                       SimpleDialogOption(
                         onPressed: () {
-                          simulation.mutePeer(livePeer.id, const Duration(seconds: 10));
+                          simulation.mutePeer(
+                            livePeer.id,
+                            const Duration(seconds: 10),
+                          );
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -274,7 +286,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       ),
                       SimpleDialogOption(
                         onPressed: () {
-                          simulation.mutePeer(livePeer.id, const Duration(seconds: 30));
+                          simulation.mutePeer(
+                            livePeer.id,
+                            const Duration(seconds: 30),
+                          );
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -287,7 +302,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       ),
                       SimpleDialogOption(
                         onPressed: () {
-                          simulation.mutePeer(livePeer.id, const Duration(minutes: 1));
+                          simulation.mutePeer(
+                            livePeer.id,
+                            const Duration(minutes: 1),
+                          );
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -308,7 +326,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           IconButton(
             icon: Icon(
               isBlocked ? Icons.block : Icons.block_outlined,
-              color: isBlocked ? YamiTheme.glowWarning : YamiTheme.textSecondary,
+              color: isBlocked
+                  ? YamiTheme.glowWarning
+                  : YamiTheme.textSecondary,
             ),
             onPressed: () {
               if (isBlocked) {
@@ -344,7 +364,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         child: Column(
           children: [
-            // Safe pairing / offline / block / mute banner
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
@@ -353,30 +372,34 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               color: isBlocked
                   ? YamiTheme.glowWarning.withOpacity(0.08)
                   : (isMuted
-                      ? YamiTheme.glowWarning.withOpacity(0.05)
-                      : (!isPeerOnline
-                          ? YamiTheme.textMuted.withOpacity(0.08)
-                          : (isTrusted
-                                ? YamiTheme.glowSecure.withOpacity(0.04)
-                                : YamiTheme.surfaceDark.withOpacity(0.85)))),
+                        ? YamiTheme.glowWarning.withOpacity(0.05)
+                        : (!isPeerOnline
+                              ? YamiTheme.textMuted.withOpacity(0.08)
+                              : (isTrusted
+                                    ? YamiTheme.glowSecure.withOpacity(0.04)
+                                    : YamiTheme.surfaceDark.withOpacity(
+                                        0.85,
+                                      )))),
               child: Row(
                 children: [
                   Icon(
                     isBlocked
                         ? Icons.block
                         : (isMuted
-                            ? Icons.volume_off
-                            : (!isPeerOnline
-                                ? Icons.cloud_off
-                                : (isTrusted ? Icons.lock : Icons.lock_open))),
+                              ? Icons.volume_off
+                              : (!isPeerOnline
+                                    ? Icons.cloud_off
+                                    : (isTrusted
+                                          ? Icons.lock
+                                          : Icons.lock_open))),
                     size: 14,
                     color: isBlocked || isMuted
                         ? YamiTheme.glowWarning
                         : (!isPeerOnline
-                            ? YamiTheme.textMuted
-                            : (isTrusted
-                                  ? YamiTheme.glowSecure
-                                  : YamiTheme.textMuted)),
+                              ? YamiTheme.textMuted
+                              : (isTrusted
+                                    ? YamiTheme.glowSecure
+                                    : YamiTheme.textMuted)),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -384,21 +407,21 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       isBlocked
                           ? 'Questo peer è bloccato. Non riceverai né invierai messaggi.'
                           : (isMuted
-                              ? 'Questo peer è silenziato localmente per la sessione corrente.'
-                              : (!isPeerOnline
-                                  ? 'Connessione persa. La consegna dei messaggi riprenderà quando il peer tornerà online.'
-                                  : (isTrusted
-                                        ? 'Crittografia 1-hop verificata. Chiavi di sessione verificate.'
-                                        : 'Accoppiamento non verificato. Tocca la scheda peer nello spazio Vicini per autorizzare.'))),
+                                ? 'Questo peer è silenziato localmente per la sessione corrente.'
+                                : (!isPeerOnline
+                                      ? 'Connessione persa. La consegna dei messaggi riprenderà quando il peer tornerà online.'
+                                      : (isTrusted
+                                            ? 'Crittografia 1-hop verificata. Chiavi di sessione verificate.'
+                                            : 'Accoppiamento non verificato. Tocca la scheda peer nello spazio Vicini per autorizzare.'))),
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
                         color: isBlocked || isMuted
                             ? YamiTheme.glowWarning
                             : (!isPeerOnline
-                                ? YamiTheme.textMuted
-                                : (isTrusted
-                                      ? YamiTheme.glowSecure
-                                      : YamiTheme.textSecondary)),
+                                  ? YamiTheme.textMuted
+                                  : (isTrusted
+                                        ? YamiTheme.glowSecure
+                                        : YamiTheme.textSecondary)),
                       ),
                     ),
                   ),
@@ -406,7 +429,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-            // Local Session Moderation Banner
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
@@ -434,7 +456,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-            // Messages feed
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -452,7 +473,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-            // Text input panel
             Container(height: 1, color: YamiTheme.borderGlass),
             SafeArea(
               child: Container(
@@ -481,8 +501,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             hintText: isBlocked
                                 ? 'Impossibile trasmettere a peer bloccato'
                                 : (isPeerOnline
-                                    ? 'Transmit direct packet...'
-                                    : 'Cannot transmit while peer is offline'),
+                                      ? 'Transmit direct packet...'
+                                      : 'Cannot transmit while peer is offline'),
                             hintStyle: YamiTheme.captionStyle.copyWith(
                               fontSize: 13,
                               color: YamiTheme.textMuted,
@@ -540,13 +560,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final String timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final shouldBlur = message.isBlurred && !_revealedMessageIds.contains(message.id);
+    final shouldBlur =
+        message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
         ? YamiTheme.glowWarning
         : (isMe
-            ? YamiTheme.glowActive
-            : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
+              ? YamiTheme.glowActive
+              : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),

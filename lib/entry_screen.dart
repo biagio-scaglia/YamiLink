@@ -95,10 +95,8 @@ class _EntryScreenState extends State<EntryScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Background Slate Base
           Positioned.fill(child: Container(color: YamiTheme.bgDeep)),
 
-          // Slow pulsating background radial glow
           AnimatedBuilder(
             animation: _pulseController,
             builder: (context, child) {
@@ -119,7 +117,6 @@ class _EntryScreenState extends State<EntryScreen>
             },
           ),
 
-          // Safe Form container
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -127,7 +124,6 @@ class _EntryScreenState extends State<EntryScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Brand Identity Icon
                     Icon(
                       Icons.blur_on,
                       size: 64,
@@ -135,7 +131,6 @@ class _EntryScreenState extends State<EntryScreen>
                     ),
                     const SizedBox(height: 12),
 
-                    // SpaceGrotesk styling title
                     Text(
                       'YAMILINK',
                       style: YamiTheme.titleStyle.copyWith(
@@ -157,7 +152,6 @@ class _EntryScreenState extends State<EntryScreen>
                     ),
                     const SizedBox(height: 40),
 
-                    // Ephemeral Profile Card (Double border Glassmorphism)
                     Container(
                       padding: const EdgeInsets.all(24.0),
                       decoration: YamiTheme.glassDecoration(
@@ -176,7 +170,6 @@ class _EntryScreenState extends State<EntryScreen>
                           ),
                           const SizedBox(height: 24),
 
-                          // TextField with design styles
                           TextField(
                             controller: _aliasController,
                             style: YamiTheme.bodyStyle.copyWith(
@@ -222,7 +215,6 @@ class _EntryScreenState extends State<EntryScreen>
                           ),
                           const SizedBox(height: 12),
 
-                          // Ephemeral warning banner
                           Text(
                             'Saved in memory only. Keys evaporate on exit.',
                             style: YamiTheme.monoStyle.copyWith(
@@ -236,7 +228,6 @@ class _EntryScreenState extends State<EntryScreen>
                     ),
                     const SizedBox(height: 36),
 
-                    // ElevatedButton styled
                     SizedBox(
                       width: double.infinity,
                       height: 52,

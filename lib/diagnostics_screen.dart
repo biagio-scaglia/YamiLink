@@ -77,7 +77,6 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // HUD grid
               Row(
                 children: [
                   Expanded(
@@ -129,7 +128,6 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Interactive Relay toggle
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16.0,
@@ -191,7 +189,6 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Cyber scrolling terminal
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -217,7 +214,6 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                         logColor = YamiTheme.glowWarning;
                       }
 
-                      // Sliding fade-in effect for log entries
                       return TweenAnimationBuilder<double>(
                         tween: Tween<double>(begin: 0.0, end: 1.0),
                         duration: const Duration(milliseconds: 300),
@@ -230,10 +226,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                                 vertical: 2.0,
                               ),
                               child: Transform.translate(
-                                offset: Offset(
-                                  (1.0 - value) * -12,
-                                  0.0,
-                                ), // slide in from left
+                                offset: Offset((1.0 - value) * -12, 0.0),
                                 child: Text(
                                   log,
                                   style: TextStyle(

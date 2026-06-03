@@ -31,7 +31,6 @@ void main() {
           payloadBody: 'Hello, this is a private message.',
         );
 
-        // First receipt: process the message, verify it is logged and ACK is sent
         sessionManager.processIncomingFrame(frame, 'Alice', 123);
         expect(sessionManager.getDirectMessages('peer_1').length, 1);
         expect(
@@ -44,16 +43,11 @@ void main() {
 
         final initialChanges = changesCount;
 
-        // Second receipt: same frame is received (e.g. sender did not get our ACK).
-        // Verify message is not duplicated, but a new ACK is sent.
         sessionManager.processIncomingFrame(frame, 'Alice', 123);
         expect(sessionManager.getDirectMessages('peer_1').length, 1);
         expect(sentAcks.length, 2);
         expect(sentAcks.last.messageId, 101);
-        expect(
-          changesCount,
-          initialChanges,
-        ); // No change event since it was a duplicate payload
+        expect(changesCount, initialChanges);
       },
     );
 
@@ -92,7 +86,6 @@ void main() {
       expect(messages.length, 1);
       expect(messages.first.status, MessageStatus.sending);
 
-      // Simulate receiving matching ACK from peer
       final ackFrame = Frame(
         type: FrameType.ack,
         senderId: 'peer_1',
@@ -140,12 +133,11 @@ void main() {
 
         sessionManager.addOutgoingMessage(message, frame);
 
-        // Wait for retry intervals to fire (3 retries * 400ms = 1200ms + 400ms failure wait)
         await Future.delayed(const Duration(milliseconds: 1800));
 
         final messages = sessionManager.getDirectMessages('peer_1');
         expect(messages.first.status, MessageStatus.failed);
-        expect(retransmissions.length, 3); // 3 retries attempted
+        expect(retransmissions.length, 3);
       },
     );
     group('PeerManager Sweep Tests', () {
@@ -169,7 +161,6 @@ void main() {
         expect(peerManager.peers.length, 1);
         expect(peerManager.peers.first.proximityHint, ProximityHint.immediate);
 
-        // Simulate passage of 11 seconds
         peerManager.peers.first.lastSeen = DateTime.now().subtract(
           const Duration(seconds: 11),
         );
@@ -177,7 +168,6 @@ void main() {
         expect(peerManager.peers.length, 1);
         expect(peerManager.peers.first.proximityHint, ProximityHint.unknown);
 
-        // Simulate passage of 16 seconds
         peerManager.peers.first.lastSeen = DateTime.now().subtract(
           const Duration(seconds: 16),
         );
@@ -248,7 +238,7 @@ void main() {
             peerAvatarSeed: 456,
           );
           expect(sessionManager.conversations.length, 2);
-          // Verify sorting (most recent goes to top)
+
           expect(sessionManager.conversations.first.peerId, 'peer_2');
         },
       );
@@ -269,12 +259,10 @@ void main() {
           payloadBody: 'Msg 1',
         );
 
-        // Case 1: Chat is not active (unread count increments)
         sessionManager.activeConversationId = null;
         sessionManager.processIncomingFrame(frame, 'Alice', 123);
         expect(sessionManager.conversations.first.unreadCount, 1);
 
-        // Case 2: Chat is active (unread count does not increment)
         sessionManager.activeConversationId = 'peer_1';
         final frame2 = Frame(
           type: FrameType.directMsg,
@@ -286,10 +274,9 @@ void main() {
           payloadBody: 'Msg 2',
         );
         sessionManager.processIncomingFrame(frame2, 'Alice', 123);
-        // Still 1 because we did not mark read yet, but it did not increment!
+
         expect(sessionManager.conversations.first.unreadCount, 1);
 
-        // Case 3: Mark as read
         sessionManager.markAsRead('peer_1');
         expect(sessionManager.conversations.first.unreadCount, 0);
       });
@@ -313,11 +300,9 @@ void main() {
         sessionManager.processIncomingFrame(frame, 'Alice', 123);
         expect(sessionManager.conversations.first.isPeerOnline, true);
 
-        // Sync list without peer_1 (goes offline)
         sessionManager.syncPeerOnlineStatus([]);
         expect(sessionManager.conversations.first.isPeerOnline, false);
 
-        // Sync list with peer_1 (goes online)
         sessionManager.syncPeerOnlineStatus(['peer_1']);
         expect(sessionManager.conversations.first.isPeerOnline, true);
       });

@@ -5,9 +5,12 @@ import 'theme.dart';
 import 'repository/yamilink_repository.dart';
 import 'widgets/avatar.dart';
 import 'direct_chat_screen.dart';
+import 'core/tutorial/tutorial_helper.dart';
 
 class ChatsScreen extends StatelessWidget {
-  const ChatsScreen({super.key});
+  final VoidCallback onRunTutorial;
+
+  const ChatsScreen({super.key, required this.onRunTutorial});
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +44,20 @@ class ChatsScreen extends StatelessWidget {
         ),
         backgroundColor: YamiTheme.bgDeep,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.help_outline,
+              color: YamiTheme.textSecondary,
+              size: 24,
+            ),
+            onPressed: () {
+              YamiTutorialHelper.showHelpBottomSheet(context, onRunTutorial);
+            },
+            tooltip: 'Help',
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(color: YamiTheme.borderGlass, height: 1.0),
@@ -57,7 +74,7 @@ class ChatsScreen extends StatelessWidget {
                 itemCount: conversations.length,
                 itemBuilder: (context, index) {
                   final conv = conversations[index];
-                  // Look up live peer in discovered list to check trust level and live state
+
                   final livePeer = repository.peers.firstWhere(
                     (p) => p.id == conv.peerId,
                     orElse: () => Peer(
@@ -166,7 +183,6 @@ class ChatsScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Procedural avatar
               Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -197,7 +213,6 @@ class ChatsScreen extends StatelessWidget {
               ),
               const SizedBox(width: 14),
 
-              // Title, last message preview
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,7 +278,6 @@ class ChatsScreen extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // Timestamp and unread badge
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [

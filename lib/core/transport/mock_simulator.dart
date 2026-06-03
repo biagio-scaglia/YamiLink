@@ -13,7 +13,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   bool _isScanning = false;
   void Function(String nodeHash, String alias, int seed, double rssi)?
   _onPeerFound;
-  // ignore: unused_field
+
   void Function(String nodeHash)? _onPeerLost;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
 
@@ -61,7 +61,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     _onPeerFound = onPeerFound;
     _onPeerLost = onPeerLost;
 
-    // Immediately trigger initial peers discovery
     Timer(const Duration(milliseconds: 200), () {
       if (!_isScanning) return;
       _onPeerFound?.call('peer_alice', 'Alice_Proximity', 1042, 0.95);
@@ -69,7 +68,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
       _onPeerFound?.call('peer_atlas', 'AtlasNode', 9811, 0.45);
     });
 
-    // Periodic peer discovery timer
     _discoveryTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!_isScanning) return;
       _simulatePeerBeacon();
@@ -85,14 +83,11 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
 
   @override
   Future<bool> sendBroadcast(Uint8List packetBytes) async {
-    // Mimic local loopback delay and echo response
     final rawText = utf8.decode(packetBytes);
     try {
       final frame = Frame.deserialize(rawText);
       _simulateDelayedReply(frame);
-    } catch (e) {
-      // Ignored if invalid format
-    }
+    } catch (e) {}
     return true;
   }
 
@@ -102,9 +97,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     try {
       final frame = Frame.deserialize(rawText);
       _simulateDirectReply(frame);
-    } catch (e) {
-      // Ignored
-    }
+    } catch (e) {}
     return true;
   }
 
@@ -173,14 +166,13 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   void _simulateDirectReply(Frame userFrame) {
     if (userFrame.type != FrameType.directMsg) return;
 
-    // Send ACK first
     Timer(const Duration(milliseconds: 100), () {
       final ackFrame = Frame(
         type: FrameType.ack,
         senderId: userFrame.recipientId,
         recipientId: userFrame.senderId,
         sessionId: userFrame.sessionId,
-        messageId: userFrame.messageId, // Matching MSG ID
+        messageId: userFrame.messageId,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         payloadBody: '',
       );
@@ -188,7 +180,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
       _onDataReceived?.call(userFrame.recipientId, ackBytes);
     });
 
-    // Send actual direct reply after a short delay
     Timer(const Duration(milliseconds: 2000), () {
       if (_onDataReceived == null) return;
 

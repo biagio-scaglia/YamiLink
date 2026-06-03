@@ -5,9 +5,12 @@ import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
 import 'widgets/avatar.dart';
+import 'core/tutorial/tutorial_helper.dart';
 
 class RoomScreen extends StatefulWidget {
-  const RoomScreen({super.key});
+  final VoidCallback onRunTutorial;
+
+  const RoomScreen({super.key, required this.onRunTutorial});
 
   @override
   State<RoomScreen> createState() => _RoomScreenState();
@@ -61,7 +64,9 @@ class _RoomScreenState extends State<RoomScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'OK',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.glowActive,
+                ),
               ),
             ),
           ],
@@ -88,7 +93,9 @@ class _RoomScreenState extends State<RoomScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'ANNULLA',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.textSecondary),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.textSecondary,
+                ),
               ),
             ),
             TextButton(
@@ -96,11 +103,16 @@ class _RoomScreenState extends State<RoomScreen> {
                 Navigator.pop(context);
                 simulation.sendBroadcastMessage(text, force: true);
                 _messageController.clear();
-                Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+                Future.delayed(
+                  const Duration(milliseconds: 80),
+                  () => _scrollToBottom(),
+                );
               },
               child: Text(
                 'INVIA COMUNQUE',
-                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+                style: YamiTheme.monoStyle.copyWith(
+                  color: YamiTheme.glowWarning,
+                ),
               ),
             ),
           ],
@@ -157,6 +169,23 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
         backgroundColor: YamiTheme.bgDeep,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.help_outline,
+              color: YamiTheme.textSecondary,
+              size: 24,
+            ),
+            onPressed: () {
+              YamiTutorialHelper.showHelpBottomSheet(
+                context,
+                widget.onRunTutorial,
+              );
+            },
+            tooltip: 'Help',
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(color: YamiTheme.borderGlass, height: 1.0),
@@ -168,7 +197,6 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
         child: Column(
           children: [
-            // Warning bar
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
@@ -196,7 +224,6 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
             ),
 
-            // Local Session Moderation Banner
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
@@ -224,7 +251,6 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
             ),
 
-            // Messages
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -258,7 +284,6 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
             ),
 
-            // Text transmitter keyboard
             Container(height: 1, color: YamiTheme.borderGlass),
             SafeArea(
               child: Container(
@@ -335,13 +360,14 @@ class _RoomScreenState extends State<RoomScreen> {
     final String timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final shouldBlur = message.isBlurred && !_revealedMessageIds.contains(message.id);
+    final shouldBlur =
+        message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
         ? YamiTheme.glowWarning
         : (isMe
-            ? YamiTheme.glowActive
-            : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
+              ? YamiTheme.glowActive
+              : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -367,7 +393,6 @@ class _RoomScreenState extends State<RoomScreen> {
             child: Column(
               crossAxisAlignment: crossAlignment,
               children: [
-                // Sender tag row
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 4.0,
@@ -408,7 +433,6 @@ class _RoomScreenState extends State<RoomScreen> {
                   ),
                 ),
 
-                // Bubble Container with Double border Glassmorphic outline
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14.0,
@@ -417,7 +441,9 @@ class _RoomScreenState extends State<RoomScreen> {
                   decoration: YamiTheme.glassDecoration(
                     backgroundColor: shouldBlur
                         ? YamiTheme.surfaceDark
-                        : (isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark),
+                        : (isMe
+                              ? YamiTheme.surfaceLight
+                              : YamiTheme.surfaceDark),
                     opacity: 0.85,
                     glowColor: glowColor,
                     glowRadius: (shouldBlur || isMe || isTrusted) ? 3.0 : 0.0,
@@ -459,7 +485,6 @@ class _RoomScreenState extends State<RoomScreen> {
                       : Text(message.content, style: YamiTheme.bodyStyle),
                 ),
 
-                // Node key details in monospace
                 Padding(
                   padding: const EdgeInsets.only(
                     top: 2.0,
