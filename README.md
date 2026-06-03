@@ -35,7 +35,9 @@ graph TD
     Trans --> |Integrazione FFI| FFI[YamiLinkFfiBridge]
     FFI --> |Background Threads| C[Core C Nativo - Win32 / POSIX]
     C --> |Ricezione Pacchetti UDP| FFI
-    FFI --> |Callback Eventi Raw| Repo
+    Repo --> |Byte in Ingresso| Tesla[TeslaEngine - Packet & Frame Security]
+    Tesla --> |Drop/Block Malformed| Discard[Cestino]
+    Tesla --> |Frame Sicuro| Repo
     Repo --> |Controllo Antispam e Keywords| Mod[ModerationEngine]
     Mod --> |Se Valido| SM
 ```
@@ -99,6 +101,26 @@ graph TD
 * **Regole a Semaforo:**
   * **Rosso (Disallowed):** Parole chiave associate a violazioni gravi dei termini d'uso (es. minacce o doxxing). I messaggi vengono bloccati immediatamente alla ricezione e scartati. L'evento viene registrato nella console di diagnostica con tag `SEC:`.
   * **Giallo (Sensitive):** Termini sensibili o volgari. Il messaggio viene accettato, ma visualizzato nella chat con un filtro grafico offuscato (sfocatura). Il destinatario puo' toccare la bolla per rimuovere la sfocatura (meccanismo Tap-to-Reveal).
+
+---
+
+## Sicurezza e Hardening: Il Sottosistema Tesla
+
+Per proteggere l'applicazione da attacchi Denial of Service (DoS) locali, tampering, spoofing e replay, YamiLink integra **Tesla**, un firewall applicativo posizionato tra il layer FFI C-Native e il parsing Dart.
+
+### Funzioni di Difesa (Tesla Engine)
+
+1. **Protezione FFI (Boundary Safety):** I payload provenienti dalla FFI sono strettamente limitati a 2048 byte per scongiurare buffer overflow logici e memory exhaustion. Inoltre, `TeslaPacketValidator` cestina istantaneamente pacchetti senza la signature `YML1:` evitando costose conversioni UTF-8 su spazzatura (UDP flood prevention).
+2. **Prevenzione Peer Spoofing:** `TeslaSpoofGuard` memorizza una tabella hash di routing (`senderId` logico -> `senderHash` FFI nativo). Se un attaccante tenta di forgiare pacchetti con l'ID di un altro nodo dalla propria rete, Tesla rileva l'incoerenza dell'identita' e scarta il pacchetto silenziosamente.
+3. **Difesa Anti-Replay:** `TeslaReplayGuard` implementa una cache con *sliding window* di 60 secondi che ispeziona in tandem `(senderId, messageId)` e timestamp. I frame replicati, incollati sulla rete o catturati nel passato, vengono cestinati, rendendo immuni le chat a flood da replay.
+
+### TamperGuard (Environment & Anti-Reverse Engineering)
+
+L'app implementa controlli custom leggeri per il rilevamento di ambienti modificati o ostili.
+Su build **Release**, `TamperGuard` analizza:
+* La presenza anomala di debug flag o Virtual Machine observatory injection in produzione.
+* Variabili d'ambiente comuni usate da framework di strumentazione (es. Frida, Xposed).
+* (Su Android) Binari classici indicanti root (es. magisk, su) usando euristiche basate su file system standard.
 
 ---
 

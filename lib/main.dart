@@ -10,8 +10,10 @@ import 'room_screen.dart';
 import 'diagnostics_screen.dart';
 import 'direct_chat_screen.dart';
 import 'core/tutorial/tutorial_helper.dart';
+import 'core/security/tamper_guard.dart';
 
 void main() {
+  TamperGuard.instance.initialize();
   runApp(const MyApp());
 }
 

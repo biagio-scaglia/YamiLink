@@ -123,22 +123,38 @@ class YamiLinkFfiBridge {
 
       String hash = '';
       if (event.senderHash != nullptr) {
-        hash = event.senderHash.toDartString();
+        try {
+          hash = event.senderHash.toDartString();
+        } catch (_) {
+          // Bad FFI string, skip
+          return;
+        }
       }
 
       String senderAlias = '';
       if (event.senderAlias != nullptr) {
-        senderAlias = event.senderAlias.toDartString();
+        try {
+          senderAlias = event.senderAlias.toDartString();
+        } catch (_) {
+          return;
+        }
       }
 
       final avatarSeed = event.avatarSeed;
       final len = event.payloadLen;
       final signal = event.signalRssi;
 
+      // Boundary Hardening: Cap payload length to prevent memory exhaustion
+      final safeLen = len > 2048 ? 2048 : len;
+
       Uint8List payloadBytes = Uint8List(0);
-      if (len > 0 && event.payload != nullptr) {
-        final list = event.payload.asTypedList(len);
-        payloadBytes = Uint8List.fromList(list);
+      if (safeLen > 0 && event.payload != nullptr) {
+        try {
+          final list = event.payload.asTypedList(safeLen);
+          payloadBytes = Uint8List.fromList(list);
+        } catch (_) {
+          return;
+        }
       }
 
       onEvent?.call(type, hash, senderAlias, avatarSeed, payloadBytes, signal);

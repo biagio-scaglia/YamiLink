@@ -81,6 +81,11 @@ class Frame {
   /// Deserializes a delimited String envelope into a Frame instance.
   /// Throws FormatException if parsing fails.
   factory Frame.deserialize(String data) {
+    if (data.length > 3072) {
+      // 2048 bytes raw packet roughly translates to ~2800 bytes base64 encoded.
+      throw const FormatException('Frame length exceeds maximum allowed size (3072 chars).');
+    }
+
     final parts = data.split(':');
     if (parts.length < 11) {
       throw FormatException(
@@ -112,11 +117,16 @@ class Frame {
     final hopCount = int.tryParse(parts[8]) ?? 1;
     final payloadType = parts[9];
 
-    final bodyBase64 = parts[10];
+    final bodyBase64 = parts.sublist(10).join(':'); // In case base64 somehow has colons or payload uses them.
+
+    if (bodyBase64.length > 2800) {
+      throw const FormatException('Payload exceeds maximum allowed length.');
+    }
+
     String payloadBody;
     try {
       final decodedBytes = base64.decode(bodyBase64);
-      payloadBody = utf8.decode(decodedBytes);
+      payloadBody = utf8.decode(decodedBytes, allowMalformed: false);
     } catch (e) {
       throw FormatException('Failed to decode payload body: $e');
     }

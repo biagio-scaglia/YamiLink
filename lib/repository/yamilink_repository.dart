@@ -7,6 +7,7 @@ import 'package:cryptography/cryptography.dart';
 import '../core/moderation/moderation_models.dart';
 import '../core/moderation/moderation_service.dart';
 import '../core/protocol/frame.dart';
+import '../core/security/tesla_engine.dart';
 import '../core/state/peer_manager.dart';
 import '../core/state/session_manager.dart';
 import '../core/transport/noop_transport.dart';
@@ -102,9 +103,21 @@ class YamiLinkRepository extends ChangeNotifier {
     ) async {
       _packetsProcessed++;
 
-      final rawText = utf8.decode(packetBytes);
+      final rawDecision = TeslaEngine.instance.inspectRawPacket(senderHash, packetBytes);
+      if (rawDecision == TeslaDecision.drop) return;
+
+      String rawText;
+      try {
+        rawText = utf8.decode(packetBytes, allowMalformed: false);
+      } catch (e) {
+        return; // Non-UTF8 packet dropped after raw checks
+      }
+
       try {
         final frame = Frame.deserialize(rawText);
+
+        final frameDecision = TeslaEngine.instance.inspectParsedFrame(frame, senderHash);
+        if (frameDecision == TeslaDecision.drop) return;
 
         if (frame.senderId == profile.id) return;
 
@@ -277,6 +290,7 @@ class YamiLinkRepository extends ChangeNotifier {
     });
 
     _sweepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      TeslaEngine.instance.sweep();
       _peerManager.sweepStalePeers();
       _sessionManager.syncPeerOnlineStatus(
         _peerManager.peers.map((p) => p.id).toList(),
