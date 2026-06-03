@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'core/moderation/moderation_engine.dart';
+import 'core/moderation/moderation_models.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
@@ -40,9 +40,76 @@ class _RoomScreenState extends State<RoomScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    simulation.sendBroadcastMessage(text);
-    _messageController.clear();
+    final decision = simulation.sendBroadcastMessage(text);
+    if (decision == null) return;
 
+    if (decision.action == ModerationAction.block) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: YamiTheme.bgDeep,
+          title: Text(
+            'MESSAGGIO BLOCCATO',
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+          ),
+          content: Text(
+            'Il tuo messaggio viola le linee guida locali:\n\n${decision.explanation}',
+            style: YamiTheme.bodyStyle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'OK',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (decision.action == ModerationAction.warn) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: YamiTheme.bgDeep,
+          title: Text(
+            'CONTENUTO SENSIBILE',
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+          ),
+          content: Text(
+            'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
+            style: YamiTheme.bodyStyle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'ANNULLA',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                simulation.sendBroadcastMessage(text, force: true);
+                _messageController.clear();
+                Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+              },
+              child: Text(
+                'INVIA COMUNQUE',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _messageController.clear();
     Future.delayed(const Duration(milliseconds: 80), () {
       _scrollToBottom();
     });
@@ -122,6 +189,34 @@ class _RoomScreenState extends State<RoomScreen> {
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
                         color: YamiTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Local Session Moderation Banner
+            Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 16.0,
+              ),
+              color: YamiTheme.surfaceDark.withOpacity(0.95),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.security,
+                    size: 14,
+                    color: YamiTheme.glowSecure,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'La moderazione è locale ed effimera per la sessione corrente.',
+                      style: YamiTheme.captionStyle.copyWith(
+                        fontSize: 10,
+                        color: YamiTheme.glowSecure,
                       ),
                     ),
                   ),
@@ -240,8 +335,7 @@ class _RoomScreenState extends State<RoomScreen> {
     final String timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final modResult = ModerationEngine.instance.analyze(message.content);
-    final shouldBlur = modResult.shouldBlur && !_revealedMessageIds.contains(message.id);
+    final shouldBlur = message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
         ? YamiTheme.glowWarning
@@ -346,12 +440,17 @@ class _RoomScreenState extends State<RoomScreen> {
                                 color: YamiTheme.glowWarning.withOpacity(0.8),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'Sensitive Content (Tap to Reveal)',
-                                style: YamiTheme.captionStyle.copyWith(
-                                  color: YamiTheme.glowWarning,
-                                  fontStyle: FontStyle.italic,
-                                  fontSize: 12,
+                              Flexible(
+                                child: Text(
+                                  message.moderationExplanation != null
+                                      ? 'Sensibile: ${message.moderationExplanation} (Tocca per rivelare)'
+                                      : 'Contenuto Sensibile (Tocca per rivelare)',
+                                  style: YamiTheme.captionStyle.copyWith(
+                                    color: YamiTheme.glowWarning,
+                                    fontStyle: FontStyle.italic,
+                                    fontSize: 11,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],

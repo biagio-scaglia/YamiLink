@@ -87,6 +87,9 @@ class Message {
   final DateTime timestamp;
   MessageStatus status;
   final int hopCount;
+  bool isFlagged;
+  bool isBlurred;
+  String? moderationExplanation;
 
   Message({
     required this.id,
@@ -97,6 +100,9 @@ class Message {
     required this.timestamp,
     this.status = MessageStatus.sending,
     this.hopCount = 1,
+    this.isFlagged = false,
+    this.isBlurred = false,
+    this.moderationExplanation,
   });
 }
 

@@ -100,7 +100,14 @@ class SessionManager {
   }
 
   /// Process incoming frames
-  void processIncomingFrame(Frame frame, String senderAlias, int avatarSeed) {
+  void processIncomingFrame(
+    Frame frame,
+    String senderAlias,
+    int avatarSeed, {
+    bool isFlagged = false,
+    bool isBlurred = false,
+    String? moderationExplanation,
+  }) {
     // 1. Deduplication check
     final dupKey = '${frame.senderId}:${frame.messageId}';
     if (_processedMessageKeys.contains(dupKey)) {
@@ -130,6 +137,9 @@ class SessionManager {
           content: frame.payloadBody,
           timestamp: DateTime.fromMillisecondsSinceEpoch(frame.timestamp),
           status: MessageStatus.delivered,
+          isFlagged: isFlagged,
+          isBlurred: isBlurred,
+          moderationExplanation: moderationExplanation,
         );
         _roomMessages.add(msg);
         _onChanged();
@@ -145,6 +155,9 @@ class SessionManager {
           content: frame.payloadBody,
           timestamp: DateTime.fromMillisecondsSinceEpoch(frame.timestamp),
           status: MessageStatus.delivered,
+          isFlagged: isFlagged,
+          isBlurred: isBlurred,
+          moderationExplanation: moderationExplanation,
         );
         _directMessages.putIfAbsent(frame.senderId, () => []).add(msg);
 

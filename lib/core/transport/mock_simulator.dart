@@ -13,6 +13,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   bool _isScanning = false;
   void Function(String nodeHash, String alias, int seed, double rssi)?
   _onPeerFound;
+  // ignore: unused_field
   void Function(String nodeHash)? _onPeerLost;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
 
@@ -143,9 +144,6 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
         if (_onDataReceived == null || _simulatedPeers.isEmpty) return;
 
         final peerId = _simulatedPeers[_random.nextInt(_simulatedPeers.length)];
-        final name = peerId == 'peer_alice'
-            ? 'Alice_Proximity'
-            : (peerId == 'peer_ghost' ? 'Ghost-404' : 'AtlasNode');
 
         String replyText = 'Received on my node! Clean connection.';
         final lower = userFrame.payloadBody.toLowerCase();
@@ -166,7 +164,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
           payloadBody: replyText,
         );
 
-        final replyBytes = utf8.encode(replyFrame.serialize()) as Uint8List;
+        final replyBytes = utf8.encode(replyFrame.serialize());
         _onDataReceived?.call(peerId, replyBytes);
       },
     );
@@ -186,7 +184,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
         timestamp: DateTime.now().millisecondsSinceEpoch,
         payloadBody: '',
       );
-      final ackBytes = utf8.encode(ackFrame.serialize()) as Uint8List;
+      final ackBytes = utf8.encode(ackFrame.serialize());
       _onDataReceived?.call(userFrame.recipientId, ackBytes);
     });
 
@@ -210,7 +208,7 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
         payloadBody: replies[_random.nextInt(replies.length)],
       );
 
-      final replyBytes = utf8.encode(replyFrame.serialize()) as Uint8List;
+      final replyBytes = utf8.encode(replyFrame.serialize());
       _onDataReceived?.call(userFrame.recipientId, replyBytes);
     });
   }

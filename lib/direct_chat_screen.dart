@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'core/moderation/moderation_engine.dart';
+import 'core/moderation/moderation_models.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
@@ -48,9 +48,76 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    simulation.sendDirectMessage(widget.peer.id, text);
-    _messageController.clear();
+    final decision = simulation.sendDirectMessage(widget.peer.id, text);
+    if (decision == null) return;
 
+    if (decision.action == ModerationAction.block) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: YamiTheme.bgDeep,
+          title: Text(
+            'MESSAGGIO BLOCCATO',
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+          ),
+          content: Text(
+            'Il tuo messaggio viola le linee guida locali:\n\n${decision.explanation}',
+            style: YamiTheme.bodyStyle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'OK',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (decision.action == ModerationAction.warn) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: YamiTheme.bgDeep,
+          title: Text(
+            'CONTENUTO SENSIBILE',
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+          ),
+          content: Text(
+            'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
+            style: YamiTheme.bodyStyle,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'ANNULLA',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                simulation.sendDirectMessage(widget.peer.id, text, force: true);
+                _messageController.clear();
+                Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+              },
+              child: Text(
+                'INVIA COMUNQUE',
+                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _messageController.clear();
     Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
   }
 
@@ -68,6 +135,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
     // Retrieve active peer status, checking if blocked
     final isBlocked = simulation.isPeerBlocked(widget.peer.id);
+    final isMuted = simulation.isPeerMuted(widget.peer.id);
 
     final livePeer = simulation.peers.firstWhere(
       (p) => p.id == widget.peer.id,
@@ -139,21 +207,25 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   ),
                   Text(
                     isBlocked
-                        ? 'PEER BLOCKED'
-                        : (!isPeerOnline
-                            ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
-                            : (isTrusted
-                                  ? 'ENCRYPTED P2P CHANNEL'
-                                  : 'UNVERIFIED P2P CHANNEL')),
+                        ? 'PEER BLOCCATO'
+                        : (isMuted
+                            ? 'PEER SILENZIATO'
+                            : (!isPeerOnline
+                                ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
+                                : (isTrusted
+                                      ? 'ENCRYPTED P2P CHANNEL'
+                                      : 'UNVERIFIED P2P CHANNEL'))),
                     style: YamiTheme.captionStyle.copyWith(
                       fontSize: 8.5,
                       color: isBlocked
                           ? YamiTheme.glowWarning
-                          : (!isPeerOnline
-                              ? YamiTheme.textMuted
-                              : (isTrusted
-                                    ? YamiTheme.glowSecure
-                                    : YamiTheme.glowActive)),
+                          : (isMuted
+                              ? YamiTheme.glowWarning
+                              : (!isPeerOnline
+                                  ? YamiTheme.textMuted
+                                  : (isTrusted
+                                        ? YamiTheme.glowSecure
+                                        : YamiTheme.glowActive))),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -163,6 +235,76 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              isMuted ? Icons.volume_off : Icons.volume_up,
+              color: isMuted ? YamiTheme.glowWarning : YamiTheme.textSecondary,
+            ),
+            onPressed: () {
+              if (isMuted) {
+                simulation.unmutePeer(livePeer.id);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${livePeer.alias} non è più silenziato'),
+                    backgroundColor: YamiTheme.glowSecure,
+                  ),
+                );
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (context) => SimpleDialog(
+                    backgroundColor: YamiTheme.bgDeep,
+                    title: Text(
+                      'SILENZIA PEER',
+                      style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                    ),
+                    children: [
+                      SimpleDialogOption(
+                        onPressed: () {
+                          simulation.mutePeer(livePeer.id, const Duration(seconds: 10));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Peer silenziato per 10 secondi'),
+                              backgroundColor: YamiTheme.glowWarning,
+                            ),
+                          );
+                        },
+                        child: Text('10 Secondi', style: YamiTheme.bodyStyle),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () {
+                          simulation.mutePeer(livePeer.id, const Duration(seconds: 30));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Peer silenziato per 30 secondi'),
+                              backgroundColor: YamiTheme.glowWarning,
+                            ),
+                          );
+                        },
+                        child: Text('30 Secondi', style: YamiTheme.bodyStyle),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () {
+                          simulation.mutePeer(livePeer.id, const Duration(minutes: 1));
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Peer silenziato per 1 minuto'),
+                              backgroundColor: YamiTheme.glowWarning,
+                            ),
+                          );
+                        },
+                        child: Text('1 Minuto', style: YamiTheme.bodyStyle),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+            tooltip: 'Silenzia/Ripristina Peer',
+          ),
           IconButton(
             icon: Icon(
               isBlocked ? Icons.block : Icons.block_outlined,
@@ -202,7 +344,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         child: Column(
           children: [
-            // Safe pairing / offline banner
+            // Safe pairing / offline / block / mute banner
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
@@ -210,21 +352,25 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
               color: isBlocked
                   ? YamiTheme.glowWarning.withOpacity(0.08)
-                  : (!isPeerOnline
-                      ? YamiTheme.textMuted.withOpacity(0.08)
-                      : (isTrusted
-                            ? YamiTheme.glowSecure.withOpacity(0.04)
-                            : YamiTheme.surfaceDark.withOpacity(0.85))),
+                  : (isMuted
+                      ? YamiTheme.glowWarning.withOpacity(0.05)
+                      : (!isPeerOnline
+                          ? YamiTheme.textMuted.withOpacity(0.08)
+                          : (isTrusted
+                                ? YamiTheme.glowSecure.withOpacity(0.04)
+                                : YamiTheme.surfaceDark.withOpacity(0.85)))),
               child: Row(
                 children: [
                   Icon(
                     isBlocked
                         ? Icons.block
-                        : (!isPeerOnline
-                            ? Icons.cloud_off
-                            : (isTrusted ? Icons.lock : Icons.lock_open)),
+                        : (isMuted
+                            ? Icons.volume_off
+                            : (!isPeerOnline
+                                ? Icons.cloud_off
+                                : (isTrusted ? Icons.lock : Icons.lock_open))),
                     size: 14,
-                    color: isBlocked
+                    color: isBlocked || isMuted
                         ? YamiTheme.glowWarning
                         : (!isPeerOnline
                             ? YamiTheme.textMuted
@@ -236,21 +382,51 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   Expanded(
                     child: Text(
                       isBlocked
-                          ? 'This peer is blocked. You will not receive or send messages to them.'
-                          : (!isPeerOnline
-                              ? 'Connection lost. Message delivery will pause until peer is back online.'
-                              : (isTrusted
-                                    ? '1-hop encryption verified. Local key comparison verified.'
-                                    : 'Unverified pairing. Tap peer card in Nearby space to authorize keys.')),
+                          ? 'Questo peer è bloccato. Non riceverai né invierai messaggi.'
+                          : (isMuted
+                              ? 'Questo peer è silenziato localmente per la sessione corrente.'
+                              : (!isPeerOnline
+                                  ? 'Connessione persa. La consegna dei messaggi riprenderà quando il peer tornerà online.'
+                                  : (isTrusted
+                                        ? 'Crittografia 1-hop verificata. Chiavi di sessione verificate.'
+                                        : 'Accoppiamento non verificato. Tocca la scheda peer nello spazio Vicini per autorizzare.'))),
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
-                        color: isBlocked
+                        color: isBlocked || isMuted
                             ? YamiTheme.glowWarning
                             : (!isPeerOnline
                                 ? YamiTheme.textMuted
                                 : (isTrusted
                                       ? YamiTheme.glowSecure
                                       : YamiTheme.textSecondary)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Local Session Moderation Banner
+            Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 16.0,
+              ),
+              color: YamiTheme.surfaceDark.withOpacity(0.95),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.security,
+                    size: 14,
+                    color: YamiTheme.glowSecure,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'La moderazione è locale ed effimera per la sessione corrente.',
+                      style: YamiTheme.captionStyle.copyWith(
+                        fontSize: 10,
+                        color: YamiTheme.glowSecure,
                       ),
                     ),
                   ),
@@ -303,7 +479,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           enabled: isPeerOnline && !isBlocked,
                           decoration: InputDecoration(
                             hintText: isBlocked
-                                ? 'Cannot transmit to blocked peer'
+                                ? 'Impossibile trasmettere a peer bloccato'
                                 : (isPeerOnline
                                     ? 'Transmit direct packet...'
                                     : 'Cannot transmit while peer is offline'),
@@ -364,8 +540,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final String timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final modResult = ModerationEngine.instance.analyze(message.content);
-    final shouldBlur = modResult.shouldBlur && !_revealedMessageIds.contains(message.id);
+    final shouldBlur = message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
         ? YamiTheme.glowWarning
@@ -414,12 +589,17 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             color: YamiTheme.glowWarning.withOpacity(0.8),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            'Sensitive Content (Tap to Reveal)',
-                            style: YamiTheme.captionStyle.copyWith(
-                              color: YamiTheme.glowWarning,
-                              fontStyle: FontStyle.italic,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              message.moderationExplanation != null
+                                  ? 'Sensibile: ${message.moderationExplanation} (Tocca per rivelare)'
+                                  : 'Contenuto Sensibile (Tocca per rivelare)',
+                              style: YamiTheme.captionStyle.copyWith(
+                                color: YamiTheme.glowWarning,
+                                fontStyle: FontStyle.italic,
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

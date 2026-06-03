@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 
-import '../core/moderation/moderation_engine.dart';
+import '../core/moderation/moderation_models.dart';
+import '../core/moderation/moderation_service.dart';
 import '../core/protocol/frame.dart';
 import '../core/state/peer_manager.dart';
 import '../core/state/session_manager.dart';
@@ -107,25 +108,32 @@ class YamiLinkRepository extends ChangeNotifier {
         logDiagnostic('NET: Received frame type: ${frame.type.name} from ${frame.senderId}');
 
         // A. Check if the sender is manually or auto-blocked
-        if (_peerManager.isBlocked(frame.senderId)) {
+        if (isPeerBlocked(frame.senderId)) {
           logDiagnostic('SEC: Discarded incoming frame from blocked peer ${frame.senderId}');
           return;
         }
 
-        // B. Check for rate limit / spam burst
-        final isSpam = _peerManager.registerMessageAndCheckSpam(frame.senderId);
-        if (isSpam) {
-          logDiagnostic('SEC: Blocked peer ${frame.senderId} due to spam detection (>5 msgs/3s)');
-          return;
-        }
+        // B. Run incoming moderation
+        bool isFlagged = false;
+        bool isBlurred = false;
+        String? moderationExplanation;
 
-        // C. Run content moderation on incoming payload body (only roomMsg and directMsg)
         if (frame.type == FrameType.roomMsg || frame.type == FrameType.directMsg) {
-          final modResult = ModerationEngine.instance.analyze(frame.payloadBody);
-          if (!modResult.isAllowed) {
-            logDiagnostic('SEC: Blocked message from ${frame.senderId} due to content policy: ${modResult.ruleName}');
+          final decision = ModerationService.instance.moderateIncoming(
+            frame.senderId,
+            frame.messageId.toString(),
+            frame.payloadBody,
+          );
+
+          if (decision.action == ModerationAction.block) {
+            logDiagnostic('SEC: Blocked message from ${frame.senderId} due to: ${decision.explanation}');
+            notifyListeners();
             return;
           }
+
+          isFlagged = decision.action == ModerationAction.hide || decision.action == ModerationAction.block;
+          isBlurred = decision.action == ModerationAction.hide;
+          moderationExplanation = decision.explanation;
         }
 
         // Retrieve sender alias and seed from current discovered peers
@@ -139,7 +147,14 @@ class YamiLinkRepository extends ChangeNotifier {
           }
         }
 
-        _sessionManager.processIncomingFrame(frame, senderAlias, avatarSeed);
+        _sessionManager.processIncomingFrame(
+          frame,
+          senderAlias,
+          avatarSeed,
+          isFlagged: isFlagged,
+          isBlurred: isBlurred,
+          moderationExplanation: moderationExplanation,
+        );
       } catch (e) {
         debugPrint('Failed to parse incoming protocol frame: $e');
       }
@@ -161,10 +176,10 @@ class YamiLinkRepository extends ChangeNotifier {
 
   // --- Getters mirroring SimulationService interface ---
   // Filter out blocked peers
-  List<Peer> get peers => _peerManager.peers.where((p) => p.trustLevel != TrustLevel.blocked).toList();
+  List<Peer> get peers => _peerManager.peers.where((p) => !isPeerBlocked(p.id)).toList();
   List<Message> get roomMessages => _sessionManager.roomMessages;
   // Filter out conversations with blocked peers
-  List<Conversation> get conversations => _sessionManager.conversations.where((c) => !_peerManager.isBlocked(c.peerId)).toList();
+  List<Conversation> get conversations => _sessionManager.conversations.where((c) => !isPeerBlocked(c.peerId)).toList();
   
   int get totalUnreadCount => conversations.fold<int>(
     0,
@@ -218,8 +233,17 @@ class YamiLinkRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sendBroadcastMessage(String content) {
-    if (content.trim().isEmpty) return;
+  ModerationDecision? sendBroadcastMessage(String content, {bool force = false}) {
+    if (content.trim().isEmpty) return null;
+
+    final decision = ModerationService.instance.moderateOutgoing(content);
+    if (decision.action == ModerationAction.block) {
+      logDiagnostic('SEC: Outgoing room broadcast blocked: ${decision.explanation}');
+      return decision;
+    }
+    if (decision.action == ModerationAction.warn && !force) {
+      return decision;
+    }
 
     final frame = Frame(
       type: FrameType.roomMsg,
@@ -242,14 +266,27 @@ class YamiLinkRepository extends ChangeNotifier {
       content: content,
       timestamp: DateTime.now(),
       status: MessageStatus.delivered,
+      isFlagged: decision.action == ModerationAction.warn,
+      isBlurred: false,
+      moderationExplanation: decision.action == ModerationAction.warn ? decision.explanation : null,
     );
 
     _sessionManager.addOutgoingMessage(userMsg, frame);
     _packetsProcessed++;
+    return decision;
   }
 
-  void sendDirectMessage(String peerId, String content) {
-    if (content.trim().isEmpty) return;
+  ModerationDecision? sendDirectMessage(String peerId, String content, {bool force = false}) {
+    if (content.trim().isEmpty) return null;
+
+    final decision = ModerationService.instance.moderateOutgoing(content);
+    if (decision.action == ModerationAction.block) {
+      logDiagnostic('SEC: Outgoing direct message blocked: ${decision.explanation}');
+      return decision;
+    }
+    if (decision.action == ModerationAction.warn && !force) {
+      return decision;
+    }
 
     final frame = Frame(
       type: FrameType.directMsg,
@@ -283,6 +320,9 @@ class YamiLinkRepository extends ChangeNotifier {
       content: content,
       timestamp: DateTime.now(),
       status: MessageStatus.sending,
+      isFlagged: decision.action == ModerationAction.warn,
+      isBlurred: false,
+      moderationExplanation: decision.action == ModerationAction.warn ? decision.explanation : null,
     );
 
     _sessionManager.addOutgoingMessage(
@@ -292,24 +332,47 @@ class YamiLinkRepository extends ChangeNotifier {
       peerAvatarSeed: peer.avatarSeed,
     );
     _packetsProcessed++;
+    return decision;
   }
 
   void togglePeerTrust(String peerId) {
     _peerManager.toggleTrust(peerId);
   }
 
+  // --- Local Moderator Controls ---
+
+  void mutePeer(String peerId, Duration duration) {
+    ModerationService.instance.mutePeer(peerId, duration);
+    logDiagnostic('SEC: Peer $peerId silenziato per ${duration.inSeconds} secondi');
+    notifyListeners();
+  }
+
+  void unmutePeer(String peerId) {
+    ModerationService.instance.unmutePeer(peerId);
+    logDiagnostic('SEC: Peer $peerId riattivato (unmuted)');
+    notifyListeners();
+  }
+
+  bool isPeerMuted(String peerId) {
+    return ModerationService.instance.isPeerMuted(peerId);
+  }
+
   void blockPeer(String peerId) {
+    ModerationService.instance.blockPeer(peerId);
     _peerManager.blockPeer(peerId);
-    logDiagnostic('SEC: Manually blocked peer $peerId');
+    logDiagnostic('SEC: Peer $peerId bloccato');
+    notifyListeners();
   }
 
   void unblockPeer(String peerId) {
+    ModerationService.instance.unblockPeer(peerId);
     _peerManager.unblockPeer(peerId);
-    logDiagnostic('SEC: Manually unblocked peer $peerId');
+    logDiagnostic('SEC: Peer $peerId sbloccato');
+    notifyListeners();
   }
 
   bool isPeerBlocked(String peerId) {
-    return _peerManager.isBlocked(peerId);
+    return _peerManager.isBlocked(peerId) || ModerationService.instance.isPeerBlocked(peerId);
   }
 
   void setActiveConversation(String? peerId) {
@@ -358,6 +421,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
     _sessionManager.clear();
     _peerManager.clear();
+    ModerationService.instance.clear();
     super.dispose();
   }
 }

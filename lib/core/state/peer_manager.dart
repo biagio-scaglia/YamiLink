@@ -60,7 +60,7 @@ class PeerManager {
   }
 
   void handlePeerLost(String id) {
-    final removed = _peers.removeWhere((p) => p.id == id);
+    _peers.removeWhere((p) => p.id == id);
     _onChanged();
   }
 

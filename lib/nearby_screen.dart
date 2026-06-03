@@ -745,6 +745,101 @@ class _NearbyScreenState extends State<NearbyScreen>
                     width: double.infinity,
                     height: 44,
                     child: TextButton.icon(
+                      icon: Icon(
+                        simulation.isPeerMuted(currentPeer.id)
+                            ? Icons.volume_up
+                            : Icons.volume_off,
+                        color: simulation.isPeerMuted(currentPeer.id)
+                            ? YamiTheme.glowSecure
+                            : YamiTheme.glowWarning,
+                        size: 16,
+                      ),
+                      label: Text(
+                        simulation.isPeerMuted(currentPeer.id)
+                            ? 'UNMUTE PEER'
+                            : 'MUTE PEER',
+                        style: YamiTheme.monoStyle.copyWith(
+                          color: simulation.isPeerMuted(currentPeer.id)
+                              ? YamiTheme.glowSecure
+                              : YamiTheme.glowWarning,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () {
+                        if (simulation.isPeerMuted(currentPeer.id)) {
+                          simulation.unmutePeer(currentPeer.id);
+                          setModalState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${currentPeer.alias} non è più silenziato'),
+                              backgroundColor: YamiTheme.glowSecure,
+                            ),
+                          );
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (context) => SimpleDialog(
+                              backgroundColor: YamiTheme.bgDeep,
+                              title: Text(
+                                'SILENZIA PEER',
+                                style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowActive),
+                              ),
+                              children: [
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    simulation.mutePeer(currentPeer.id, const Duration(seconds: 10));
+                                    Navigator.pop(context);
+                                    setModalState(() {});
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Peer silenziato per 10 secondi'),
+                                        backgroundColor: YamiTheme.glowWarning,
+                                      ),
+                                    );
+                                  },
+                                  child: Text('10 Secondi', style: YamiTheme.bodyStyle),
+                                ),
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    simulation.mutePeer(currentPeer.id, const Duration(seconds: 30));
+                                    Navigator.pop(context);
+                                    setModalState(() {});
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Peer silenziato per 30 secondi'),
+                                        backgroundColor: YamiTheme.glowWarning,
+                                      ),
+                                    );
+                                  },
+                                  child: Text('30 Secondi', style: YamiTheme.bodyStyle),
+                                ),
+                                SimpleDialogOption(
+                                  onPressed: () {
+                                    simulation.mutePeer(currentPeer.id, const Duration(minutes: 1));
+                                    Navigator.pop(context);
+                                    setModalState(() {});
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Peer silenziato per 1 minuto'),
+                                        backgroundColor: YamiTheme.glowWarning,
+                                      ),
+                                    );
+                                  },
+                                  child: Text('1 Minuto', style: YamiTheme.bodyStyle),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: TextButton.icon(
                       icon: const Icon(Icons.block, color: YamiTheme.glowWarning, size: 16),
                       label: Text(
                         'BLOCK PEER',

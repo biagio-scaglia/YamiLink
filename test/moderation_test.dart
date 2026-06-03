@@ -1,70 +1,156 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yamilink/core/moderation/moderation_engine.dart';
-import 'package:yamilink/core/state/peer_manager.dart';
+import 'package:yamilink/core/moderation/keyword_risk_scorer.dart';
+import 'package:yamilink/core/moderation/moderation_models.dart';
+import 'package:yamilink/core/moderation/moderation_service.dart';
+import 'package:yamilink/core/moderation/spam_heuristic_engine.dart';
 
 void main() {
-  group('Content Moderation Engine Tests', () {
-    final engine = ModerationEngine.instance;
+  setUp(() {
+    ModerationService.instance.clear();
+  });
 
-    test('Text Normalization ignores casing, spaces, and punctuation symbols', () {
-      expect(engine.normalize('Hello World!'), 'helloworld');
-      expect(engine.normalize('s.p.a.m.m.i.n.g'), 'spamming');
-      expect(engine.normalize('t_h-r_e!a?t'), 'threat');
-      expect(engine.normalize('K-I-L-L*Y-O-U'), 'killyou');
+  group('Text Normalization Tests', () {
+    final service = ModerationService.instance;
+
+    test('ignores spaces, punctuation, symbols, and casing', () {
+      expect(service.normalize('Hello World!'), 'helloworld');
+      expect(service.normalize('s.p.a.m.m.i.n.g'), 'spamming');
+      expect(service.normalize('t_h-r_e!a?t'), 'threat');
     });
 
-    test('Clean text is classified as allowed and not blurred', () {
-      final result = engine.analyze('This is a friendly message.');
-      expect(result.isAllowed, isTrue);
-      expect(result.shouldBlur, isFalse);
-      expect(result.classification, 'clean');
-    });
-
-    test('Sensitive text triggers yellow card (allowed but blurred)', () {
-      final result = engine.analyze('Watch out, this might be a s.c.a.m!');
-      expect(result.isAllowed, isTrue);
-      expect(result.shouldBlur, isTrue);
-      expect(result.classification, 'sensitive');
-      expect(result.ruleName, isNotEmpty);
-    });
-
-    test('Disallowed text triggers red card (blocked completely)', () {
-      final result = engine.analyze('I am going to k.i.l.l.y.o.u!');
-      expect(result.isAllowed, isFalse);
-      expect(result.shouldBlur, isTrue);
-      expect(result.classification, 'disallowed');
-      expect(result.ruleName, isNotEmpty);
+    test('compresses repeated characters (3+ repeats down to 1)', () {
+      expect(service.normalize('kiiiill'), 'kill');
+      expect(service.normalize('sspamm'), 'sspamm');
+      expect(service.normalize('ssspammm'), 'spam');
+      expect(service.normalize('loooooove'), 'love');
     });
   });
 
-  group('PeerManager Spam Auto-Blocking Tests', () {
-    test('Spam burst auto-detects and blocks peer (>5 messages in 3 seconds)', () {
-      final peerManager = PeerManager(onChanged: () {});
-      final peerId = 'spammer_node_1';
+  group('Keyword Risk Scorer Tests', () {
+    final scorer = KeywordRiskScorer.instance;
 
-      // Discovered peer first
-      peerManager.handlePeerFound(
-        id: peerId,
-        alias: 'SpammyNode',
-        seed: 42,
-        signal: 0.9,
-      );
+    test('Clean text returns clean score', () {
+      final res = scorer.score('friendlymessage');
+      expect(res['riskScore'], 0.0);
+      expect(matchedList(res['matchedRules']), isEmpty);
+    });
 
-      expect(peerManager.isBlocked(peerId), isFalse);
+    test('Insults and vulgarity trigger warnings (Yellow)', () {
+      final res = scorer.score('thisisstupid');
+      expect(res['riskScore'], 1.0);
+      expect(matchedList(res['matchedRules']), contains('Insulto'));
+    });
 
-      // Send 5 messages: should not trigger block yet
+    test('Threats and doxxing trigger severe results (Red)', () {
+      final res = scorer.score('iwillkillyou');
+      expect(res['riskScore'], 5.0);
+      expect(matchedList(res['matchedRules']), contains('Minaccia di violenza'));
+    });
+  });
+
+  group('Spam & Duplicate Heuristics Tests', () {
+    test('Flood check returns true when sending > 5 messages in 3 seconds', () {
+      final engine = SpamHeuristicEngine.instance;
+      final peerId = 'peer_1';
+      engine.clear();
+
       for (int i = 0; i < 5; i++) {
-        final isSpam = peerManager.registerMessageAndCheckSpam(peerId);
-        expect(isSpam, isFalse, reason: 'Message $i should not be classified as spam yet');
+        expect(engine.checkFlood(peerId), isFalse);
       }
+      expect(engine.checkFlood(peerId), isTrue);
+    });
 
-      // Send 6th message: should trigger block
-      final isSpam6 = peerManager.registerMessageAndCheckSpam(peerId);
-      expect(isSpam6, isTrue, reason: '6th message in burst should trigger block');
-      expect(peerManager.isBlocked(peerId), isTrue);
+    test('Duplicate check returns true on the 3rd identical sequential message', () {
+      final engine = SpamHeuristicEngine.instance;
+      final peerId = 'peer_2';
+      engine.clear();
 
-      // Subsequent messages are blocked
-      expect(peerManager.registerMessageAndCheckSpam(peerId), isTrue);
+      expect(engine.checkDuplicate(peerId, 'hello'), isFalse);
+      expect(engine.checkDuplicate(peerId, 'hello'), isFalse);
+      expect(engine.checkDuplicate(peerId, 'hello'), isTrue);
     });
   });
+
+  group('Moderation Service Pipeline & Strike Escalation Tests', () {
+    final service = ModerationService.instance;
+
+    test('Incoming clean message is allowed', () {
+      final dec = service.moderateIncoming('peer_3', 'msg_1', 'Clean message');
+      expect(dec.action, ModerationAction.allow);
+      expect(dec.severity, ModerationSeverity.clean);
+      expect(dec.shouldHide, isFalse);
+    });
+
+    test('Incoming sensitive message triggers warning (hide / tap-to-reveal)', () {
+      final dec = service.moderateIncoming('peer_4', 'msg_2', 'this is stupid');
+      expect(dec.action, ModerationAction.hide);
+      expect(dec.severity, ModerationSeverity.warning);
+      expect(dec.shouldHide, isTrue);
+      expect(dec.requiresTapToReveal, isTrue);
+    });
+
+    test('Incoming severe threat triggers strike 1 -> Mute 10s', () {
+      final dec = service.moderateIncoming('peer_5', 'msg_3', 'i will killyou');
+      expect(dec.action, ModerationAction.block); // Banned words are blocked at incoming boundary
+      expect(dec.severity, ModerationSeverity.severe);
+
+      final state = service.getPeerState('peer_5');
+      expect(state, isNotNull);
+      expect(state!.isMuted, isTrue);
+      expect(state.spamStrikeCount + state.abuseStrikeCount, 1);
+    });
+
+    test('Peer strike escalation ladder leads to mute and eventual block', () {
+      final peerId = 'peer_6';
+
+      // Strike 1: Abuse keyword (1st message overall)
+      service.moderateIncoming(peerId, 'm1', 'i will killyou');
+      var state = service.getPeerState(peerId);
+      expect(state!.isMuted, isTrue);
+      expect(state.isBlocked, isFalse);
+
+      // Strike 2: Spam flood (send 5 messages: m_spam_0 to m_spam_4. The 5th is the 6th overall, triggering 1 flood strike)
+      for (int i = 0; i < 5; i++) {
+        service.moderateIncoming(peerId, 'm_spam_$i', 'regular content $i');
+      }
+      expect(state.spamStrikeCount, greaterThan(0));
+      expect(state.isMuted, isTrue);
+      expect(state.isBlocked, isFalse);
+
+      // Strike 3: Abuse keyword again -> Block
+      service.moderateIncoming(peerId, 'm_abuse_2', 'i will killyou');
+      expect(state.isBlocked, isTrue);
+
+      // Future messages from blocked peer are completely blocked
+      final dec = service.moderateIncoming(peerId, 'm_after', 'normal text');
+      expect(dec.action, ModerationAction.block);
+    });
+
+    test('Manual overrides work correctly', () {
+      final peerId = 'peer_7';
+
+      // Manual block
+      service.blockPeer(peerId);
+      expect(service.isPeerBlocked(peerId), isTrue);
+
+      // Manual unblock
+      service.unblockPeer(peerId);
+      expect(service.isPeerBlocked(peerId), isFalse);
+
+      // Manual mute
+      service.mutePeer(peerId, const Duration(seconds: 5));
+      expect(service.isPeerMuted(peerId), isTrue);
+
+      // Manual unmute
+      service.unmutePeer(peerId);
+      expect(service.isPeerMuted(peerId), isFalse);
+    });
+  });
+}
+
+List<String> matchedList(dynamic val) {
+  if (val is List) {
+    return List<String>.from(val);
+  }
+  return [];
 }
