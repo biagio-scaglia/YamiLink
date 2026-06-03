@@ -159,7 +159,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: YamiTheme.glassDecoration(
                       backgroundColor: YamiTheme.surfaceLight,
                       opacity: 0.8,
@@ -243,7 +246,6 @@ class _NearbyScreenState extends State<NearbyScreen>
         proximityText = 'FAR';
         break;
       case ProximityHint.unknown:
-      default:
         proximityColor = YamiTheme.textMuted;
         proximityText = 'UNKNOWN';
         break;

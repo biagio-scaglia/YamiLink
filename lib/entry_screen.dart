@@ -19,10 +19,28 @@ class _EntryScreenState extends State<EntryScreen> {
   final Random _random = Random();
 
   final List<String> _prefixes = [
-    'Ghost', 'Neon', 'Echo', 'Vector', 'Quantum', 'Shadow', 'Solar', 'Void', 'Grid', 'Net'
+    'Ghost',
+    'Neon',
+    'Echo',
+    'Vector',
+    'Quantum',
+    'Shadow',
+    'Solar',
+    'Void',
+    'Grid',
+    'Net',
   ];
   final List<String> _suffixes = [
-    'Seeker', 'Rider', 'Node', 'Beacon', 'Phantom', 'Runner', 'Pulse', 'Link', 'Signal', 'Zero'
+    'Seeker',
+    'Rider',
+    'Node',
+    'Beacon',
+    'Phantom',
+    'Runner',
+    'Pulse',
+    'Link',
+    'Signal',
+    'Zero',
   ];
 
   @override
@@ -35,7 +53,7 @@ class _EntryScreenState extends State<EntryScreen> {
     final prefix = _prefixes[_random.nextInt(_prefixes.length)];
     final suffix = _suffixes[_random.nextInt(_suffixes.length)];
     final code = _random.nextInt(900) + 100;
-    
+
     setState(() {
       _aliasController.text = '$prefix$suffix-$code';
       _currentSeed = _random.nextInt(1000000);
@@ -47,7 +65,10 @@ class _EntryScreenState extends State<EntryScreen> {
     if (alias.isEmpty) return;
 
     final profile = EphemeralProfile(
-      id: List.generate(16, (_) => _random.nextInt(16).toRadixString(16)).join(),
+      id: List.generate(
+        16,
+        (_) => _random.nextInt(16).toRadixString(16),
+      ).join(),
       alias: alias,
       avatarSeed: _currentSeed,
       createdAt: DateTime.now(),
@@ -64,17 +85,11 @@ class _EntryScreenState extends State<EntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       body: Stack(
         children: [
           // Background atmospheric glows
-          Positioned.fill(
-            child: Container(
-              color: YamiTheme.bgDeep,
-            ),
-          ),
+          Positioned.fill(child: Container(color: YamiTheme.bgDeep)),
           Positioned(
             right: -100,
             top: -100,
@@ -99,7 +114,7 @@ class _EntryScreenState extends State<EntryScreen> {
               ),
             ),
           ),
-          
+
           // Form Content
           SafeArea(
             child: Center(
@@ -159,7 +174,7 @@ class _EntryScreenState extends State<EntryScreen> {
                             isGlowing: true,
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Input text field
                           TextField(
                             controller: _aliasController,
@@ -174,16 +189,26 @@ class _EntryScreenState extends State<EntryScreen> {
                                 letterSpacing: 1.5,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: YamiTheme.borderGlass),
+                                borderSide: const BorderSide(
+                                  color: YamiTheme.borderGlass,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(color: YamiTheme.glowActive),
+                                borderSide: const BorderSide(
+                                  color: YamiTheme.glowActive,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              prefixIcon: const Icon(Icons.face, color: YamiTheme.textSecondary),
+                              prefixIcon: const Icon(
+                                Icons.face,
+                                color: YamiTheme.textSecondary,
+                              ),
                               suffixIcon: IconButton(
-                                icon: const Icon(Icons.refresh, color: YamiTheme.glowActive),
+                                icon: const Icon(
+                                  Icons.refresh,
+                                  color: YamiTheme.glowActive,
+                                ),
                                 onPressed: _generateRandomAlias,
                                 tooltip: 'Regenerate Identity',
                               ),
@@ -237,9 +262,7 @@ class _EntryScreenState extends State<EntryScreen> {
                         const SizedBox(width: 6),
                         Text(
                           'Fully offline. Zero data saved to servers.',
-                          style: YamiTheme.captionStyle.copyWith(
-                            fontSize: 11,
-                          ),
+                          style: YamiTheme.captionStyle.copyWith(fontSize: 11),
                         ),
                       ],
                     ),
