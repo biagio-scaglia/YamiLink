@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'models.dart';
+import 'theme.dart';
+import 'simulation_service.dart';
+import 'entry_screen.dart';
+import 'nearby_screen.dart';
+import 'room_screen.dart';
+import 'diagnostics_screen.dart';
+import 'direct_chat_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,115 +16,206 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'YamiLink',
+      debugShowCheckedModeBanner: false,
+      theme: YamiTheme.themeData,
+      home: const InitializerScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class InitializerScreen extends StatefulWidget {
+  const InitializerScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<InitializerScreen> createState() => _InitializerScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _InitializerScreenState extends State<InitializerScreen> {
+  EphemeralProfile? _profile;
+  SimulationService? _simulationService;
 
-  void _incrementCounter() {
+  void _onProfileCreated(EphemeralProfile profile) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _profile = profile;
+      _simulationService = SimulationService(profile: profile);
+      // Auto-start scanning on profile creation
+      _simulationService!.startScanning();
     });
   }
 
   @override
+  void dispose() {
+    _simulationService?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+    if (_profile == null) {
+      return EntryScreen(onProfileCreated: _onProfileCreated);
+    }
+
+    return ChangeNotifierProvider<SimulationService>.value(
+      value: _simulationService!,
+      child: const MainShell(),
+    );
+  }
+}
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _currentIndex = 0;
+
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      NearbyScreen(
+        onOpenDirectChat: (peer) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChangeNotifierProvider<SimulationService>.value(
+                value: Provider.of<SimulationService>(context, listen: false),
+                child: DirectChatScreen(peer: peer),
+              ),
             ),
-          ],
+          );
+        },
+      ),
+      const RoomScreen(),
+      const DiagnosticsScreen(),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final simulation = Provider.of<SimulationService>(context);
+
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: YamiTheme.surfaceDark,
+          border: Border(
+            top: BorderSide(
+              color: YamiTheme.borderGlass,
+              width: 1.0,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.radar, 'SPACE', simulation.peers.length),
+                _buildNavItem(1, Icons.forum, 'ROOM', 0),
+                _buildNavItem(2, Icons.analytics, 'DIAGS', 0),
+              ],
+            ),
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label, int badgeCount) {
+    final isSelected = _currentIndex == index;
+    final activeColor = YamiTheme.glowActive;
+    final color = isSelected ? activeColor : YamiTheme.textMuted;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 22,
+              ),
+              if (badgeCount > 0)
+                Positioned(
+                  right: -6,
+                  top: -6,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: YamiTheme.glowActive,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 12,
+                      minHeight: 12,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$badgeCount',
+                        style: const TextStyle(
+                          color: YamiTheme.bgDeep,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: YamiTheme.monoStyle.copyWith(
+              color: color,
+              fontSize: 9,
+              letterSpacing: 0.5,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          const SizedBox(height: 2),
+          // Custom glowing bottom highlight indicator line
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: isSelected ? 12 : 0,
+            height: 2,
+            decoration: BoxDecoration(
+              color: activeColor,
+              borderRadius: BorderRadius.circular(1),
+              boxShadow: [
+                BoxShadow(
+                  color: activeColor.withOpacity(0.5),
+                  blurRadius: 4,
+                  spreadRadius: 0.5,
+                )
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
