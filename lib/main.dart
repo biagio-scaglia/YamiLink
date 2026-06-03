@@ -5,6 +5,7 @@ import 'theme.dart';
 import 'repository/yamilink_repository.dart';
 import 'entry_screen.dart';
 import 'nearby_screen.dart';
+import 'chats_screen.dart';
 import 'room_screen.dart';
 import 'diagnostics_screen.dart';
 import 'direct_chat_screen.dart';
@@ -95,6 +96,7 @@ class _MainShellState extends State<MainShell> {
           );
         },
       ),
+      const ChatsScreen(),
       const RoomScreen(),
       const DiagnosticsScreen(),
     ];
@@ -123,8 +125,14 @@ class _MainShellState extends State<MainShell> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(0, Icons.radar, 'SPACE', simulation.peers.length),
-                _buildNavItem(1, Icons.forum, 'ROOM', 0),
-                _buildNavItem(2, Icons.analytics, 'DIAGS', 0),
+                _buildNavItem(
+                  1,
+                  Icons.chat_bubble_outline,
+                  'CHATS',
+                  simulation.totalUnreadCount,
+                ),
+                _buildNavItem(2, Icons.forum, 'ROOM', 0),
+                _buildNavItem(3, Icons.analytics, 'DIAGS', 0),
               ],
             ),
           ),

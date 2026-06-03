@@ -107,3 +107,27 @@ class Session {
 
   Session({required this.id, required this.name, required this.joinedAt});
 }
+
+class Conversation {
+  final String id; // Matches peerId
+  final String peerId;
+  final String peerAlias;
+  final int peerAvatarSeed;
+  String lastMessage;
+  DateTime lastTimestamp;
+  int unreadCount;
+  final List<Message> messages;
+  bool isPeerOnline;
+
+  Conversation({
+    required this.id,
+    required this.peerId,
+    required this.peerAlias,
+    required this.peerAvatarSeed,
+    required this.lastMessage,
+    required this.lastTimestamp,
+    this.unreadCount = 0,
+    required this.messages,
+    this.isPeerOnline = true,
+  });
+}

@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 enum FrameType {
-  beacon,     // BCN
-  hello,      // HLO
-  roomMsg,    // RM
-  directMsg,  // DM
-  ack,        // ACK
-  goodbye,    // BYE
-  error,      // ERR
+  beacon, // BCN
+  hello, // HLO
+  roomMsg, // RM
+  directMsg, // DM
+  ack, // ACK
+  goodbye, // BYE
+  error, // ERR
 }
 
 extension FrameTypeExtension on FrameType {
@@ -89,7 +89,9 @@ class Frame {
   factory Frame.deserialize(String data) {
     final parts = data.split(':');
     if (parts.length < 10) {
-      throw FormatException('Invalid frame format: expected at least 10 fields, got ${parts.length}');
+      throw FormatException(
+        'Invalid frame format: expected at least 10 fields, got ${parts.length}',
+      );
     }
 
     final version = parts[0];
@@ -101,7 +103,7 @@ class Frame {
     final senderId = parts[2];
     final recipientId = parts[3];
     final sessionId = parts[4];
-    
+
     final messageId = int.tryParse(parts[5]);
     if (messageId == null) {
       throw const FormatException('Invalid messageId format');
@@ -114,7 +116,7 @@ class Frame {
 
     final flags = int.tryParse(parts[7]) ?? 0;
     final payloadType = parts[8];
-    
+
     final bodyBase64 = parts[9];
     String payloadBody;
     try {

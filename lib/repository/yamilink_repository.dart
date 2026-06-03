@@ -28,7 +28,10 @@ class YamiLinkRepository extends ChangeNotifier {
 
   Timer? _sweepTimer;
   Timer? _simStrengthTimer;
-  final String _sessionId = List.generate(16, (_) => Random().nextInt(16).toRadixString(16)).join();
+  final String _sessionId = List.generate(
+    16,
+    (_) => Random().nextInt(16).toRadixString(16),
+  ).join();
   int _nextMessageId = 100;
 
   YamiLinkRepository({required this.profile}) {
@@ -70,26 +73,31 @@ class YamiLinkRepository extends ChangeNotifier {
     );
 
     // 3. Register Data Receiver Callback
-    _messageTransport.registerReceiveCallback((String senderHash, Uint8List packetBytes) {
+    _messageTransport.registerReceiveCallback((
+      String senderHash,
+      Uint8List packetBytes,
+    ) {
       _packetsProcessed++;
-      
+
       final rawText = utf8.decode(packetBytes);
       try {
         final frame = Frame.deserialize(rawText);
-        
+
         // Skip loopback messages from ourselves
         if (frame.senderId == profile.id) return;
 
-        // Retrieve sender alias from current discovered peers
+        // Retrieve sender alias and seed from current discovered peers
         String senderAlias = 'External Peer';
+        int avatarSeed = 0;
         for (var p in _peerManager.peers) {
           if (p.id == frame.senderId) {
             senderAlias = p.alias;
+            avatarSeed = p.avatarSeed;
             break;
           }
         }
-        
-        _sessionManager.processIncomingFrame(frame, senderAlias);
+
+        _sessionManager.processIncomingFrame(frame, senderAlias, avatarSeed);
       } catch (e) {
         debugPrint('Failed to parse incoming protocol frame: $e');
       }
@@ -103,13 +111,22 @@ class YamiLinkRepository extends ChangeNotifier {
     // Start liveness sweep checks
     _sweepTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _peerManager.sweepStalePeers();
+      _sessionManager.syncPeerOnlineStatus(
+        _peerManager.peers.map((p) => p.id).toList(),
+      );
     });
   }
 
   // --- Getters mirroring SimulationService interface ---
   List<Peer> get peers => _peerManager.peers;
   List<Message> get roomMessages => _sessionManager.roomMessages;
-  List<Message> getDirectMessages(String peerId) => _sessionManager.getDirectMessages(peerId);
+  List<Conversation> get conversations => _sessionManager.conversations;
+  int get totalUnreadCount => _sessionManager.conversations.fold<int>(
+    0,
+    (sum, c) => sum + c.unreadCount,
+  );
+  List<Message> getDirectMessages(String peerId) =>
+      _sessionManager.getDirectMessages(peerId);
   bool get isScanning => _isScanning;
   bool get relayEnabled => _relayEnabled;
   int get packetsProcessed => _packetsProcessed;
@@ -124,7 +141,12 @@ class YamiLinkRepository extends ChangeNotifier {
 
     _discoveryTransport.startDiscovery(
       onPeerFound: (nodeHash, alias, seed, rssi) {
-        _peerManager.handlePeerFound(id: nodeHash, alias: alias, seed: seed, signal: rssi);
+        _peerManager.handlePeerFound(
+          id: nodeHash,
+          alias: alias,
+          seed: seed,
+          signal: rssi,
+        );
         _packetsProcessed++;
       },
       onPeerLost: (nodeHash) {
@@ -191,6 +213,16 @@ class YamiLinkRepository extends ChangeNotifier {
     final frameBytes = utf8.encode(frame.serialize());
     _messageTransport.sendDirect(peerId, frameBytes);
 
+    final peer = _peerManager.peers.firstWhere(
+      (p) => p.id == peerId,
+      orElse: () => Peer(
+        id: peerId,
+        alias: 'External Peer',
+        avatarSeed: 0,
+        lastSeen: DateTime.now(),
+      ),
+    );
+
     final userMsg = Message(
       id: 'msg_dm_user_${frame.timestamp}_${frame.messageId}',
       senderId: profile.id,
@@ -201,12 +233,28 @@ class YamiLinkRepository extends ChangeNotifier {
       status: MessageStatus.sending,
     );
 
-    _sessionManager.addOutgoingMessage(userMsg, frame);
+    _sessionManager.addOutgoingMessage(
+      userMsg,
+      frame,
+      peerAlias: peer.alias,
+      peerAvatarSeed: peer.avatarSeed,
+    );
     _packetsProcessed++;
   }
 
   void togglePeerTrust(String peerId) {
     _peerManager.toggleTrust(peerId);
+  }
+
+  void setActiveConversation(String? peerId) {
+    _sessionManager.activeConversationId = peerId;
+    if (peerId != null) {
+      _sessionManager.markAsRead(peerId);
+    }
+  }
+
+  void markConversationAsRead(String peerId) {
+    _sessionManager.markAsRead(peerId);
   }
 
   void _loadInitialSimulatedHistory() {
@@ -237,11 +285,11 @@ class YamiLinkRepository extends ChangeNotifier {
     _simStrengthTimer?.cancel();
     _messageTransport.clearReceiveCallback();
     _discoveryTransport.stopDiscovery();
-    
+
     if (YamiLinkFfiBridge.instance.isSupported) {
       YamiLinkFfiBridge.instance.stop();
     }
-    
+
     _sessionManager.clear();
     _peerManager.clear();
     super.dispose();

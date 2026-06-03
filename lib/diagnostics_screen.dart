@@ -43,7 +43,10 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     _logTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) return;
 
-      final simulation = Provider.of<YamiLinkRepository>(context, listen: false);
+      final simulation = Provider.of<YamiLinkRepository>(
+        context,
+        listen: false,
+      );
       if (!simulation.isScanning) return;
 
       final logTime = _formatTime(DateTime.now());

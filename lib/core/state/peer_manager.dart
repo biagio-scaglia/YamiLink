@@ -80,7 +80,8 @@ class PeerManager {
       if (difference >= 15) {
         _peers.removeAt(i);
         changed = true;
-      } else if (difference >= 10 && peer.proximityHint != ProximityHint.unknown) {
+      } else if (difference >= 10 &&
+          peer.proximityHint != ProximityHint.unknown) {
         // Mark as unknown/stale proximity
         _peers[i] = peer.copyWith(proximityHint: ProximityHint.unknown);
         changed = true;

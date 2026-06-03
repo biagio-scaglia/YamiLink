@@ -7,17 +7,17 @@ class PendingTransmission {
   int retriesLeft;
   Timer? timer;
 
-  PendingTransmission({
-    required this.frame,
-    this.retriesLeft = 3,
-  });
+  PendingTransmission({required this.frame, this.retriesLeft = 3});
 }
 
 class SessionManager {
   final List<Message> _roomMessages = [];
   final Map<String, List<Message>> _directMessages = {};
+  final List<Conversation> _conversations = [];
   final void Function() _onChanged;
   final void Function(Frame frame) _onRetransmit;
+
+  String? activeConversationId;
 
   // Deduplication: maximum 50 processed message IDs per sender hash
   // Keep key as "senderId:messageId"
@@ -30,23 +30,68 @@ class SessionManager {
   SessionManager({
     required void Function() onChanged,
     required void Function(Frame frame) onRetransmit,
-  })  : _onChanged = onChanged,
-        _onRetransmit = onRetransmit;
+  }) : _onChanged = onChanged,
+       _onRetransmit = onRetransmit;
 
   List<Message> get roomMessages => List.unmodifiable(_roomMessages);
-  
+  List<Conversation> get conversations => List.unmodifiable(_conversations);
+
   List<Message> getDirectMessages(String peerId) =>
       List.unmodifiable(_directMessages[peerId] ?? []);
 
+  Conversation _getOrCreateConversation(
+    String peerId,
+    String peerAlias,
+    int peerAvatarSeed,
+  ) {
+    final index = _conversations.indexWhere((c) => c.peerId == peerId);
+    if (index == -1) {
+      final newConv = Conversation(
+        id: peerId,
+        peerId: peerId,
+        peerAlias: peerAlias,
+        peerAvatarSeed: peerAvatarSeed,
+        lastMessage: '',
+        lastTimestamp: DateTime.now(),
+        messages: [],
+        isPeerOnline: true,
+      );
+      _conversations.add(newConv);
+      return newConv;
+    }
+    return _conversations[index];
+  }
+
   /// Adds a message sent by the user to the local list, initializing its status to sending.
-  void addOutgoingMessage(Message message, Frame frame) {
+  void addOutgoingMessage(
+    Message message,
+    Frame frame, {
+    String? peerAlias,
+    int? peerAvatarSeed,
+  }) {
     if (message.recipientId == null) {
       _roomMessages.add(message);
     } else {
-      _directMessages.putIfAbsent(message.recipientId!, () => []).add(message);
-      
+      final peerId = message.recipientId!;
+      _directMessages.putIfAbsent(peerId, () => []).add(message);
+
+      // Update/Create Conversation
+      final conv = _getOrCreateConversation(
+        peerId,
+        peerAlias ?? 'External Peer',
+        peerAvatarSeed ?? 0,
+      );
+      conv.messages.add(message);
+      conv.lastMessage = message.content;
+      conv.lastTimestamp = message.timestamp;
+      conv.isPeerOnline = true; // Assume online if we are chatting
+
+      // Move to top of conversations list
+      _conversations.remove(conv);
+      _conversations.insert(0, conv);
+
       // Direct message requires reliability tracking
-      final key = '${message.recipientId}:${frame.messageId}';
+      final key = '$peerId:${frame.messageId}';
       final pending = PendingTransmission(frame: frame);
       _pendingTransmissions[key] = pending;
       _startRetryTimer(key);
@@ -55,7 +100,7 @@ class SessionManager {
   }
 
   /// Process incoming frames
-  void processIncomingFrame(Frame frame, String senderAlias) {
+  void processIncomingFrame(Frame frame, String senderAlias, int avatarSeed) {
     // 1. Deduplication check
     final dupKey = '${frame.senderId}:${frame.messageId}';
     if (_processedMessageKeys.contains(dupKey)) {
@@ -102,6 +147,27 @@ class SessionManager {
           status: MessageStatus.delivered,
         );
         _directMessages.putIfAbsent(frame.senderId, () => []).add(msg);
+
+        // Update/Create Conversation
+        final conv = _getOrCreateConversation(
+          frame.senderId,
+          senderAlias,
+          avatarSeed,
+        );
+        conv.messages.add(msg);
+        conv.lastMessage = msg.content;
+        conv.lastTimestamp = msg.timestamp;
+        conv.isPeerOnline = true;
+
+        // Unread logic
+        if (activeConversationId != frame.senderId) {
+          conv.unreadCount++;
+        }
+
+        // Move to top of conversations list
+        _conversations.remove(conv);
+        _conversations.insert(0, conv);
+
         _onChanged();
 
         // Immediately send back an ACK frame
@@ -118,8 +184,9 @@ class SessionManager {
           final peerId = frame.senderId;
           final dms = _directMessages[peerId];
           if (dms != null) {
-            // Find message with matching message ID in the payload metadata or timestamp
-            final msgIndex = dms.indexWhere((m) => m.status == MessageStatus.sending);
+            final msgIndex = dms.indexWhere(
+              (m) => m.status == MessageStatus.sending,
+            );
             if (msgIndex != -1) {
               dms[msgIndex].status = MessageStatus.delivered;
               _onChanged();
@@ -176,12 +243,39 @@ class SessionManager {
       final peerId = parts[0];
       final dms = _directMessages[peerId];
       if (dms != null) {
-        final msgIndex = dms.indexWhere((m) => m.status == MessageStatus.sending);
+        final msgIndex = dms.indexWhere(
+          (m) => m.status == MessageStatus.sending,
+        );
         if (msgIndex != -1) {
           dms[msgIndex].status = MessageStatus.failed;
           _onChanged();
         }
       }
+    }
+  }
+
+  void markAsRead(String peerId) {
+    final index = _conversations.indexWhere((c) => c.peerId == peerId);
+    if (index != -1) {
+      if (_conversations[index].unreadCount > 0) {
+        _conversations[index].unreadCount = 0;
+        _onChanged();
+      }
+    }
+  }
+
+  void syncPeerOnlineStatus(List<String> onlinePeerIds) {
+    bool changed = false;
+    for (var conv in _conversations) {
+      final wasOnline = conv.isPeerOnline;
+      final isOnline = onlinePeerIds.contains(conv.peerId);
+      if (wasOnline != isOnline) {
+        conv.isPeerOnline = isOnline;
+        changed = true;
+      }
+    }
+    if (changed) {
+      _onChanged();
     }
   }
 
@@ -193,6 +287,7 @@ class SessionManager {
   void clear() {
     _roomMessages.clear();
     _directMessages.clear();
+    _conversations.clear();
     for (var pending in _pendingTransmissions.values) {
       pending.timer?.cancel();
     }

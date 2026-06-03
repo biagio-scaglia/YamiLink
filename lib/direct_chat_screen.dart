@@ -17,11 +17,19 @@ class DirectChatScreen extends StatefulWidget {
 class _DirectChatScreenState extends State<DirectChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  YamiLinkRepository? _repository;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _repository = Provider.of<YamiLinkRepository>(context, listen: false);
+    _repository?.setActiveConversation(widget.peer.id);
   }
 
   void _scrollToBottom() {
@@ -46,6 +54,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   @override
   void dispose() {
+    _repository?.setActiveConversation(null);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -60,7 +69,23 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       orElse: () => widget.peer,
     );
     final isTrusted = livePeer.trustLevel == TrustLevel.paired;
-    final messages = simulation.getDirectMessages(livePeer.id);
+
+    // Check conversation online status and retrieve messages list
+    final conv = simulation.conversations.firstWhere(
+      (c) => c.peerId == livePeer.id,
+      orElse: () => Conversation(
+        id: livePeer.id,
+        peerId: livePeer.id,
+        peerAlias: livePeer.alias,
+        peerAvatarSeed: livePeer.avatarSeed,
+        lastMessage: '',
+        lastTimestamp: DateTime.now(),
+        messages: [],
+        isPeerOnline: true,
+      ),
+    );
+    final isPeerOnline = conv.isPeerOnline;
+    final messages = conv.messages;
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
@@ -106,14 +131,18 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     ],
                   ),
                   Text(
-                    isTrusted
-                        ? 'ENCRYPTED P2P CHANNEL'
-                        : 'UNVERIFIED P2P CHANNEL',
+                    !isPeerOnline
+                        ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
+                        : (isTrusted
+                              ? 'ENCRYPTED P2P CHANNEL'
+                              : 'UNVERIFIED P2P CHANNEL'),
                     style: YamiTheme.captionStyle.copyWith(
                       fontSize: 8.5,
-                      color: isTrusted
-                          ? YamiTheme.glowSecure
-                          : YamiTheme.glowActive,
+                      color: !isPeerOnline
+                          ? YamiTheme.textMuted
+                          : (isTrusted
+                                ? YamiTheme.glowSecure
+                                : YamiTheme.glowActive),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -133,35 +162,45 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         child: Column(
           children: [
-            // Safe pairing banner
+            // Safe pairing / offline banner
             Container(
               padding: const EdgeInsets.symmetric(
                 vertical: 8.0,
                 horizontal: 16.0,
               ),
-              color: isTrusted
-                  ? YamiTheme.glowSecure.withOpacity(0.04)
-                  : YamiTheme.surfaceDark.withOpacity(0.85),
+              color: !isPeerOnline
+                  ? YamiTheme.textMuted.withOpacity(0.08)
+                  : (isTrusted
+                        ? YamiTheme.glowSecure.withOpacity(0.04)
+                        : YamiTheme.surfaceDark.withOpacity(0.85)),
               child: Row(
                 children: [
                   Icon(
-                    isTrusted ? Icons.lock : Icons.lock_open,
+                    !isPeerOnline
+                        ? Icons.cloud_off
+                        : (isTrusted ? Icons.lock : Icons.lock_open),
                     size: 14,
-                    color: isTrusted
-                        ? YamiTheme.glowSecure
-                        : YamiTheme.textMuted,
+                    color: !isPeerOnline
+                        ? YamiTheme.textMuted
+                        : (isTrusted
+                              ? YamiTheme.glowSecure
+                              : YamiTheme.textMuted),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isTrusted
-                          ? '1-hop encryption verified. Local key comparison verified.'
-                          : 'Unverified pairing. Tap peer card in Nearby space to authorize keys.',
+                      !isPeerOnline
+                          ? 'Connection lost. Message delivery will pause until peer is back online.'
+                          : (isTrusted
+                                ? '1-hop encryption verified. Local key comparison verified.'
+                                : 'Unverified pairing. Tap peer card in Nearby space to authorize keys.'),
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
-                        color: isTrusted
-                            ? YamiTheme.glowSecure
-                            : YamiTheme.textSecondary,
+                        color: !isPeerOnline
+                            ? YamiTheme.textMuted
+                            : (isTrusted
+                                  ? YamiTheme.glowSecure
+                                  : YamiTheme.textSecondary),
                       ),
                     ),
                   ),
@@ -211,8 +250,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         child: TextField(
                           controller: _messageController,
                           style: YamiTheme.bodyStyle,
+                          enabled: isPeerOnline,
                           decoration: InputDecoration(
-                            hintText: 'Transmit direct packet...',
+                            hintText: isPeerOnline
+                                ? 'Transmit direct packet...'
+                                : 'Cannot transmit while peer is offline',
                             hintStyle: YamiTheme.captionStyle.copyWith(
                               fontSize: 13,
                               color: YamiTheme.textMuted,
@@ -231,17 +273,23 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isTrusted
-                            ? YamiTheme.glowSecure
-                            : YamiTheme.glowActive,
+                        color: !isPeerOnline
+                            ? YamiTheme.textMuted.withOpacity(0.1)
+                            : (isTrusted
+                                  ? YamiTheme.glowSecure
+                                  : YamiTheme.glowActive),
                       ),
                       child: IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.arrow_upward,
-                          color: YamiTheme.bgDeep,
+                          color: !isPeerOnline
+                              ? YamiTheme.textMuted
+                              : YamiTheme.bgDeep,
                           size: 20,
                         ),
-                        onPressed: () => _sendMessage(simulation),
+                        onPressed: isPeerOnline
+                            ? () => _sendMessage(simulation)
+                            : null,
                       ),
                     ),
                   ],

@@ -26,27 +26,27 @@ final class YamiLinkEvent extends Struct {
 typedef CEventDispatcher = Void Function(Pointer<YamiLinkEvent> event);
 
 // Native function typings
-typedef CStartFunc = Int32 Function(
-  Pointer<Utf8> alias,
-  Uint32 seed,
-  Pointer<NativeFunction<CEventDispatcher>> dispatcher,
-);
-typedef DartStartFunc = int Function(
-  Pointer<Utf8> alias,
-  int seed,
-  Pointer<NativeFunction<CEventDispatcher>> dispatcher,
-);
+typedef CStartFunc =
+    Int32 Function(
+      Pointer<Utf8> alias,
+      Uint32 seed,
+      Pointer<NativeFunction<CEventDispatcher>> dispatcher,
+    );
+typedef DartStartFunc =
+    int Function(
+      Pointer<Utf8> alias,
+      int seed,
+      Pointer<NativeFunction<CEventDispatcher>> dispatcher,
+    );
 
-typedef CSendFunc = Int32 Function(
-  Pointer<Utf8> recipientHash,
-  Pointer<Uint8> data,
-  Uint32 length,
-);
-typedef DartSendFunc = int Function(
-  Pointer<Utf8> recipientHash,
-  Pointer<Uint8> data,
-  int length,
-);
+typedef CSendFunc =
+    Int32 Function(
+      Pointer<Utf8> recipientHash,
+      Pointer<Uint8> data,
+      Uint32 length,
+    );
+typedef DartSendFunc =
+    int Function(Pointer<Utf8> recipientHash, Pointer<Uint8> data, int length);
 
 typedef CStopFunc = Int32 Function();
 typedef DartStopFunc = int Function();
@@ -65,7 +65,15 @@ class YamiLinkFfiBridge {
   NativeCallable<CEventDispatcher>? _eventCallable;
 
   // Callback to propagate events to transport layer
-  void Function(int eventType, String senderHash, String senderAlias, int seed, Uint8List payload, double signal)? onEvent;
+  void Function(
+    int eventType,
+    String senderHash,
+    String senderAlias,
+    int seed,
+    Uint8List payload,
+    double signal,
+  )?
+  onEvent;
 
   bool get isSupported => _isSupported;
 
@@ -101,7 +109,9 @@ class YamiLinkFfiBridge {
       }
     } catch (e) {
       _isSupported = false;
-      debugPrint('YamiLink Core FFI unavailable: $e. Falling back to Simulated Space.');
+      debugPrint(
+        'YamiLink Core FFI unavailable: $e. Falling back to Simulated Space.',
+      );
     }
   }
 
@@ -109,20 +119,22 @@ class YamiLinkFfiBridge {
     if (!_isSupported || _yamilinkCoreStart == null) return -1;
 
     // Use NativeCallable.listener to receive events from background threads safely
-    _eventCallable = NativeCallable<CEventDispatcher>.listener((Pointer<YamiLinkEvent> eventPtr) {
+    _eventCallable = NativeCallable<CEventDispatcher>.listener((
+      Pointer<YamiLinkEvent> eventPtr,
+    ) {
       final event = eventPtr.ref;
       final type = event.eventType;
-      
+
       String hash = '';
       if (event.senderHash != nullptr) {
         hash = event.senderHash.toDartString();
       }
-      
+
       String senderAlias = '';
       if (event.senderAlias != nullptr) {
         senderAlias = event.senderAlias.toDartString();
       }
-      
+
       final avatarSeed = event.avatarSeed;
       final len = event.payloadLen;
       final signal = event.signalRssi;
@@ -138,7 +150,11 @@ class YamiLinkFfiBridge {
 
     final aliasUtf8 = alias.toNativeUtf8();
     try {
-      return _yamilinkCoreStart!(aliasUtf8, seed, _eventCallable!.nativeFunction);
+      return _yamilinkCoreStart!(
+        aliasUtf8,
+        seed,
+        _eventCallable!.nativeFunction,
+      );
     } finally {
       calloc.free(aliasUtf8);
     }
@@ -147,15 +163,21 @@ class YamiLinkFfiBridge {
   int send(String? recipientHash, Uint8List data) {
     if (!_isSupported || _yamilinkCoreSend == null) return -1;
 
-    final recipientUtf8 = recipientHash != null ? recipientHash.toNativeUtf8() : nullptr;
-    
+    final recipientUtf8 = recipientHash != null
+        ? recipientHash.toNativeUtf8()
+        : nullptr;
+
     // Allocate memory for packet data
     final dataPtr = calloc<Uint8>(data.length);
     final dataPtrList = dataPtr.asTypedList(data.length);
     dataPtrList.setAll(0, data);
 
     try {
-      return _yamilinkCoreSend!(recipientUtf8, dataPtr.cast<Uint8>(), data.length);
+      return _yamilinkCoreSend!(
+        recipientUtf8,
+        dataPtr.cast<Uint8>(),
+        data.length,
+      );
     } finally {
       if (recipientUtf8 != nullptr) calloc.free(recipientUtf8);
       calloc.free(dataPtr);

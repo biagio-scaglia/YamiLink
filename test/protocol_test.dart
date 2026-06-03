@@ -52,8 +52,14 @@ void main() {
     });
 
     test('Throws FormatException on invalid frame data', () {
-      expect(() => Frame.deserialize('YML1:RM:short'), throwsA(isA<FormatException>()));
-      expect(() => Frame.deserialize('YML2:RM:s:r:sess:1:1:0:t:body'), throwsA(isA<FormatException>()));
+      expect(
+        () => Frame.deserialize('YML1:RM:short'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => Frame.deserialize('YML2:RM:s:r:sess:1:1:0:t:body'),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

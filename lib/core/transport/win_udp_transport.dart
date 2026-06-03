@@ -3,7 +3,8 @@ import '../../ffi_bridge.dart';
 import 'transport_interface.dart';
 
 class WinUdpTransport implements DiscoveryTransport, MessageTransport {
-  void Function(String nodeHash, String alias, int seed, double rssi)? _onPeerFound;
+  void Function(String nodeHash, String alias, int seed, double rssi)?
+  _onPeerFound;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
   bool _isScanning = false;
 
@@ -17,7 +18,8 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
 
   @override
   void startDiscovery({
-    required void Function(String nodeHash, String alias, int seed, double rssi) onPeerFound,
+    required void Function(String nodeHash, String alias, int seed, double rssi)
+    onPeerFound,
     required void Function(String nodeHash) onPeerLost,
   }) {
     _onPeerFound = onPeerFound;
@@ -43,7 +45,9 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
   }
 
   @override
-  void registerReceiveCallback(void Function(String senderHash, Uint8List packetBytes) onDataReceived) {
+  void registerReceiveCallback(
+    void Function(String senderHash, Uint8List packetBytes) onDataReceived,
+  ) {
     _onDataReceived = onDataReceived;
   }
 
@@ -52,9 +56,16 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
     _onDataReceived = null;
   }
 
-  void _handleFfiEvent(int eventType, String senderHash, String senderAlias, int seed, Uint8List payload, double signal) {
+  void _handleFfiEvent(
+    int eventType,
+    String senderHash,
+    String senderAlias,
+    int seed,
+    Uint8List payload,
+    double signal,
+  ) {
     if (!_isScanning) return;
-    
+
     if (eventType == 0) {
       // NodeDiscovered
       _onPeerFound?.call(senderHash, senderAlias, seed, signal);

@@ -11,14 +11,25 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   final String userNodeId;
 
   bool _isScanning = false;
-  void Function(String nodeHash, String alias, int seed, double rssi)? _onPeerFound;
+  void Function(String nodeHash, String alias, int seed, double rssi)?
+  _onPeerFound;
   void Function(String nodeHash)? _onPeerLost;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
 
   Timer? _discoveryTimer;
   Timer? _replyTimer;
-  final List<String> _simulatedPeers = ['peer_alice', 'peer_ghost', 'peer_atlas'];
-  final List<String> _simulatedNames = ['Alice_Proximity', 'Ghost-404', 'AtlasNode', 'NebulaSeeker', 'QuantumPioneer'];
+  final List<String> _simulatedPeers = [
+    'peer_alice',
+    'peer_ghost',
+    'peer_atlas',
+  ];
+  final List<String> _simulatedNames = [
+    'Alice_Proximity',
+    'Ghost-404',
+    'AtlasNode',
+    'NebulaSeeker',
+    'QuantumPioneer',
+  ];
   final Map<String, int> _peerSeeds = {
     'peer_alice': 1042,
     'peer_ghost': 5041,
@@ -40,7 +51,8 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
 
   @override
   void startDiscovery({
-    required void Function(String nodeHash, String alias, int seed, double rssi) onPeerFound,
+    required void Function(String nodeHash, String alias, int seed, double rssi)
+    onPeerFound,
     required void Function(String nodeHash) onPeerLost,
   }) {
     if (_isScanning) return;
@@ -96,7 +108,9 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
   }
 
   @override
-  void registerReceiveCallback(void Function(String senderHash, Uint8List packetBytes) onDataReceived) {
+  void registerReceiveCallback(
+    void Function(String senderHash, Uint8List packetBytes) onDataReceived,
+  ) {
     _onDataReceived = onDataReceived;
   }
 
@@ -123,33 +137,39 @@ class MockSimulatorTransport implements DiscoveryTransport, MessageTransport {
     if (userFrame.type != FrameType.roomMsg) return;
 
     _replyTimer?.cancel();
-    _replyTimer = Timer(Duration(milliseconds: 1500 + _random.nextInt(1500)), () {
-      if (_onDataReceived == null || _simulatedPeers.isEmpty) return;
+    _replyTimer = Timer(
+      Duration(milliseconds: 1500 + _random.nextInt(1500)),
+      () {
+        if (_onDataReceived == null || _simulatedPeers.isEmpty) return;
 
-      final peerId = _simulatedPeers[_random.nextInt(_simulatedPeers.length)];
-      final name = peerId == 'peer_alice' ? 'Alice_Proximity' : (peerId == 'peer_ghost' ? 'Ghost-404' : 'AtlasNode');
-      
-      String replyText = 'Received on my node! Clean connection.';
-      final lower = userFrame.payloadBody.toLowerCase();
-      if (lower.contains('hello') || lower.contains('hi')) {
-        replyText = 'Hi ${userFrame.senderId}! Welcome to the physical space.';
-      } else if (lower.contains('mesh') || lower.contains('relay')) {
-        replyText = 'Yes, local packet broadcasting acts as our mesh.';
-      }
+        final peerId = _simulatedPeers[_random.nextInt(_simulatedPeers.length)];
+        final name = peerId == 'peer_alice'
+            ? 'Alice_Proximity'
+            : (peerId == 'peer_ghost' ? 'Ghost-404' : 'AtlasNode');
 
-      final replyFrame = Frame(
-        type: FrameType.roomMsg,
-        senderId: peerId,
-        recipientId: '*',
-        sessionId: 'sim_session_id',
-        messageId: _random.nextInt(10000),
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-        payloadBody: replyText,
-      );
+        String replyText = 'Received on my node! Clean connection.';
+        final lower = userFrame.payloadBody.toLowerCase();
+        if (lower.contains('hello') || lower.contains('hi')) {
+          replyText =
+              'Hi ${userFrame.senderId}! Welcome to the physical space.';
+        } else if (lower.contains('mesh') || lower.contains('relay')) {
+          replyText = 'Yes, local packet broadcasting acts as our mesh.';
+        }
 
-      final replyBytes = utf8.encode(replyFrame.serialize()) as Uint8List;
-      _onDataReceived?.call(peerId, replyBytes);
-    });
+        final replyFrame = Frame(
+          type: FrameType.roomMsg,
+          senderId: peerId,
+          recipientId: '*',
+          sessionId: 'sim_session_id',
+          messageId: _random.nextInt(10000),
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          payloadBody: replyText,
+        );
+
+        final replyBytes = utf8.encode(replyFrame.serialize()) as Uint8List;
+        _onDataReceived?.call(peerId, replyBytes);
+      },
+    );
   }
 
   void _simulateDirectReply(Frame userFrame) {
