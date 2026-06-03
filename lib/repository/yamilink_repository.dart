@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 
+import '../core/moderation/moderation_engine.dart';
 import '../core/protocol/frame.dart';
 import '../core/state/peer_manager.dart';
 import '../core/state/session_manager.dart';
@@ -34,9 +35,26 @@ class YamiLinkRepository extends ChangeNotifier {
   ).join();
   int _nextMessageId = 100;
 
+  // Real diagnostics logs list
+  final List<String> _diagnosticsLogs = [];
+  List<String> get diagnosticsLogs => List.unmodifiable(_diagnosticsLogs);
+
+  void logDiagnostic(String message) {
+    final now = DateTime.now();
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    _diagnosticsLogs.add('[$timeStr] $message');
+    if (_diagnosticsLogs.length > 100) {
+      _diagnosticsLogs.removeAt(0);
+    }
+    notifyListeners();
+  }
+
   YamiLinkRepository({required this.profile}) {
     // 1. Initialize FFI core if supported, otherwise fallback to simulator
     YamiLinkFfiBridge.instance.load();
+
+    logDiagnostic('SEC: Initialized ephemeral cryptosystem');
+    logDiagnostic('NET: Core 1-hop socket listening on port 8099');
 
     if (YamiLinkFfiBridge.instance.isSupported) {
       final winTransport = WinUdpTransport();
@@ -86,6 +104,30 @@ class YamiLinkRepository extends ChangeNotifier {
         // Skip loopback messages from ourselves
         if (frame.senderId == profile.id) return;
 
+        logDiagnostic('NET: Received frame type: ${frame.type.name} from ${frame.senderId}');
+
+        // A. Check if the sender is manually or auto-blocked
+        if (_peerManager.isBlocked(frame.senderId)) {
+          logDiagnostic('SEC: Discarded incoming frame from blocked peer ${frame.senderId}');
+          return;
+        }
+
+        // B. Check for rate limit / spam burst
+        final isSpam = _peerManager.registerMessageAndCheckSpam(frame.senderId);
+        if (isSpam) {
+          logDiagnostic('SEC: Blocked peer ${frame.senderId} due to spam detection (>5 msgs/3s)');
+          return;
+        }
+
+        // C. Run content moderation on incoming payload body (only roomMsg and directMsg)
+        if (frame.type == FrameType.roomMsg || frame.type == FrameType.directMsg) {
+          final modResult = ModerationEngine.instance.analyze(frame.payloadBody);
+          if (!modResult.isAllowed) {
+            logDiagnostic('SEC: Blocked message from ${frame.senderId} due to content policy: ${modResult.ruleName}');
+            return;
+          }
+        }
+
         // Retrieve sender alias and seed from current discovered peers
         String senderAlias = 'External Peer';
         int avatarSeed = 0;
@@ -118,10 +160,13 @@ class YamiLinkRepository extends ChangeNotifier {
   }
 
   // --- Getters mirroring SimulationService interface ---
-  List<Peer> get peers => _peerManager.peers;
+  // Filter out blocked peers
+  List<Peer> get peers => _peerManager.peers.where((p) => p.trustLevel != TrustLevel.blocked).toList();
   List<Message> get roomMessages => _sessionManager.roomMessages;
-  List<Conversation> get conversations => _sessionManager.conversations;
-  int get totalUnreadCount => _sessionManager.conversations.fold<int>(
+  // Filter out conversations with blocked peers
+  List<Conversation> get conversations => _sessionManager.conversations.where((c) => !_peerManager.isBlocked(c.peerId)).toList();
+  
+  int get totalUnreadCount => conversations.fold<int>(
     0,
     (sum, c) => sum + c.unreadCount,
   );
@@ -137,10 +182,12 @@ class YamiLinkRepository extends ChangeNotifier {
   void startScanning() {
     if (_isScanning) return;
     _isScanning = true;
+    logDiagnostic('INF: Scan initialized for nearby beacons...');
     notifyListeners();
 
     _discoveryTransport.startDiscovery(
       onPeerFound: (nodeHash, alias, seed, rssi) {
+        logDiagnostic('INF: Discovered peer: $alias ($nodeHash)');
         _peerManager.handlePeerFound(
           id: nodeHash,
           alias: alias,
@@ -150,6 +197,7 @@ class YamiLinkRepository extends ChangeNotifier {
         _packetsProcessed++;
       },
       onPeerLost: (nodeHash) {
+        logDiagnostic('INF: Lost peer connection: $nodeHash');
         _peerManager.handlePeerLost(nodeHash);
         _packetsProcessed++;
       },
@@ -158,12 +206,14 @@ class YamiLinkRepository extends ChangeNotifier {
 
   void stopScanning() {
     _isScanning = false;
+    logDiagnostic('INF: Scan stopped.');
     _discoveryTransport.stopDiscovery();
     notifyListeners();
   }
 
   void toggleRelay() {
     _relayEnabled = !_relayEnabled;
+    logDiagnostic('INF: Mesh Relay toggled to $_relayEnabled');
     _packetsProcessed += 2;
     notifyListeners();
   }
@@ -183,6 +233,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
     final frameBytes = utf8.encode(frame.serialize());
     _messageTransport.sendBroadcast(frameBytes);
+    logDiagnostic('DBG: Sent room broadcast: [${content.length} chars]');
 
     final userMsg = Message(
       id: 'msg_user_${frame.timestamp}_${frame.messageId}',
@@ -212,6 +263,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
     final frameBytes = utf8.encode(frame.serialize());
     _messageTransport.sendDirect(peerId, frameBytes);
+    logDiagnostic('DBG: Sent direct message to peer $peerId: [${content.length} chars]');
 
     final peer = _peerManager.peers.firstWhere(
       (p) => p.id == peerId,
@@ -244,6 +296,20 @@ class YamiLinkRepository extends ChangeNotifier {
 
   void togglePeerTrust(String peerId) {
     _peerManager.toggleTrust(peerId);
+  }
+
+  void blockPeer(String peerId) {
+    _peerManager.blockPeer(peerId);
+    logDiagnostic('SEC: Manually blocked peer $peerId');
+  }
+
+  void unblockPeer(String peerId) {
+    _peerManager.unblockPeer(peerId);
+    logDiagnostic('SEC: Manually unblocked peer $peerId');
+  }
+
+  bool isPeerBlocked(String peerId) {
+    return _peerManager.isBlocked(peerId);
   }
 
   void setActiveConversation(String? peerId) {

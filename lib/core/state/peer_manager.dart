@@ -4,6 +4,12 @@ class PeerManager {
   final List<Peer> _peers = [];
   final void Function() _onChanged;
 
+  // Track blocked peer IDs so they remain blocked even if they are swept
+  final Set<String> _blockedPeerIds = {};
+
+  // Track message timestamps for burst spam detection (sliding window)
+  final Map<String, List<DateTime>> _msgTimestamps = {};
+
   PeerManager({required void Function() onChanged}) : _onChanged = onChanged;
 
   List<Peer> get peers => List.unmodifiable(_peers);
@@ -27,6 +33,8 @@ class PeerManager {
       hint = ProximityHint.far;
     }
 
+    final isBlockedPeer = _blockedPeerIds.contains(id);
+
     if (index == -1) {
       _peers.add(
         Peer(
@@ -36,7 +44,7 @@ class PeerManager {
           proximityHint: hint,
           relayCapability: true,
           lastSeen: now,
-          trustLevel: TrustLevel.unverified,
+          trustLevel: isBlockedPeer ? TrustLevel.blocked : TrustLevel.unverified,
         ),
       );
     } else {
@@ -45,6 +53,7 @@ class PeerManager {
         avatarSeed: seed,
         proximityHint: hint,
         lastSeen: now,
+        trustLevel: isBlockedPeer ? TrustLevel.blocked : _peers[index].trustLevel,
       );
     }
     _onChanged();
@@ -64,6 +73,47 @@ class PeerManager {
           : TrustLevel.paired;
       _onChanged();
     }
+  }
+
+  bool isBlocked(String peerId) {
+    return _blockedPeerIds.contains(peerId);
+  }
+
+  void blockPeer(String peerId) {
+    _blockedPeerIds.add(peerId);
+    final index = _peers.indexWhere((p) => p.id == peerId);
+    if (index != -1) {
+      _peers[index].trustLevel = TrustLevel.blocked;
+    }
+    _onChanged();
+  }
+
+  void unblockPeer(String peerId) {
+    _blockedPeerIds.remove(peerId);
+    _msgTimestamps.remove(peerId);
+    final index = _peers.indexWhere((p) => p.id == peerId);
+    if (index != -1) {
+      // Revert to unverified when unblocked
+      _peers[index].trustLevel = TrustLevel.unverified;
+    }
+    _onChanged();
+  }
+
+  bool registerMessageAndCheckSpam(String peerId) {
+    if (isBlocked(peerId)) {
+      return true;
+    }
+    final now = DateTime.now();
+    final timestamps = _msgTimestamps.putIfAbsent(peerId, () => []);
+    timestamps.add(now);
+    // Keep only timestamps within last 3 seconds
+    timestamps.removeWhere((t) => now.difference(t).inSeconds > 3);
+
+    if (timestamps.length > 5) {
+      blockPeer(peerId);
+      return true;
+    }
+    return false;
   }
 
   /// Sweeps stale peers.
@@ -95,6 +145,8 @@ class PeerManager {
 
   void clear() {
     _peers.clear();
+    _blockedPeerIds.clear();
+    _msgTimestamps.clear();
     _onChanged();
   }
 }

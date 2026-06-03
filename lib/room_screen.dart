@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/moderation/moderation_engine.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
@@ -15,6 +16,7 @@ class RoomScreen extends StatefulWidget {
 class _RoomScreenState extends State<RoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final Set<String> _revealedMessageIds = {};
 
   @override
   void initState() {
@@ -238,9 +240,14 @@ class _RoomScreenState extends State<RoomScreen> {
     final String timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final glowColor = isMe
-        ? YamiTheme.glowActive
-        : (isTrusted ? YamiTheme.glowSecure : Colors.transparent);
+    final modResult = ModerationEngine.instance.analyze(message.content);
+    final shouldBlur = modResult.shouldBlur && !_revealedMessageIds.contains(message.id);
+
+    final glowColor = shouldBlur
+        ? YamiTheme.glowWarning
+        : (isMe
+            ? YamiTheme.glowActive
+            : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -314,16 +321,43 @@ class _RoomScreenState extends State<RoomScreen> {
                     vertical: 10.0,
                   ),
                   decoration: YamiTheme.glassDecoration(
-                    backgroundColor: isMe
-                        ? YamiTheme.surfaceLight
-                        : YamiTheme.surfaceDark,
+                    backgroundColor: shouldBlur
+                        ? YamiTheme.surfaceDark
+                        : (isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark),
                     opacity: 0.85,
                     glowColor: glowColor,
-                    glowRadius: (isMe || isTrusted) ? 3.0 : 0.0,
+                    glowRadius: (shouldBlur || isMe || isTrusted) ? 3.0 : 0.0,
                     borderRadius: 12.0,
                     doubleBorder: true,
                   ),
-                  child: Text(message.content, style: YamiTheme.bodyStyle),
+                  child: shouldBlur
+                      ? GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _revealedMessageIds.add(message.id);
+                            });
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.visibility_off,
+                                size: 14,
+                                color: YamiTheme.glowWarning.withOpacity(0.8),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Sensitive Content (Tap to Reveal)',
+                                style: YamiTheme.captionStyle.copyWith(
+                                  color: YamiTheme.glowWarning,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Text(message.content, style: YamiTheme.bodyStyle),
                 ),
 
                 // Node key details in monospace

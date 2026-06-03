@@ -12,64 +12,23 @@ class DiagnosticsScreen extends StatefulWidget {
 }
 
 class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
-  final List<String> _consoleLogs = [];
   final ScrollController _consoleScrollController = ScrollController();
-  Timer? _logTimer;
-
-  final List<String> _logTemplates = [
-    'DBG: Broadcaster beacon sent successfully (size: 32B)',
-    'INF: Discovered BLE advertising channel 37',
-    'SEC: Ephemeral session signature verified for node',
-    'NET: 1-hop handshake packet processed',
-    'DBG: P2P route discovery resolved via Wi-Fi socket',
-    'INF: Received broadcast payload: [Local Area Broadcast]',
-    'SEC: Shared cryptographic secret refreshed',
-    'NET: Route capacity validated - active bandwidth ok',
-    'INF: Signal ping response received (latency: 18ms)',
-    'DBG: Frame checksum validated - no packet loss',
-  ];
+  int _lastLogCount = 0;
 
   @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _consoleLogs.addAll([
-      '[${_formatTime(now.subtract(const Duration(seconds: 15)))}] SEC: Initialized ephemeral cryptosystem',
-      '[${_formatTime(now.subtract(const Duration(seconds: 10)))}] NET: Core 1-hop socket listening on port 8099',
-      '[${_formatTime(now.subtract(const Duration(seconds: 5)))}] INF: Scan initialized for nearby beacons...',
-    ]);
+  void dispose() {
+    _consoleScrollController.dispose();
+    super.dispose();
+  }
 
-    // Periodically append new telemetry logs to the console
-    _logTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!mounted) return;
+  @override
+  Widget build(BuildContext context) {
+    final simulation = Provider.of<YamiLinkRepository>(context);
+    final logs = simulation.diagnosticsLogs;
 
-      final simulation = Provider.of<YamiLinkRepository>(
-        context,
-        listen: false,
-      );
-      if (!simulation.isScanning) return;
-
-      final logTime = _formatTime(DateTime.now());
-      final template =
-          _logTemplates[DateTime.now().millisecond % _logTemplates.length];
-
-      String logLine;
-      if (template.contains('node') && simulation.peers.isNotEmpty) {
-        final peer = simulation
-            .peers[DateTime.now().millisecond % simulation.peers.length];
-        logLine = '[$logTime] ${template.replaceFirst('node', peer.alias)}';
-      } else {
-        logLine = '[$logTime] $template';
-      }
-
-      setState(() {
-        _consoleLogs.add(logLine);
-        if (_consoleLogs.length > 80) {
-          _consoleLogs.removeAt(0);
-        }
-      });
-
-      Future.delayed(const Duration(milliseconds: 120), () {
+    if (logs.length != _lastLogCount) {
+      _lastLogCount = logs.length;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_consoleScrollController.hasClients) {
           _consoleScrollController.animateTo(
             _consoleScrollController.position.maxScrollExtent,
@@ -78,23 +37,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
           );
         }
       });
-    });
-  }
-
-  String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  void dispose() {
-    _logTimer?.cancel();
-    _consoleScrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -261,9 +204,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   ),
                   child: ListView.builder(
                     controller: _consoleScrollController,
-                    itemCount: _consoleLogs.length,
+                    itemCount: logs.length,
                     itemBuilder: (context, index) {
-                      final log = _consoleLogs[index];
+                      final log = logs[index];
                       Color logColor = YamiTheme.textSecondary;
                       if (log.contains('SEC:')) {
                         logColor = YamiTheme.glowSecure;

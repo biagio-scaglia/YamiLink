@@ -740,6 +740,32 @@ class _NearbyScreenState extends State<NearbyScreen>
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.block, color: YamiTheme.glowWarning, size: 16),
+                      label: Text(
+                        'BLOCK PEER',
+                        style: YamiTheme.monoStyle.copyWith(
+                          color: YamiTheme.glowWarning,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () {
+                        simulation.blockPeer(currentPeer.id);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${currentPeer.alias} bloccato'),
+                            backgroundColor: YamiTheme.glowWarning,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             );
