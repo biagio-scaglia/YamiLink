@@ -41,7 +41,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     simulation.sendDirectMessage(widget.peer.id, text);
     _messageController.clear();
 
-    Future.delayed(const Duration(milliseconds: 100), () => _scrollToBottom());
+    Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
   }
 
   @override
@@ -55,7 +55,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Widget build(BuildContext context) {
     final simulation = Provider.of<SimulationService>(context);
 
-    // Find live peer state (e.g. if trust changes while chat is open)
     final livePeer = simulation.peers.firstWhere(
       (p) => p.id == widget.peer.id,
       orElse: () => widget.peer,
@@ -63,7 +62,6 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final isTrusted = livePeer.trustLevel == TrustLevel.paired;
     final messages = simulation.getDirectMessages(livePeer.id);
 
-    // Auto scroll down on new messages
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
@@ -79,9 +77,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             YamiAvatar(
               seed: livePeer.avatarSeed,
               size: 34,
-              glowColor: isTrusted
-                  ? YamiTheme.glowSecure
-                  : YamiTheme.glowActive,
+              glowColor: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
               isGlowing: isTrusted,
             ),
             const SizedBox(width: 10),
@@ -93,29 +89,19 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     children: [
                       Text(
                         livePeer.alias,
-                        style: YamiTheme.bodyStyle.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: YamiTheme.bodyStyle.copyWith(fontWeight: FontWeight.bold),
                       ),
                       if (isTrusted) ...[
                         const SizedBox(width: 4),
-                        const Icon(
-                          Icons.verified,
-                          color: YamiTheme.glowSecure,
-                          size: 14,
-                        ),
+                        const Icon(Icons.verified, color: YamiTheme.glowSecure, size: 14),
                       ],
                     ],
                   ),
                   Text(
-                    isTrusted
-                        ? 'ENCRYPTED P2P CHANNEL'
-                        : 'UNVERIFIED P2P CHANNEL',
+                    isTrusted ? 'ENCRYPTED P2P CHANNEL' : 'UNVERIFIED P2P CHANNEL',
                     style: YamiTheme.captionStyle.copyWith(
-                      fontSize: 8,
-                      color: isTrusted
-                          ? YamiTheme.glowSecure
-                          : YamiTheme.glowActive,
+                      fontSize: 8.5,
+                      color: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -126,7 +112,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderGlass, height: 1.0),
+          child: Container(
+            color: YamiTheme.borderGlass,
+            height: 1.0,
+          ),
         ),
       ),
       body: Container(
@@ -135,35 +124,28 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ),
         child: Column(
           children: [
-            // Encryption status banner
+            // Safe pairing banner
             Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 8.0,
-                horizontal: 16.0,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               color: isTrusted
                   ? YamiTheme.glowSecure.withOpacity(0.04)
-                  : YamiTheme.surfaceDark.withOpacity(0.8),
+                  : YamiTheme.surfaceDark.withOpacity(0.85),
               child: Row(
                 children: [
                   Icon(
                     isTrusted ? Icons.lock : Icons.lock_open,
                     size: 14,
-                    color: isTrusted
-                        ? YamiTheme.glowSecure
-                        : YamiTheme.textMuted,
+                    color: isTrusted ? YamiTheme.glowSecure : YamiTheme.textMuted,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isTrusted
-                          ? 'End-to-end trust established. Local keys verified.'
-                          : 'Channel is unverified. Tap avatar in nearby to pair keys.',
+                          ? '1-hop encryption verified. Local key comparison verified.'
+                          : 'Unverified pairing. Tap peer card in Nearby space to authorize keys.',
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
-                        color: isTrusted
-                            ? YamiTheme.glowSecure
-                            : YamiTheme.textSecondary,
+                        color: isTrusted ? YamiTheme.glowSecure : YamiTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -171,34 +153,29 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-            // Chat log
+            // Messages feed
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 16.0,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final message = messages[index];
                   final isMe = message.senderId == simulation.profile.id;
 
-                  return _buildMessageRow(message, isMe);
+                  return _buildMessageRow(message, isMe, isTrusted);
                 },
               ),
             ),
 
-            // Divider border
-            Container(height: 1, color: YamiTheme.borderGlass),
-
-            // Bottom Input Panel
+            // Text input panel
+            Container(
+              height: 1,
+              color: YamiTheme.borderGlass,
+            ),
             SafeArea(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 color: YamiTheme.surfaceDark,
                 child: Row(
                   children: [
@@ -207,40 +184,35 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         decoration: BoxDecoration(
                           color: YamiTheme.bgDeep,
                           borderRadius: BorderRadius.circular(24.0),
-                          border: Border.all(color: YamiTheme.borderGlass),
+                          border: Border.all(color: YamiTheme.borderGlass, width: 1.0),
                         ),
                         child: TextField(
                           controller: _messageController,
                           style: YamiTheme.bodyStyle,
                           decoration: InputDecoration(
-                            hintText: 'Transmit payload directly...',
+                            hintText: 'Transmit direct packet...',
                             hintStyle: YamiTheme.captionStyle.copyWith(
                               fontSize: 13,
                               color: YamiTheme.textMuted,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 10.0,
-                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 11.0),
                             border: InputBorder.none,
                           ),
                           onSubmitted: (_) => _sendMessage(simulation),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isTrusted
-                            ? YamiTheme.glowSecure
-                            : YamiTheme.glowActive,
+                        color: isTrusted ? YamiTheme.glowSecure : YamiTheme.glowActive,
                       ),
                       child: IconButton(
                         icon: const Icon(
-                          Icons.send,
+                          Icons.arrow_upward,
                           color: YamiTheme.bgDeep,
-                          size: 18,
+                          size: 20,
                         ),
                         onPressed: () => _sendMessage(simulation),
                       ),
@@ -255,15 +227,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
   }
 
-  Widget _buildMessageRow(Message message, bool isMe) {
-    final Alignment alignment = isMe
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
-    final CrossAxisAlignment crossAlignment = isMe
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
-    final String timeStr =
-        '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+  Widget _buildMessageRow(Message message, bool isMe, bool isTrusted) {
+    final Alignment alignment = isMe ? Alignment.centerRight : Alignment.centerLeft;
+    final CrossAxisAlignment crossAlignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final String timeStr = '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
+
+    final glowColor = isMe
+        ? YamiTheme.glowActive
+        : (isTrusted ? YamiTheme.glowSecure : Colors.transparent);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -274,22 +245,21 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           children: [
             Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
+                maxWidth: MediaQuery.of(context).size.width * 0.76,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14.0,
-                vertical: 10.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
               decoration: YamiTheme.glassDecoration(
-                backgroundColor: isMe
-                    ? YamiTheme.surfaceLight
-                    : YamiTheme.surfaceDark,
+                backgroundColor: isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark,
                 opacity: 0.85,
-                glowColor: isMe ? YamiTheme.glowActive : Colors.transparent,
-                glowRadius: isMe ? 2.0 : 0.0,
+                glowColor: glowColor,
+                glowRadius: (isMe || isTrusted) ? 3.0 : 0.0,
                 borderRadius: 12.0,
+                doubleBorder: true,
               ),
-              child: Text(message.content, style: YamiTheme.bodyStyle),
+              child: Text(
+                message.content,
+                style: YamiTheme.bodyStyle,
+              ),
             ),
             const SizedBox(height: 3),
             Row(
@@ -297,25 +267,18 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               children: [
                 Text(
                   '$timeStr | ',
-                  style: YamiTheme.captionStyle.copyWith(fontSize: 8),
+                  style: YamiTheme.captionStyle.copyWith(fontSize: 8.5),
                 ),
                 if (isMe) ...[
                   Icon(
-                    message.status == MessageStatus.delivered
-                        ? Icons.done_all
-                        : Icons.done,
-                    size: 10,
-                    color: message.status == MessageStatus.delivered
-                        ? YamiTheme.glowSecure
-                        : YamiTheme.textMuted,
+                    message.status == MessageStatus.delivered ? Icons.done_all : Icons.done,
+                    size: 11,
+                    color: message.status == MessageStatus.delivered ? YamiTheme.glowSecure : YamiTheme.textMuted,
                   ),
                 ] else ...[
                   Text(
                     '1-HOP P2P',
-                    style: YamiTheme.monoStyle.copyWith(
-                      fontSize: 7,
-                      color: YamiTheme.textMuted,
-                    ),
+                    style: YamiTheme.monoStyle.copyWith(fontSize: 7.5, color: YamiTheme.textMuted),
                   ),
                 ],
               ],
