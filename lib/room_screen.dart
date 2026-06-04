@@ -54,7 +54,7 @@ class _RoomScreenState extends State<RoomScreen> {
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
             'MESSAGGIO BLOCCATO',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
             'Il tuo messaggio viola le linee guida locali:\n\n${decision.explanation}',
@@ -66,7 +66,7 @@ class _RoomScreenState extends State<RoomScreen> {
               child: Text(
                 'OK',
                 style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.glowActive,
+                  color: YamiTheme.accentActive,
                 ),
               ),
             ),
@@ -84,7 +84,7 @@ class _RoomScreenState extends State<RoomScreen> {
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
             'CONTENUTO SENSIBILE',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
             'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
@@ -113,7 +113,7 @@ class _RoomScreenState extends State<RoomScreen> {
               child: Text(
                 'INVIA COMUNQUE',
                 style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.glowWarning,
+                  color: YamiTheme.accentWarning,
                 ),
               ),
             ),
@@ -163,7 +163,7 @@ class _RoomScreenState extends State<RoomScreen> {
               '1-HOP ADJACENCY LIMIT • EPHEMERAL SEGMENT',
               style: YamiTheme.captionStyle.copyWith(
                 fontSize: 8.5,
-                color: YamiTheme.glowActive.withValues(alpha: 0.8),
+                color: YamiTheme.accentActive.withValues(alpha: 0.8),
                 letterSpacing: 0.5,
               ),
             ),
@@ -190,7 +190,7 @@ class _RoomScreenState extends State<RoomScreen> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderGlass, height: 1.0),
+          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
         ),
       ),
       body: Container(
@@ -210,7 +210,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   const Icon(
                     Icons.history_toggle_off,
                     size: 14,
-                    color: YamiTheme.glowActive,
+                    color: YamiTheme.accentActive,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -237,7 +237,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   const Icon(
                     Icons.security,
                     size: 14,
-                    color: YamiTheme.glowSecure,
+                    color: YamiTheme.accentSecure,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -245,7 +245,7 @@ class _RoomScreenState extends State<RoomScreen> {
                       'La moderazione è locale ed effimera per la sessione corrente.',
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
-                        color: YamiTheme.glowSecure,
+                        color: YamiTheme.accentSecure,
                       ),
                     ),
                   ),
@@ -286,7 +286,7 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
             ),
 
-            Container(height: 1, color: YamiTheme.borderGlass),
+            Container(height: 1, color: YamiTheme.borderMetallic),
             SafeArea(
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -302,7 +302,7 @@ class _RoomScreenState extends State<RoomScreen> {
                           color: YamiTheme.bgDeep,
                           borderRadius: BorderRadius.circular(24.0),
                           border: Border.all(
-                            color: YamiTheme.borderGlass,
+                            color: YamiTheme.borderMetallic,
                             width: 1.0,
                           ),
                         ),
@@ -329,7 +329,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     Container(
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: YamiTheme.glowActive,
+                        color: YamiTheme.accentActive,
                       ),
                       child: IconButton(
                         icon: const Icon(
@@ -366,10 +366,10 @@ class _RoomScreenState extends State<RoomScreen> {
         message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
-        ? YamiTheme.glowWarning
+        ? YamiTheme.accentWarning
         : (isMe
-              ? YamiTheme.glowActive
-              : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
+              ? YamiTheme.accentActive
+              : (isTrusted ? YamiTheme.accentSecure : Colors.transparent));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -384,8 +384,8 @@ class _RoomScreenState extends State<RoomScreen> {
               seed: avatarSeed,
               size: 32,
               glowColor: isTrusted
-                  ? YamiTheme.glowSecure
-                  : YamiTheme.glowActive,
+                  ? YamiTheme.accentSecure
+                  : YamiTheme.accentActive,
               isGlowing: isTrusted,
             ),
             const SizedBox(width: 8),
@@ -409,9 +409,9 @@ class _RoomScreenState extends State<RoomScreen> {
                           fontSize: 8.5,
                           fontWeight: FontWeight.bold,
                           color: isMe
-                              ? YamiTheme.glowActive
+                              ? YamiTheme.accentActive
                               : (isTrusted
-                                    ? YamiTheme.glowSecure
+                                    ? YamiTheme.accentSecure
                                     : YamiTheme.textSecondary),
                         ),
                       ),
@@ -419,7 +419,7 @@ class _RoomScreenState extends State<RoomScreen> {
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.verified,
-                          color: YamiTheme.glowSecure,
+                          color: YamiTheme.accentSecure,
                           size: 10,
                         ),
                       ],
@@ -440,17 +440,16 @@ class _RoomScreenState extends State<RoomScreen> {
                     horizontal: 14.0,
                     vertical: 10.0,
                   ),
-                  decoration: YamiTheme.glassDecoration(
+                  decoration: YamiTheme.tactileDecoration(
                     backgroundColor: shouldBlur
                         ? YamiTheme.surfaceDark
                         : (isMe
                               ? YamiTheme.surfaceLight
                               : YamiTheme.surfaceDark),
                     opacity: 0.85,
-                    glowColor: glowColor,
-                    glowRadius: (shouldBlur || isMe || isTrusted) ? 3.0 : 0.0,
+                    borderColor: glowColor == Colors.transparent ? YamiTheme.borderMetallic : glowColor,
                     borderRadius: 12.0,
-                    doubleBorder: true,
+                    raised: true,
                   ),
                   child: shouldBlur
                       ? GestureDetector(
@@ -465,7 +464,7 @@ class _RoomScreenState extends State<RoomScreen> {
                               Icon(
                                 Icons.visibility_off,
                                 size: 14,
-                                color: YamiTheme.glowWarning.withValues(
+                                color: YamiTheme.accentWarning.withValues(
                                   alpha: 0.8,
                                 ),
                               ),
@@ -476,7 +475,7 @@ class _RoomScreenState extends State<RoomScreen> {
                                       ? 'Sensibile: ${message.moderationExplanation} (Tocca per rivelare)'
                                       : 'Contenuto Sensibile (Tocca per rivelare)',
                                   style: YamiTheme.captionStyle.copyWith(
-                                    color: YamiTheme.glowWarning,
+                                    color: YamiTheme.accentWarning,
                                     fontStyle: FontStyle.italic,
                                     fontSize: 11,
                                   ),
@@ -513,7 +512,7 @@ class _RoomScreenState extends State<RoomScreen> {
             YamiAvatar(
               seed: avatarSeed,
               size: 32,
-              glowColor: YamiTheme.glowActive,
+              glowColor: YamiTheme.accentActive,
               isGlowing: true,
             ),
           ],

@@ -30,3 +30,5 @@ class YamiLinkFfiBridge {
     return -1;
   }
 }
+
+class YML2PacketFFI {}

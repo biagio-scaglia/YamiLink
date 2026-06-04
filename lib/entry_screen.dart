@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'widgets/avatar.dart';
+import 'widgets/loaders.dart';
 
 class EntryScreen extends StatefulWidget {
   final Function(EphemeralProfile) onProfileCreated;
@@ -112,7 +113,7 @@ class _EntryScreenState extends State<EntryScreen>
                 child: Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: YamiTheme.glowAmbient.withValues(
+                    color: YamiTheme.accentAmbient.withValues(
                       alpha: 0.04 + (0.04 * _pulseController.value),
                     ),
                   ),
@@ -131,7 +132,7 @@ class _EntryScreenState extends State<EntryScreen>
                     Icon(
                       Icons.blur_on,
                       size: 64,
-                      color: YamiTheme.glowActive.withValues(alpha: 0.8),
+                      color: YamiTheme.accentActive.withValues(alpha: 0.8),
                     ),
                     const SizedBox(height: 12),
 
@@ -142,7 +143,7 @@ class _EntryScreenState extends State<EntryScreen>
                         letterSpacing: 6.0,
                         shadows: [
                           BoxShadow(
-                            color: YamiTheme.glowActive.withValues(alpha: 0.35),
+                            color: YamiTheme.accentActive.withValues(alpha: 0.35),
                             blurRadius: 16.0,
                           ),
                         ],
@@ -158,12 +159,10 @@ class _EntryScreenState extends State<EntryScreen>
 
                     Container(
                       padding: const EdgeInsets.all(24.0),
-                      decoration: YamiTheme.glassDecoration(
+                      decoration: YamiTheme.tactileDecoration(
                         backgroundColor: YamiTheme.surfaceDark,
                         opacity: 0.65,
-                        glowColor: YamiTheme.glowActive,
-                        glowRadius: 12.0,
-                        doubleBorder: true,
+                        borderColor: YamiTheme.accentActive,
                       ),
                       child: Column(
                         children: [
@@ -188,13 +187,13 @@ class _EntryScreenState extends State<EntryScreen>
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderSide: const BorderSide(
-                                  color: YamiTheme.borderGlass,
+                                  color: YamiTheme.borderMetallic,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderSide: const BorderSide(
-                                  color: YamiTheme.glowActive,
+                                  color: YamiTheme.accentActive,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -205,7 +204,7 @@ class _EntryScreenState extends State<EntryScreen>
                               suffixIcon: IconButton(
                                 icon: const Icon(
                                   Icons.refresh,
-                                  color: YamiTheme.glowActive,
+                                  color: YamiTheme.accentActive,
                                 ),
                                 onPressed: _generateRandomAlias,
                                 tooltip: 'Regenerate',
@@ -222,7 +221,7 @@ class _EntryScreenState extends State<EntryScreen>
                           Text(
                             'Saved in memory only. Keys evaporate on exit.',
                             style: YamiTheme.monoStyle.copyWith(
-                              color: YamiTheme.glowActive.withValues(
+                              color: YamiTheme.accentActive.withValues(
                                 alpha: 0.85,
                               ),
                               fontSize: 9,
@@ -239,10 +238,10 @@ class _EntryScreenState extends State<EntryScreen>
                       height: 52,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: YamiTheme.glowActive,
+                          backgroundColor: YamiTheme.accentActive,
                           foregroundColor: YamiTheme.bgDeep,
                           elevation: 8,
-                          shadowColor: YamiTheme.glowActive.withValues(
+                          shadowColor: YamiTheme.accentActive.withValues(
                             alpha: 0.4,
                           ),
                           shape: RoundedRectangleBorder(
@@ -253,7 +252,7 @@ class _EntryScreenState extends State<EntryScreen>
                         child: _isGeneratingKeys 
                           ? const SizedBox(
                               width: 20, height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2, color: YamiTheme.bgDeep)
+                              child: YamiTactileLoader(size: 24, activeColor: YamiTheme.accentActive),
                             )
                           : Text(
                           'INITIALIZE CONNECTION',

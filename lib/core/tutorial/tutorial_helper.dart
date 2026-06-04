@@ -142,12 +142,10 @@ class YamiTutorialHelper {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
         padding: const EdgeInsets.all(20.0),
-        decoration: YamiTheme.glassDecoration(
+        decoration: YamiTheme.tactileDecoration(
           backgroundColor: YamiTheme.surfaceDark,
           opacity: 0.95,
-          glowColor: YamiTheme.glowActive,
-          glowRadius: 10,
-          doubleBorder: true,
+          borderColor: YamiTheme.accentActive,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -158,7 +156,7 @@ class YamiTutorialHelper {
               style: YamiTheme.monoStyle.copyWith(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: YamiTheme.glowActive,
+                color: YamiTheme.accentActive,
                 letterSpacing: 1.0,
               ),
             ),
@@ -188,7 +186,7 @@ class YamiTutorialHelper {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: YamiTheme.glowActive,
+                    backgroundColor: YamiTheme.accentActive,
                     foregroundColor: YamiTheme.bgDeep,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(
@@ -235,7 +233,7 @@ class YamiTutorialHelper {
               topRight: Radius.circular(20),
             ),
             border: const Border(
-              top: BorderSide(color: YamiTheme.borderGlass, width: 1.0),
+              top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
@@ -315,20 +313,19 @@ class YamiTutorialHelper {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-        decoration: YamiTheme.glassDecoration(
+        decoration: YamiTheme.tactileDecoration(
           backgroundColor: YamiTheme.surfaceDark,
           opacity: 0.8,
-          doubleBorder: true,
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: YamiTheme.glowActive.withValues(alpha: 0.1),
+                color: YamiTheme.accentActive.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: YamiTheme.glowActive, size: 20),
+              child: Icon(icon, color: YamiTheme.accentActive, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -375,12 +372,10 @@ class YamiTutorialHelper {
             vertical: 30,
           ),
           child: Container(
-            decoration: YamiTheme.glassDecoration(
+            decoration: YamiTheme.tactileDecoration(
               backgroundColor: YamiTheme.bgDeep,
               opacity: 0.95,
-              glowColor: YamiTheme.glowActive,
-              glowRadius: 16,
-              doubleBorder: true,
+              borderColor: YamiTheme.accentActive,
             ),
             child: Column(
               children: [
@@ -408,7 +403,7 @@ class YamiTutorialHelper {
                     ],
                   ),
                 ),
-                const Divider(color: YamiTheme.borderGlass, height: 1),
+                const Divider(color: YamiTheme.borderMetallic, height: 1),
 
                 Expanded(
                   child: ListView(
@@ -457,7 +452,7 @@ class YamiTutorialHelper {
                     ],
                   ),
                 ),
-                const Divider(color: YamiTheme.borderGlass, height: 1),
+                const Divider(color: YamiTheme.borderMetallic, height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: SizedBox(
@@ -465,7 +460,7 @@ class YamiTutorialHelper {
                     height: 44,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: YamiTheme.glowActive,
+                        backgroundColor: YamiTheme.accentActive,
                         foregroundColor: YamiTheme.bgDeep,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -501,7 +496,7 @@ class YamiTutorialHelper {
           Text(
             title,
             style: YamiTheme.monoStyle.copyWith(
-              color: YamiTheme.glowActive,
+              color: YamiTheme.accentActive,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,

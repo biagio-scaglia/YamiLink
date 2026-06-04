@@ -59,7 +59,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
             'MESSAGGIO BLOCCATO',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
             'Il tuo messaggio viola le linee guida locali:\n\n${decision.explanation}',
@@ -71,7 +71,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               child: Text(
                 'OK',
                 style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.glowActive,
+                  color: YamiTheme.accentActive,
                 ),
               ),
             ),
@@ -88,7 +88,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
             'CONTENUTO SENSIBILE',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.glowWarning),
+            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
             'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
@@ -117,7 +117,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               child: Text(
                 'INVIA COMUNQUE',
                 style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.glowWarning,
+                  color: YamiTheme.accentWarning,
                 ),
               ),
             ),
@@ -186,8 +186,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               seed: livePeer.avatarSeed,
               size: 34,
               glowColor: isTrusted
-                  ? YamiTheme.glowSecure
-                  : YamiTheme.glowActive,
+                  ? YamiTheme.accentSecure
+                  : YamiTheme.accentActive,
               isGlowing: isTrusted,
             ),
             const SizedBox(width: 10),
@@ -207,7 +207,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.verified,
-                          color: YamiTheme.glowSecure,
+                          color: YamiTheme.accentSecure,
                           size: 14,
                         ),
                       ],
@@ -226,14 +226,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     style: YamiTheme.captionStyle.copyWith(
                       fontSize: 8.5,
                       color: isBlocked
-                          ? YamiTheme.glowWarning
+                          ? YamiTheme.accentWarning
                           : (isMuted
-                                ? YamiTheme.glowWarning
+                                ? YamiTheme.accentWarning
                                 : (!isPeerOnline
                                       ? YamiTheme.textMuted
                                       : (isTrusted
-                                            ? YamiTheme.glowSecure
-                                            : YamiTheme.glowActive))),
+                                            ? YamiTheme.accentSecure
+                                            : YamiTheme.accentActive))),
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -246,7 +246,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           IconButton(
             icon: Icon(
               isMuted ? Icons.volume_off : Icons.volume_up,
-              color: isMuted ? YamiTheme.glowWarning : YamiTheme.textSecondary,
+              color: isMuted ? YamiTheme.accentWarning : YamiTheme.textSecondary,
             ),
             onPressed: () {
               if (isMuted) {
@@ -254,7 +254,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${livePeer.alias} non è più silenziato'),
-                    backgroundColor: YamiTheme.glowSecure,
+                    backgroundColor: YamiTheme.accentSecure,
                   ),
                 );
               } else {
@@ -265,7 +265,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     title: Text(
                       'SILENZIA PEER',
                       style: YamiTheme.monoStyle.copyWith(
-                        color: YamiTheme.glowActive,
+                        color: YamiTheme.accentActive,
                       ),
                     ),
                     children: [
@@ -279,7 +279,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Peer silenziato per 10 secondi'),
-                              backgroundColor: YamiTheme.glowWarning,
+                              backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
                         },
@@ -295,7 +295,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Peer silenziato per 30 secondi'),
-                              backgroundColor: YamiTheme.glowWarning,
+                              backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
                         },
@@ -311,7 +311,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Peer silenziato per 1 minuto'),
-                              backgroundColor: YamiTheme.glowWarning,
+                              backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
                         },
@@ -328,7 +328,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             icon: Icon(
               isBlocked ? Icons.block : Icons.block_outlined,
               color: isBlocked
-                  ? YamiTheme.glowWarning
+                  ? YamiTheme.accentWarning
                   : YamiTheme.textSecondary,
             ),
             onPressed: () {
@@ -337,7 +337,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${livePeer.alias} sbloccato'),
-                    backgroundColor: YamiTheme.glowSecure,
+                    backgroundColor: YamiTheme.accentSecure,
                   ),
                 );
               } else {
@@ -345,7 +345,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${livePeer.alias} bloccato'),
-                    backgroundColor: YamiTheme.glowWarning,
+                    backgroundColor: YamiTheme.accentWarning,
                   ),
                 );
                 Navigator.pop(context);
@@ -356,7 +356,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderGlass, height: 1.0),
+          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
         ),
       ),
       body: Container(
@@ -371,13 +371,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 horizontal: 16.0,
               ),
               color: isBlocked
-                  ? YamiTheme.glowWarning.withValues(alpha: 0.08)
+                  ? YamiTheme.accentWarning.withValues(alpha: 0.08)
                   : (isMuted
-                        ? YamiTheme.glowWarning.withValues(alpha: 0.05)
+                        ? YamiTheme.accentWarning.withValues(alpha: 0.05)
                         : (!isPeerOnline
                               ? YamiTheme.textMuted.withValues(alpha: 0.08)
                               : (isTrusted
-                                    ? YamiTheme.glowSecure.withValues(
+                                    ? YamiTheme.accentSecure.withValues(
                                         alpha: 0.04,
                                       )
                                     : YamiTheme.surfaceDark.withValues(
@@ -397,11 +397,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                                           : Icons.lock_open))),
                     size: 14,
                     color: isBlocked || isMuted
-                        ? YamiTheme.glowWarning
+                        ? YamiTheme.accentWarning
                         : (!isPeerOnline
                               ? YamiTheme.textMuted
                               : (isTrusted
-                                    ? YamiTheme.glowSecure
+                                    ? YamiTheme.accentSecure
                                     : YamiTheme.textMuted)),
                   ),
                   const SizedBox(width: 8),
@@ -419,11 +419,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
                         color: isBlocked || isMuted
-                            ? YamiTheme.glowWarning
+                            ? YamiTheme.accentWarning
                             : (!isPeerOnline
                                   ? YamiTheme.textMuted
                                   : (isTrusted
-                                        ? YamiTheme.glowSecure
+                                        ? YamiTheme.accentSecure
                                         : YamiTheme.textSecondary)),
                       ),
                     ),
@@ -443,7 +443,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   const Icon(
                     Icons.security,
                     size: 14,
-                    color: YamiTheme.glowSecure,
+                    color: YamiTheme.accentSecure,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -451,7 +451,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       'La moderazione è locale ed effimera per la sessione corrente.',
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
-                        color: YamiTheme.glowSecure,
+                        color: YamiTheme.accentSecure,
                       ),
                     ),
                   ),
@@ -476,7 +476,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             ),
 
-            Container(height: 1, color: YamiTheme.borderGlass),
+            Container(height: 1, color: YamiTheme.borderMetallic),
             SafeArea(
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -492,7 +492,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           color: YamiTheme.bgDeep,
                           borderRadius: BorderRadius.circular(24.0),
                           border: Border.all(
-                            color: YamiTheme.borderGlass,
+                            color: YamiTheme.borderMetallic,
                             width: 1.0,
                           ),
                         ),
@@ -527,8 +527,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         color: (!isPeerOnline || isBlocked)
                             ? YamiTheme.textMuted.withValues(alpha: 0.1)
                             : (isTrusted
-                                  ? YamiTheme.glowSecure
-                                  : YamiTheme.glowActive),
+                                  ? YamiTheme.accentSecure
+                                  : YamiTheme.accentActive),
                       ),
                       child: IconButton(
                         icon: Icon(
@@ -567,10 +567,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         message.isBlurred && !_revealedMessageIds.contains(message.id);
 
     final glowColor = shouldBlur
-        ? YamiTheme.glowWarning
+        ? YamiTheme.accentWarning
         : (isMe
-              ? YamiTheme.glowActive
-              : (isTrusted ? YamiTheme.glowSecure : Colors.transparent));
+              ? YamiTheme.accentActive
+              : (isTrusted ? YamiTheme.accentSecure : Colors.transparent));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -587,15 +587,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 horizontal: 14.0,
                 vertical: 10.0,
               ),
-              decoration: YamiTheme.glassDecoration(
+              decoration: YamiTheme.tactileDecoration(
                 backgroundColor: shouldBlur
                     ? YamiTheme.surfaceDark
                     : (isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark),
                 opacity: 0.85,
-                glowColor: glowColor,
-                glowRadius: (shouldBlur || isMe || isTrusted) ? 3.0 : 0.0,
+                borderColor: glowColor == Colors.transparent ? YamiTheme.borderMetallic : glowColor,
                 borderRadius: 12.0,
-                doubleBorder: true,
               ),
               child: shouldBlur
                   ? GestureDetector(
@@ -610,7 +608,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           Icon(
                             Icons.visibility_off,
                             size: 14,
-                            color: YamiTheme.glowWarning.withValues(alpha: 0.8),
+                            color: YamiTheme.accentWarning.withValues(alpha: 0.8),
                           ),
                           const SizedBox(width: 8),
                           Flexible(
@@ -619,7 +617,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                                   ? 'Sensibile: ${message.moderationExplanation} (Tocca per rivelare)'
                                   : 'Contenuto Sensibile (Tocca per rivelare)',
                               style: YamiTheme.captionStyle.copyWith(
-                                color: YamiTheme.glowWarning,
+                                color: YamiTheme.accentWarning,
                                 fontStyle: FontStyle.italic,
                                 fontSize: 11,
                               ),
@@ -646,7 +644,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         : Icons.done,
                     size: 11,
                     color: message.status == MessageStatus.delivered
-                        ? YamiTheme.glowSecure
+                        ? YamiTheme.accentSecure
                         : YamiTheme.textMuted,
                   ),
                 ] else ...[
@@ -654,7 +652,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     message.hopCount == 1 ? '1-HOP P2P' : '${message.hopCount}-HOP MESH',
                     style: YamiTheme.monoStyle.copyWith(
                       fontSize: 7.5,
-                      color: message.hopCount == 1 ? YamiTheme.textMuted : YamiTheme.glowActive,
+                      color: message.hopCount == 1 ? YamiTheme.textMuted : YamiTheme.accentActive,
                     ),
                   ),
                 ],

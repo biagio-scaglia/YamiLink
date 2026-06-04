@@ -18,22 +18,23 @@ class YamiAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeGlowColor = glowColor ?? YamiTheme.glowActive;
+    final activeGlowColor = glowColor ?? YamiTheme.accentActive;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isGlowing ? activeGlowColor : YamiTheme.borderGlass,
+          color: isGlowing ? activeGlowColor : YamiTheme.borderMetallic,
           width: isGlowing ? 1.5 : 1.0,
         ),
         boxShadow: isGlowing
             ? [
                 BoxShadow(
-                  color: activeGlowColor.withValues(alpha: 0.2),
-                  blurRadius: 10.0,
-                  spreadRadius: 0.5,
+                  color: Colors.black.withValues(alpha: 0.8),
+                  blurRadius: 8.0,
+                  spreadRadius: 2.0,
+                  offset: const Offset(0, 4),
                 ),
               ]
             : null,
@@ -168,7 +169,7 @@ class YamiAvatarPainter extends CustomPainter {
       innerPath.close();
       canvas.drawPath(
         innerPath,
-        strokePaint..color = YamiTheme.glowAmbient.withValues(alpha: 0.5),
+        strokePaint..color = YamiTheme.accentAmbient.withValues(alpha: 0.5),
       );
     } else if (geometryType == 2) {
       final points = <Offset>[];
@@ -221,13 +222,13 @@ class YamiAvatarPainter extends CustomPainter {
         canvas.drawCircle(
           satellite,
           3.5,
-          fillPaint..color = YamiTheme.glowAmbient,
+          fillPaint..color = YamiTheme.accentAmbient,
         );
         canvas.drawLine(
           center,
           satellite,
           strokePaint
-            ..color = YamiTheme.borderGlass
+            ..color = YamiTheme.borderMetallic
             ..strokeWidth = 0.4,
         );
       }

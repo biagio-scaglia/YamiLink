@@ -36,7 +36,7 @@ class ChatsScreen extends StatelessWidget {
               'EPHEMERAL POINT-TO-POINT CHANNELS',
               style: YamiTheme.captionStyle.copyWith(
                 fontSize: 8,
-                color: YamiTheme.glowActive,
+                color: YamiTheme.accentActive,
                 letterSpacing: 0.5,
               ),
             ),
@@ -60,7 +60,7 @@ class ChatsScreen extends StatelessWidget {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderGlass, height: 1.0),
+          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
         ),
       ),
       body: Container(
@@ -109,15 +109,14 @@ class ChatsScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(24.0),
-              decoration: YamiTheme.glassDecoration(
+              decoration: YamiTheme.tactileDecoration(
                 backgroundColor: YamiTheme.surfaceDark.withValues(alpha: 0.4),
-                glowColor: YamiTheme.glowActive,
-                glowRadius: 10,
+                borderColor: YamiTheme.accentActive,
                 borderRadius: 50,
               ),
               child: const Icon(
                 Icons.forum_outlined,
-                color: YamiTheme.glowActive,
+                color: YamiTheme.accentActive,
                 size: 32,
               ),
             ),
@@ -173,13 +172,11 @@ class ChatsScreen extends StatelessWidget {
         },
         child: Container(
           padding: const EdgeInsets.all(12.0),
-          decoration: YamiTheme.glassDecoration(
+          decoration: YamiTheme.tactileDecoration(
             backgroundColor: YamiTheme.surfaceDark,
-            glowColor: conv.unreadCount > 0
-                ? YamiTheme.glowActive
-                : (isTrusted ? YamiTheme.glowSecure : Colors.transparent),
-            glowRadius: conv.unreadCount > 0 ? 3.0 : (isTrusted ? 2.0 : 0.0),
-            doubleBorder: true,
+            borderColor: conv.unreadCount > 0
+                ? YamiTheme.accentActive
+                : (isTrusted ? YamiTheme.accentSecure : YamiTheme.borderMetallic),
           ),
           child: Row(
             children: [
@@ -190,8 +187,8 @@ class ChatsScreen extends StatelessWidget {
                     seed: conv.peerAvatarSeed,
                     size: 46,
                     glowColor: isTrusted
-                        ? YamiTheme.glowSecure
-                        : YamiTheme.glowActive,
+                        ? YamiTheme.accentSecure
+                        : YamiTheme.accentActive,
                     isGlowing: isTrusted,
                   ),
                   Positioned(
@@ -202,7 +199,7 @@ class ChatsScreen extends StatelessWidget {
                       height: 12,
                       decoration: BoxDecoration(
                         color: conv.isPeerOnline
-                            ? YamiTheme.glowSecure
+                            ? YamiTheme.accentSecure
                             : YamiTheme.textMuted,
                         shape: BoxShape.circle,
                         border: Border.all(color: YamiTheme.bgDeep, width: 2),
@@ -230,7 +227,7 @@ class ChatsScreen extends StatelessWidget {
                           const SizedBox(width: 5),
                           const Icon(
                             Icons.verified,
-                            color: YamiTheme.glowSecure,
+                            color: YamiTheme.accentSecure,
                             size: 13,
                           ),
                         ],
@@ -300,11 +297,11 @@ class ChatsScreen extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: YamiTheme.glowActive,
+                        color: YamiTheme.accentActive,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: YamiTheme.glowActive.withValues(alpha: 0.4),
+                            color: YamiTheme.accentActive.withValues(alpha: 0.4),
                             blurRadius: 4,
                             spreadRadius: 0.5,
                           ),

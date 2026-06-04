@@ -143,7 +143,7 @@ class _MainShellState extends State<MainShell> {
         decoration: const BoxDecoration(
           color: YamiTheme.surfaceDark,
           border: Border(
-            top: BorderSide(color: YamiTheme.borderGlass, width: 1.0),
+            top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
           ),
         ),
         child: SafeArea(
@@ -187,7 +187,7 @@ class _MainShellState extends State<MainShell> {
     GlobalKey key,
   ) {
     final isSelected = _currentIndex == index;
-    final activeColor = YamiTheme.glowActive;
+    final activeColor = YamiTheme.accentActive;
     final color = isSelected ? activeColor : YamiTheme.textMuted;
 
     return GestureDetector(
@@ -212,7 +212,7 @@ class _MainShellState extends State<MainShell> {
                   child: Container(
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
-                      color: YamiTheme.glowActive,
+                      color: YamiTheme.accentActive,
                       shape: BoxShape.circle,
                     ),
                     constraints: const BoxConstraints(

@@ -55,7 +55,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               'LOCAL TELEMETRY CONSOLE',
               style: YamiTheme.captionStyle.copyWith(
                 fontSize: 8.5,
-                color: YamiTheme.glowActive.withValues(alpha: 0.8),
+                color: YamiTheme.accentActive.withValues(alpha: 0.8),
                 letterSpacing: 0.5,
               ),
             ),
@@ -65,7 +65,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderGlass, height: 1.0),
+          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
         ),
       ),
       body: Container(
@@ -85,7 +85,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       value: '${simulation.peers.length}',
                       subtitle: 'Active nodes',
                       icon: Icons.radar,
-                      accentColor: YamiTheme.glowActive,
+                      accentColor: YamiTheme.accentActive,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -95,7 +95,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       value: '${simulation.packetsProcessed}',
                       subtitle: 'Routed payloads',
                       icon: Icons.leak_add,
-                      accentColor: YamiTheme.glowSecure,
+                      accentColor: YamiTheme.accentSecure,
                     ),
                   ),
                 ],
@@ -110,8 +110,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       subtitle: 'Local space quality',
                       icon: Icons.wifi_tethering,
                       accentColor: simulation.signalStrength > 0.8
-                          ? YamiTheme.glowSecure
-                          : YamiTheme.glowActive,
+                          ? YamiTheme.accentSecure
+                          : YamiTheme.accentActive,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -121,7 +121,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       value: '3-HOPS',
                       subtitle: 'Epidemic bounds',
                       icon: Icons.alt_route,
-                      accentColor: YamiTheme.glowAmbient,
+                      accentColor: YamiTheme.accentAmbient,
                     ),
                   ),
                 ],
@@ -133,17 +133,15 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   horizontal: 16.0,
                   vertical: 12.0,
                 ),
-                decoration: YamiTheme.glassDecoration(
+                decoration: YamiTheme.tactileDecoration(
                   backgroundColor: YamiTheme.surfaceDark,
-                  glowColor: simulation.relayEnabled
-                      ? YamiTheme.glowSecure
-                      : Colors.transparent,
-                  glowRadius: simulation.relayEnabled ? 4.0 : 0.0,
-                  doubleBorder: true,
+                  borderColor: simulation.relayEnabled
+                      ? YamiTheme.accentSecure
+                      : YamiTheme.borderMetallic,
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.router, color: YamiTheme.glowActive),
+                    const Icon(Icons.router, color: YamiTheme.accentActive),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -168,8 +166,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     ),
                     Switch.adaptive(
                       value: simulation.relayEnabled,
-                      activeThumbColor: YamiTheme.glowSecure,
-                      activeTrackColor: YamiTheme.glowSecure.withValues(
+                      activeThumbColor: YamiTheme.accentSecure,
+                      activeTrackColor: YamiTheme.accentSecure.withValues(
                         alpha: 0.2,
                       ),
                       onChanged: (val) {
@@ -198,7 +196,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: YamiTheme.borderGlass),
+                    border: Border.all(color: YamiTheme.borderMetallic),
                   ),
                   child: ListView.builder(
                     controller: _consoleScrollController,
@@ -207,13 +205,13 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       final log = logs[index];
                       Color logColor = YamiTheme.textSecondary;
                       if (log.contains('SEC:')) {
-                        logColor = YamiTheme.glowSecure;
+                        logColor = YamiTheme.accentSecure;
                       } else if (log.contains('NET:')) {
-                        logColor = YamiTheme.glowAmbient;
+                        logColor = YamiTheme.accentAmbient;
                       } else if (log.contains('DBG:')) {
-                        logColor = YamiTheme.glowActive;
+                        logColor = YamiTheme.accentActive;
                       } else if (log.contains('ERR:')) {
-                        logColor = YamiTheme.glowWarning;
+                        logColor = YamiTheme.accentWarning;
                       }
 
                       return TweenAnimationBuilder<double>(
@@ -264,10 +262,9 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   }) {
     return Container(
       padding: const EdgeInsets.all(14.0),
-      decoration: YamiTheme.glassDecoration(
+      decoration: YamiTheme.tactileDecoration(
         backgroundColor: YamiTheme.surfaceDark,
         opacity: 0.75,
-        doubleBorder: true,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
