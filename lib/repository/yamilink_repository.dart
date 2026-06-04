@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:cryptography/cryptography.dart';
+import 'package:yamilink/core/transport/multicast_manager.dart';
 
 import '../core/moderation/moderation_models.dart';
 import '../core/moderation/moderation_service.dart';
@@ -61,6 +62,9 @@ class YamiLinkRepository extends ChangeNotifier {
     DiscoveryTransport? discoveryTransport,
     MessageTransport? messageTransport,
   }) {
+    // Acquire Android MulticastLock early to ensure UDP binds can receive
+    MulticastManager.acquire();
+
     final loadError = YamiLinkFfiBridge.instance.load();
     if (loadError != null) {
       logDiagnostic('ERR: FFI Load Failed: $loadError');
@@ -564,6 +568,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
   @override
   void dispose() {
+    MulticastManager.release();
     _sweepTimer?.cancel();
     _messageTransport.clearReceiveCallback();
     _discoveryTransport.stopDiscovery();
