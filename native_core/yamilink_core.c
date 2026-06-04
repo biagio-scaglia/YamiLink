@@ -126,13 +126,13 @@ void* RecvThreadFunc(void* lpParam) {
                         g_dispatcher(&ev);
                     }
                 }
-            } else if (bytes_received >= sizeof(YML2Header)) {
+            } else if (bytes_received >= 0 && (size_t)bytes_received >= sizeof(YML2Header)) {
                 // Parse Binary Protocol YML2
                 YML2Header* header = (YML2Header*)buffer;
                 if (header->version == 2) {
                     // Validate packet bounds
                     uint32_t expected_size = sizeof(YML2Header) + header->payload_len + 64; // 64 for signature
-                    if (bytes_received >= expected_size) {
+                    if (bytes_received >= 0 && (uint32_t)bytes_received >= expected_size) {
                         YML2PacketFFI ffi_packet = {0};
                         ffi_packet.version = header->version;
                         ffi_packet.type = header->type;
