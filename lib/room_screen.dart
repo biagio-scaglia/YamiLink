@@ -57,7 +57,7 @@ class _RoomScreenState extends State<RoomScreen> {
             style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
-            'Il tuo messaggio viola le linee guida locali:\n\n${decision.explanation}',
+            'Your message violates local guidelines:\n\n${decision.explanation}',
             style: YamiTheme.bodyStyle,
           ),
           actions: [

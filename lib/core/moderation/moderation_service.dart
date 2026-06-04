@@ -31,11 +31,11 @@ class ModerationService {
       return ModerationDecision(
         messageId: messageId,
         normalizedText: '',
-        matchedRules: ['Blocco locale'],
+        matchedRules: ['Local block'],
         riskScore: 10.0,
         severity: ModerationSeverity.severe,
         action: ModerationAction.block,
-        explanation: 'Il mittente è bloccato.',
+        explanation: 'Sender is blocked.',
         shouldHide: true,
         requiresTapToReveal: false,
         shouldBlockSend: true,
@@ -69,15 +69,15 @@ class ModerationService {
       return ModerationDecision(
         messageId: messageId,
         normalizedText: normalized,
-        matchedRules: [isFlooding ? 'Flooding' : 'Messaggio duplicato'],
+        matchedRules: [isFlooding ? 'Flooding' : 'Duplicate message'],
         riskScore: 5.0,
         severity: ModerationSeverity.severe,
         action: peerState.isBlocked
             ? ModerationAction.block
             : ModerationAction.hide,
         explanation: isFlooding
-            ? 'Spam burst rilevato (troppi messaggi in 3 secondi).'
-            : 'Messaggio duplicato ripetuto consecutivamente.',
+            ? 'Too many messages sent in a short time.'
+            : 'Duplicate message sent consecutively.',
         shouldHide: true,
         requiresTapToReveal: !peerState.isBlocked,
         shouldBlockSend: peerState.isBlocked,
@@ -99,7 +99,7 @@ class ModerationService {
         severity = ModerationSeverity.severe;
         action = ModerationAction.block;
         peerState.abuseStrikeCount++;
-        _escalatePeerStrikes(peerState, 'Violazione grave');
+        _escalatePeerStrikes(peerState, 'Severe violation');
       } else if (riskScore >= 1.0) {
         severity = ModerationSeverity.warning;
         action = ModerationAction.hide;
@@ -125,7 +125,7 @@ class ModerationService {
       return ModerationDecision(
         messageId: messageId,
         normalizedText: normalized,
-        matchedRules: ['Mute attivo'],
+        matchedRules: ['Active mute'],
         riskScore: 0.0,
         severity: ModerationSeverity.warning,
         action: ModerationAction.hide,
