@@ -47,7 +47,8 @@ class _RoomScreenState extends State<RoomScreen> {
     if (decision == null) return;
 
     if (decision.action == ModerationAction.block) {
-      showDialog(
+      if (!mounted) return;
+    showDialog(
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,
@@ -76,7 +77,8 @@ class _RoomScreenState extends State<RoomScreen> {
     }
 
     if (decision.action == ModerationAction.warn) {
-      showDialog(
+      if (!mounted) return;
+    showDialog(
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,

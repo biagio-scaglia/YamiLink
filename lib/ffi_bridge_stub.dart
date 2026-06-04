@@ -22,7 +22,7 @@ class YamiLinkFfiBridge {
     return -1;
   }
 
-  int send(String? recipientHash, Uint8List data) {
+  int send(Uint8List data) {
     return -1;
   }
 

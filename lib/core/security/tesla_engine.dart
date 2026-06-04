@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:convert/convert.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
@@ -77,7 +76,7 @@ class TeslaPacketValidator {
     }
 
     // Must at least have header size
-    if (packetBytes.length < Frame.HEADER_SIZE) {
+    if (packetBytes.length < Frame.headerSize) {
       return false;
     }
 

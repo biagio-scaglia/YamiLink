@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
-import 'package:convert/convert.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yamilink/core/protocol/frame.dart';
 import 'package:yamilink/core/security/tesla_engine.dart';

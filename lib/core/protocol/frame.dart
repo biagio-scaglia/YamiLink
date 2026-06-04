@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:typed_data';
-import 'package:ffi/ffi.dart';
 import '../../ffi_bridge_native.dart' if (dart.library.html) '../../ffi_bridge_stub.dart';
 
 enum FrameType { beacon, hello, helloAck, roomMsg, directMsg, ack, goodbye, error }
@@ -27,8 +25,8 @@ extension FrameTypeExtension on FrameType {
 }
 
 class Frame {
-  static const int HEADER_SIZE = 178;
-  static const int SIGNATURE_SIZE = 64;
+  static const int headerSize = 178;
+  static const int signatureSize = 64;
   
   final int version;
   final FrameType type;
@@ -69,7 +67,6 @@ class Frame {
 
   /// Returns the bytes that should be signed. Excludes hopCount, flags, and signature.
   List<int> get signableBytes {
-    final bd = ByteData(176 + payloadBytes.length); // Header without flags, hopCount, payloadLen (but we should include length to prevent truncation attacks).
     // Actually, signing the entire exact binary representation (with flags/hopCount zeroed out) is much safer and standard.
     
     // Let's just create a copy of the packet up to payload, zeroing out mutable fields (flags, hopCount)
@@ -83,7 +80,7 @@ class Frame {
   /// Serializes the Frame to a binary YML2 buffer.
   Uint8List serialize({bool withSignature = true}) {
     final payloadLen = payloadBytes.length;
-    final totalSize = HEADER_SIZE + payloadLen + (withSignature && signature != null ? SIGNATURE_SIZE : 0);
+    final totalSize = headerSize + payloadLen + (withSignature && signature != null ? signatureSize : 0);
     
     final buffer = Uint8List(totalSize);
     final bd = ByteData.view(buffer.buffer);
@@ -101,10 +98,10 @@ class Frame {
     bd.setUint8(175, hopCount);
     bd.setUint16(176, payloadLen, Endian.little);
     
-    buffer.setAll(HEADER_SIZE, payloadBytes);
+    buffer.setAll(headerSize, payloadBytes);
     
-    if (withSignature && signature != null && signature!.length == SIGNATURE_SIZE) {
-      buffer.setAll(HEADER_SIZE + payloadLen, signature!);
+    if (withSignature && signature != null && signature!.length == signatureSize) {
+      buffer.setAll(headerSize + payloadLen, signature!);
     }
     
     return buffer;
@@ -112,7 +109,7 @@ class Frame {
 
   /// Factory from raw bytes
   factory Frame.fromBytes(Uint8List data) {
-    if (data.length < HEADER_SIZE) {
+    if (data.length < headerSize) {
       throw const FormatException('Packet too small for YML2 Header');
     }
     
@@ -131,15 +128,15 @@ class Frame {
     final hopCount = bd.getUint8(175);
     final payloadLen = bd.getUint16(176, Endian.little);
     
-    if (data.length < HEADER_SIZE + payloadLen) {
+    if (data.length < headerSize + payloadLen) {
       throw const FormatException('Packet truncated: missing payload');
     }
     
-    final payload = data.sublist(HEADER_SIZE, HEADER_SIZE + payloadLen);
+    final payload = data.sublist(headerSize, headerSize + payloadLen);
     
     Uint8List? sig;
-    if (data.length >= HEADER_SIZE + payloadLen + SIGNATURE_SIZE) {
-      sig = data.sublist(HEADER_SIZE + payloadLen, HEADER_SIZE + payloadLen + SIGNATURE_SIZE);
+    if (data.length >= headerSize + payloadLen + signatureSize) {
+      sig = data.sublist(headerSize + payloadLen, headerSize + payloadLen + signatureSize);
     }
     
     return Frame(
@@ -159,21 +156,6 @@ class Frame {
 
   /// Factory from FFI Struct (Zero-copy payload mapping)
   factory Frame.fromFFI(YML2PacketFFI ffiPacket) {
-    // Read fixed length strings by converting raw memory
-    String readArray(Array<Uint8> arr, int maxLen) {
-      final list = <int>[];
-      for (var i = 0; i < maxLen; i++) {
-        // We can't access arr[i] dynamically like this easily without pointers in old FFI.
-        // But since we can't do it easily, it's better to pass a pointer or use dart's built in struct array handling if possible.
-        // Wait, dart ffi Array does NOT support operator [] dynamically unless inside an extension.
-        // Let's use string copying via ffi.
-        return ''; // Handled safely below using a different approach
-      }
-      return '';
-    }
-    
-    // We will actually let WinUdpTransport pass us the raw bytes from the buffer rather than fighting dart:ffi Array mappings if it's too complex, OR we can use the FFI Pointer.
-    // Actually, dart:ffi has memory mapping tools. But it's easier to just pass the `Pointer<Uint8>` and the length from C directly, or reconstruct the Frame from `fromBytes`.
     throw UnimplementedError('Use fromBytes with a reconstructed Uint8List or a pointer memory view');
   }
 
