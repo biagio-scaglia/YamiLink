@@ -204,7 +204,21 @@ class YamiLinkRepository extends ChangeNotifier {
           }
         }
 
+        bool isForMe = false;
+        
         if (frame.recipientId == profile.id || frame.recipientId == '*') {
+          isForMe = true;
+        } else if (frame.type == FrameType.directMsg && (frame.flags & 1) != 0) {
+          final sharedKey = _peerManager.getSharedKey(frame.senderId);
+          if (sharedKey != null) {
+            final expectedTag = await _generateRoutingTag(sharedKey, frame.messageId);
+            if (frame.recipientId == expectedTag) {
+              isForMe = true;
+            }
+          }
+        }
+
+        if (isForMe) {
           bool isFlagged = false;
           bool isBlurred = false;
           String? moderationExplanation;
@@ -445,6 +459,9 @@ class YamiLinkRepository extends ChangeNotifier {
     int finalFlags = 0;
 
     final sharedKey = _peerManager.getSharedKey(peerId);
+    final msgId = _nextMessageId++;
+    String routingId = peerId;
+
     if (sharedKey != null) {
       try {
         final clearBytes = finalPayload;
@@ -457,7 +474,9 @@ class YamiLinkRepository extends ChangeNotifier {
         final encryptedBytes = <int>[...nonce, ...secretBox.cipherText, ...secretBox.mac.bytes];
         finalPayload = Uint8List.fromList(encryptedBytes);
         finalFlags |= 1; // FLAG_ENCRYPTED
-        logDiagnostic('SEC: Encrypted direct message for $peerId');
+        
+        routingId = await _generateRoutingTag(sharedKey, msgId);
+        logDiagnostic('SEC: Encrypted direct message for $peerId with ephemeral tag');
       } catch (e) {
         logDiagnostic('SEC: Failed to encrypt message for $peerId: $e');
       }
@@ -466,9 +485,9 @@ class YamiLinkRepository extends ChangeNotifier {
     final frame = Frame(
       type: FrameType.directMsg,
       senderId: profile.id,
-      recipientId: peerId,
+      recipientId: routingId,
       sessionId: _sessionId,
-      messageId: _nextMessageId++,
+      messageId: msgId,
       timestamp: DateTime.now().millisecondsSinceEpoch,
       flags: finalFlags,
       payloadBytes: finalPayload,
@@ -661,5 +680,16 @@ class YamiLinkRepository extends ChangeNotifier {
     } catch (e) {
       logDiagnostic('SEC: ECDH pairing failed with ${frame.senderId}: $e');
     }
+  }
+
+  Future<String> _generateRoutingTag(List<int> sharedKey, int messageId) async {
+    final hmac = Hmac.sha256();
+    final data = ByteData(4);
+    data.setUint32(0, messageId, Endian.little);
+    final mac = await hmac.calculateMac(
+      data.buffer.asUint8List(),
+      secretKey: SecretKey(sharedKey),
+    );
+    return mac.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'ui/qr_pairing_screen.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
@@ -710,8 +711,21 @@ class _NearbyScreenState extends State<NearbyScreen>
                             ),
                             onPressed: () {
                               if (!isTrusted) {
-                                simulation.initiatePairing(currentPeer.id);
-                                // Polling or just wait for state change
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => QRPairingScreen(
+                                      myProfile: simulation.profile,
+                                      targetPeer: currentPeer,
+                                      onVerified: (verifiedId) {
+                                        simulation.initiatePairing(verifiedId);
+                                        simulation.togglePeerTrust(verifiedId);
+                                      },
+                                    ),
+                                  ),
+                                ).then((_) {
+                                  setModalState(() {});
+                                });
                               } else {
                                 simulation.togglePeerTrust(currentPeer.id);
                               }
