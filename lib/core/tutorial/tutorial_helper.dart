@@ -141,11 +141,9 @@ class YamiTutorialHelper {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Container(
-        padding: const EdgeInsets.all(20.0),
-        decoration: YamiTheme.tactileDecoration(
-          backgroundColor: YamiTheme.surfaceDark,
-          opacity: 0.95,
-          borderColor: YamiTheme.accentActive,
+        padding: const EdgeInsets.all(YamiTheme.spaceLg),
+        decoration: YamiTheme.surfaceRaisedDecoration(
+          borderColor: YamiTheme.accentWine.withValues(alpha: 0.6),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -153,58 +151,49 @@ class YamiTutorialHelper {
           children: [
             Text(
               title,
-              style: YamiTheme.monoStyle.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: YamiTheme.accentActive,
-                letterSpacing: 1.0,
+              style: YamiTheme.headingStyle.copyWith(
+                color: YamiTheme.accentWine,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: YamiTheme.spaceSm),
             Text(
               description,
-              style: YamiTheme.bodyStyle.copyWith(
-                color: YamiTheme.textSecondary,
-                fontSize: 13,
-                height: 1.4,
+              style: YamiTheme.bodySmallStyle.copyWith(
+                color: YamiTheme.textBody,
+                height: 1.6,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: YamiTheme.spaceLg),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
                   onPressed: onSkip,
                   child: Text(
-                    "SKIP TUTORIAL",
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.textMuted,
-                      fontSize: 10,
-                      letterSpacing: 1.0,
+                    'Skip',
+                    style: YamiTheme.labelStyle.copyWith(
+                      color: YamiTheme.textSub,
                     ),
                   ),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: YamiTheme.accentActive,
-                    foregroundColor: YamiTheme.bgDeep,
-                    elevation: 0,
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: YamiTheme.accentWine,
+                    foregroundColor: YamiTheme.textBright,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 20,
                       vertical: 10,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
                     ),
                   ),
                   onPressed: onNext,
                   child: Text(
                     nextText,
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.bgDeep,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
+                    style: YamiTheme.labelStyle.copyWith(
+                      color: YamiTheme.textBright,
                     ),
                   ),
                 ),
@@ -233,37 +222,32 @@ class YamiTutorialHelper {
               topRight: Radius.circular(20),
             ),
             border: const Border(
-              top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
+              top: BorderSide(color: YamiTheme.borderMid, width: 1.0),
             ),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: YamiTheme.textMuted.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: YamiTheme.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'HELP & RESOURCES',
-                  textAlign: TextAlign.center,
-                  style: YamiTheme.monoStyle.copyWith(
-                    color: YamiTheme.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 24),
+              ),
+              const SizedBox(height: YamiTheme.spaceLg),
+              Text(
+                'Help & Resources',
+                textAlign: TextAlign.center,
+                style: YamiTheme.headingStyle,
+              ),
+              const SizedBox(height: YamiTheme.spaceLg),
 
                 _buildActionCard(
                   context: context,
@@ -314,7 +298,7 @@ class YamiTutorialHelper {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
         decoration: YamiTheme.tactileDecoration(
-          backgroundColor: YamiTheme.surfaceDark,
+          backgroundColor: YamiTheme.surfaceBase,
           opacity: 0.8,
         ),
         child: Row(
@@ -322,10 +306,10 @@ class YamiTutorialHelper {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: YamiTheme.accentActive.withValues(alpha: 0.1),
+                color: YamiTheme.accentWine.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: YamiTheme.accentActive, size: 20),
+              child: Icon(icon, color: YamiTheme.accentWine, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -375,7 +359,7 @@ class YamiTutorialHelper {
             decoration: YamiTheme.tactileDecoration(
               backgroundColor: YamiTheme.bgDeep,
               opacity: 0.95,
-              borderColor: YamiTheme.accentActive,
+              borderColor: YamiTheme.accentWine,
             ),
             child: Column(
               children: [
@@ -403,7 +387,7 @@ class YamiTutorialHelper {
                     ],
                   ),
                 ),
-                const Divider(color: YamiTheme.borderMetallic, height: 1),
+                const Divider(color: YamiTheme.borderMid, height: 1),
 
                 Expanded(
                   child: ListView(
@@ -452,7 +436,7 @@ class YamiTutorialHelper {
                     ],
                   ),
                 ),
-                const Divider(color: YamiTheme.borderMetallic, height: 1),
+                const Divider(color: YamiTheme.borderMid, height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: SizedBox(
@@ -469,10 +453,8 @@ class YamiTutorialHelper {
                       onPressed: () => Navigator.pop(context),
                       child: Text(
                         'DISMISS',
-                        style: YamiTheme.monoStyle.copyWith(
+                        style: YamiTheme.labelStyle.copyWith(
                           color: YamiTheme.bgDeep,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
                           letterSpacing: 1.0,
                         ),
                       ),
@@ -495,10 +477,9 @@ class YamiTutorialHelper {
         children: [
           Text(
             title,
-            style: YamiTheme.monoStyle.copyWith(
-              color: YamiTheme.accentActive,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+            style: YamiTheme.labelStyle.copyWith(
+              color: YamiTheme.accentWine,
+              fontSize: 13,
               letterSpacing: 0.5,
             ),
           ),

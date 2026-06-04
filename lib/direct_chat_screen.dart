@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/moderation/moderation_models.dart';
 import 'models.dart';
@@ -8,23 +9,43 @@ import 'widgets/avatar.dart';
 
 class DirectChatScreen extends StatefulWidget {
   final Peer peer;
-
   const DirectChatScreen({super.key, required this.peer});
 
   @override
   State<DirectChatScreen> createState() => _DirectChatScreenState();
 }
 
-class _DirectChatScreenState extends State<DirectChatScreen> {
+class _DirectChatScreenState extends State<DirectChatScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   YamiLinkRepository? _repository;
   final Set<String> _revealedMessageIds = {};
+  bool _hasText = false;
+  late AnimationController _sendBtnCtrl;
+  late Animation<double> _sendBtnScale;
 
   @override
   void initState() {
     super.initState();
+    _messageController.addListener(_onTextChanged);
+
+    _sendBtnCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 90),
+      reverseDuration: const Duration(milliseconds: 160),
+    );
+    _sendBtnScale = Tween<double>(begin: 1.0, end: 0.88).animate(
+      CurvedAnimation(parent: _sendBtnCtrl, curve: Curves.easeInOut),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  void _onTextChanged() {
+    final hasText = _messageController.text.trim().isNotEmpty;
+    if (hasText != _hasText) setState(() => _hasText = hasText);
   }
 
   @override
@@ -38,135 +59,119 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 220),
         curve: Curves.easeOut,
       );
     }
   }
 
-  Future<void> _sendMessage(YamiLinkRepository simulation) async {
+  Future<void> _sendMessage(YamiLinkRepository repo) async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final decision = await simulation.sendDirectMessage(widget.peer.id, text);
-    if (!mounted) return;
-    if (decision != null) {
+    HapticFeedback.lightImpact();
+    _messageController.clear();
 
-    if (decision.action == ModerationAction.block) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: YamiTheme.bgDeep,
-          title: Text(
-            'MESSAGE BLOCKED',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
-          ),
-          content: Text(
-            'Your message violates local guidelines:\n\n${decision.explanation}',
-            style: YamiTheme.bodyStyle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'OK',
-                style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.accentActive,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
+    final decision = await repo.sendDirectMessage(widget.peer.id, text);
+    if (!mounted) return;
+
+    if (decision != null) {
+      if (decision.action == ModerationAction.block) {
+        _showModerationDialog(
+          title: 'Message blocked',
+          body: 'Your message violates local guidelines:\n\n${decision.explanation}',
+          isWarn: false,
+          repo: repo,
+          text: text,
+        );
+        return;
+      }
+      if (decision.action == ModerationAction.warn) {
+        _showModerationDialog(
+          title: 'Sensitive content',
+          body: 'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
+          isWarn: true,
+          repo: repo,
+          text: text,
+        );
+        return;
+      }
     }
 
-    if (decision.action == ModerationAction.warn) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: YamiTheme.bgDeep,
-          title: Text(
-            'SENSITIVE CONTENT',
-            style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
+    Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+  }
+
+  void _showModerationDialog({
+    required String title,
+    required String body,
+    required bool isWarn,
+    required YamiLinkRepository repo,
+    required String text,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body, style: YamiTheme.bodySmallStyle),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(isWarn ? 'Cancel' : 'OK',
+                style: YamiTheme.labelStyle.copyWith(color: YamiTheme.textSub)),
           ),
-          content: Text(
-            'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
-            style: YamiTheme.bodyStyle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'CANCEL',
-                style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.textSecondary,
-                ),
-              ),
-            ),
+          if (isWarn)
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                simulation.sendDirectMessage(widget.peer.id, text, force: true);
-                _messageController.clear();
+                Navigator.pop(ctx);
+                repo.sendDirectMessage(widget.peer.id, text, force: true);
                 Future.delayed(
                   const Duration(milliseconds: 80),
                   () => _scrollToBottom(),
                 );
               },
-              child: Text(
-                'SEND ANYWAY',
-                style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.accentWarning,
-                ),
-              ),
+              child: Text('Send anyway',
+                  style: YamiTheme.labelStyle.copyWith(color: YamiTheme.accentEmber)),
             ),
-          ],
-        ),
-      );
-      return;
-    }
-    }
-
-    _messageController.clear();
-    Future.delayed(const Duration(milliseconds: 80), () => _scrollToBottom());
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
     _repository?.setActiveConversation(null);
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
+    _sendBtnCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    final repo = Provider.of<YamiLinkRepository>(context);
+    final isBlocked = repo.isPeerBlocked(widget.peer.id);
+    final isMuted = repo.isPeerMuted(widget.peer.id);
 
-    final isBlocked = simulation.isPeerBlocked(widget.peer.id);
-    final isMuted = simulation.isPeerMuted(widget.peer.id);
-
-    final livePeer = simulation.peers.firstWhere(
+    final livePeer = repo.peers.firstWhere(
       (p) => p.id == widget.peer.id,
       orElse: () => widget.peer,
     );
     final isTrusted = livePeer.trustLevel == TrustLevel.paired;
 
-    final conv = simulation.conversations.firstWhere(
+    final conv = repo.conversations.firstWhere(
       (c) => c.peerId == livePeer.id,
-      orElse: () {
-        return Conversation(
-          id: livePeer.id,
-          peerId: livePeer.id,
-          peerAlias: livePeer.alias,
-          peerAvatarSeed: livePeer.avatarSeed,
-          lastMessage: '',
-          lastTimestamp: DateTime.now(),
-          messages: simulation.getDirectMessages(livePeer.id),
-          isPeerOnline: !isBlocked,
-        );
-      },
+      orElse: () => Conversation(
+        id: livePeer.id,
+        peerId: livePeer.id,
+        peerAlias: livePeer.alias,
+        peerAvatarSeed: livePeer.avatarSeed,
+        lastMessage: '',
+        lastTimestamp: DateTime.now(),
+        messages: repo.getDirectMessages(livePeer.id),
+        isPeerOnline: !isBlocked,
+      ),
     );
     final isPeerOnline = conv.isPeerOnline && !isBlocked;
     final messages = conv.messages;
@@ -174,369 +179,216 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: YamiTheme.bgDeep,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: YamiTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            YamiAvatar(
-              seed: livePeer.avatarSeed,
-              size: 34,
-              glowColor: isTrusted
-                  ? YamiTheme.accentSecure
-                  : YamiTheme.accentActive,
-              isGlowing: isTrusted,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        livePeer.alias,
-                        style: YamiTheme.bodyStyle.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (isTrusted) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.verified,
-                          color: YamiTheme.accentSecure,
-                          size: 14,
-                        ),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    isBlocked
-                        ? 'PEER BLOCKED'
-                        : (isMuted
-                              ? 'PEER MUTED'
-                              : (!isPeerOnline
-                                    ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
-                                    : (isTrusted
-                                          ? 'ENCRYPTED P2P CHANNEL'
-                                          : 'UNVERIFIED P2P CHANNEL'))),
-                    style: YamiTheme.captionStyle.copyWith(
-                      fontSize: 8.5,
-                      color: isBlocked
-                          ? YamiTheme.accentWarning
-                          : (isMuted
-                                ? YamiTheme.accentWarning
-                                : (!isPeerOnline
-                                      ? YamiTheme.textMuted
-                                      : (isTrusted
-                                            ? YamiTheme.accentSecure
-                                            : YamiTheme.accentActive))),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isMuted ? Icons.volume_off : Icons.volume_up,
-              color: isMuted ? YamiTheme.accentWarning : YamiTheme.textSecondary,
-            ),
-            onPressed: () {
-              if (isMuted) {
-                simulation.unmutePeer(livePeer.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${livePeer.alias} is no longer muted'),
-                    backgroundColor: YamiTheme.accentSecure,
-                  ),
-                );
-              } else {
-                showDialog(
-                  context: context,
-                  builder: (context) => SimpleDialog(
-                    backgroundColor: YamiTheme.bgDeep,
-                    title: Text(
-                      'MUTE PEER',
-                      style: YamiTheme.monoStyle.copyWith(
-                        color: YamiTheme.accentActive,
-                      ),
-                    ),
-                    children: [
-                      SimpleDialogOption(
-                        onPressed: () {
-                          simulation.mutePeer(
-                            livePeer.id,
-                            const Duration(seconds: 10),
-                          );
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Peer muted for 10 seconds'),
-                              backgroundColor: YamiTheme.accentWarning,
-                            ),
-                          );
-                        },
-                        child: Text('10 Seconds', style: YamiTheme.bodyStyle),
-                      ),
-                      SimpleDialogOption(
-                        onPressed: () {
-                          simulation.mutePeer(
-                            livePeer.id,
-                            const Duration(seconds: 30),
-                          );
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Peer muted for 30 seconds'),
-                              backgroundColor: YamiTheme.accentWarning,
-                            ),
-                          );
-                        },
-                        child: Text('30 Seconds', style: YamiTheme.bodyStyle),
-                      ),
-                      SimpleDialogOption(
-                        onPressed: () {
-                          simulation.mutePeer(
-                            livePeer.id,
-                            const Duration(minutes: 1),
-                          );
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Peer muted for 1 minute'),
-                              backgroundColor: YamiTheme.accentWarning,
-                            ),
-                          );
-                        },
-                        child: Text('1 Minute', style: YamiTheme.bodyStyle),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
-            tooltip: 'Mute/Unmute Peer',
-          ),
-          IconButton(
-            icon: Icon(
-              isBlocked ? Icons.block : Icons.block_outlined,
-              color: isBlocked
-                  ? YamiTheme.accentWarning
-                  : YamiTheme.textSecondary,
-            ),
-            onPressed: () {
-              if (isBlocked) {
-                simulation.unblockPeer(livePeer.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${livePeer.alias} unblocked'),
-                    backgroundColor: YamiTheme.accentSecure,
-                  ),
-                );
-              } else {
-                simulation.blockPeer(livePeer.id);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${livePeer.alias} blocked'),
-                    backgroundColor: YamiTheme.accentWarning,
-                  ),
-                );
-                Navigator.pop(context);
-              }
-            },
-            tooltip: 'Block/Unblock Peer',
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
-        ),
-      ),
+      backgroundColor: YamiTheme.bgDeep,
+      appBar: _buildAppBar(repo, livePeer, isTrusted, isBlocked, isMuted, isPeerOnline),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: YamiTheme.ambientBackgroundGradient(),
-        ),
+        decoration: BoxDecoration(gradient: YamiTheme.ambientGradient),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 8.0,
-                horizontal: 16.0,
-              ),
-              color: isBlocked
-                  ? YamiTheme.accentWarning.withValues(alpha: 0.08)
-                  : (isMuted
-                        ? YamiTheme.accentWarning.withValues(alpha: 0.05)
-                        : (!isPeerOnline
-                              ? YamiTheme.textMuted.withValues(alpha: 0.08)
-                              : (isTrusted
-                                    ? YamiTheme.accentSecure.withValues(
-                                        alpha: 0.04,
-                                      )
-                                    : YamiTheme.surfaceDark.withValues(
-                                        alpha: 0.85,
-                                      )))),
-              child: Row(
-                children: [
-                  Icon(
-                    isBlocked
-                        ? Icons.block
-                        : (isMuted
-                              ? Icons.volume_off
-                              : (!isPeerOnline
-                                    ? Icons.cloud_off
-                                    : (isTrusted
-                                          ? Icons.lock
-                                          : Icons.lock_open))),
-                    size: 14,
-                    color: isBlocked || isMuted
-                        ? YamiTheme.accentWarning
-                        : (!isPeerOnline
-                              ? YamiTheme.textMuted
-                              : (isTrusted
-                                    ? YamiTheme.accentSecure
-                                    : YamiTheme.textMuted)),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      isBlocked
-                          ? 'This peer is blocked. You will not receive or send messages.'
-                          : (isMuted
-                                ? 'This peer is locally muted for the current session.'
-                                : (!isPeerOnline
-                                      ? 'Connection lost. Message delivery will resume when the peer returns online.'
-                                      : (isTrusted
-                                            ? 'Verified 1-hop encryption. Session keys verified.'
-                                            : 'Unverified pairing. Tap the peer card in the Neighbors space to authorize.'))),
-                      style: YamiTheme.captionStyle.copyWith(
-                        fontSize: 10,
-                        color: isBlocked || isMuted
-                            ? YamiTheme.accentWarning
-                            : (!isPeerOnline
-                                  ? YamiTheme.textMuted
-                                  : (isTrusted
-                                        ? YamiTheme.accentSecure
-                                        : YamiTheme.textSecondary)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            // Banner di stato
+            _StatusBanner(
+              isTrusted: isTrusted,
+              isPeerOnline: isPeerOnline,
+              isBlocked: isBlocked,
+              isMuted: isMuted,
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 8.0,
-                horizontal: 16.0,
-              ),
-              color: YamiTheme.surfaceDark.withValues(alpha: 0.95),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.security,
-                    size: 14,
-                    color: YamiTheme.accentSecure,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Moderation is local and ephemeral for the current session.',
-                      style: YamiTheme.captionStyle.copyWith(
-                        fontSize: 10,
-                        color: YamiTheme.accentSecure,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 16.0,
-                ),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final message = messages[index];
-                  final isMe = message.senderId == simulation.profile.id;
 
-                  return _buildMessageRow(message, isMe, isTrusted);
-                },
-              ),
-            ),
-            Container(height: 1, color: YamiTheme.borderMetallic),
-            SafeArea(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 10.0,
-                ),
-                color: YamiTheme.surfaceDark,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: YamiTheme.tactileDecoration(
-                          backgroundColor: YamiTheme.bgDeep,
-                          borderColor: YamiTheme.borderMetallic,
-                        ),
-                        child: TextField(
-                          controller: _messageController,
-                          style: YamiTheme.bodyStyle,
-                          enabled: isPeerOnline && !isBlocked,
-                          decoration: InputDecoration(
-                            hintText: isBlocked
-                                ? 'Cannot transmit to blocked peer'
-                                : (isPeerOnline
-                                      ? 'Transmit direct packet...'
-                                      : 'Cannot transmit while peer is offline'),
-                            hintStyle: YamiTheme.captionStyle.copyWith(
-                              fontSize: 13,
-                              color: YamiTheme.textMuted,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 11.0,
-                            ),
-                            border: InputBorder.none,
+            // Lista messaggi
+            Expanded(
+              child: messages.isEmpty
+                  ? _buildEmptyChat(livePeer.alias)
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: YamiTheme.spaceMd,
+                        vertical: YamiTheme.spaceMd,
+                      ),
+                      itemCount: messages.length,
+                      itemBuilder: (ctx, i) {
+                        final msg = messages[i];
+                        final isMe = msg.senderId == repo.profile.id;
+                        return _MessageBubble(
+                          message: msg,
+                          isMe: isMe,
+                          isTrusted: isTrusted,
+                          isRevealed: _revealedMessageIds.contains(msg.id),
+                          onReveal: () => setState(
+                            () => _revealedMessageIds.add(msg.id),
                           ),
-                          onSubmitted: (_) => _sendMessage(simulation),
-                        ),
+                        );
+                      },
+                    ),
+            ),
+
+            // Composer
+            _buildComposer(repo, isPeerOnline, isBlocked, isTrusted),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    YamiLinkRepository repo,
+    Peer livePeer,
+    bool isTrusted,
+    bool isBlocked,
+    bool isMuted,
+    bool isPeerOnline,
+  ) {
+    return AppBar(
+      backgroundColor: YamiTheme.bgDeep,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+        onPressed: () => Navigator.pop(context),
+        color: YamiTheme.textBody,
+      ),
+      titleSpacing: 0,
+      title: Row(
+        children: [
+          YamiAvatar(
+            seed: livePeer.avatarSeed,
+            size: 34,
+            glowColor: isTrusted ? YamiTheme.accentBrass : YamiTheme.accentWine,
+            isGlowing: isTrusted,
+          ),
+          const SizedBox(width: YamiTheme.spaceSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        livePeer.alias,
+                        style: YamiTheme.headingStyle.copyWith(fontSize: 15),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Container(
-                      decoration: YamiTheme.tactileDecoration(
-                        backgroundColor: YamiTheme.surfaceDark,
-                        borderColor: YamiTheme.borderMetallic,
-                        raised: true,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.arrow_upward,
-                          color: (!isPeerOnline || isBlocked)
-                              ? YamiTheme.textMuted
-                              : YamiTheme.bgDeep,
-                          size: 20,
-                        ),
-                        onPressed: (isPeerOnline && !isBlocked)
-                            ? () => _sendMessage(simulation)
-                            : null,
-                      ),
-                    ),
+                    if (isTrusted) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.verified_rounded,
+                          color: YamiTheme.accentBrass, size: 13),
+                    ],
                   ],
                 ),
+                Text(
+                  isBlocked
+                      ? 'Blocked'
+                      : isMuted
+                          ? 'Muted'
+                          : !isPeerOnline
+                              ? 'Offline'
+                              : isTrusted
+                                  ? 'Encrypted · Verified'
+                                  : 'Unverified channel',
+                  style: YamiTheme.captionStyle.copyWith(
+                    color: isBlocked || isMuted
+                        ? YamiTheme.accentEmber
+                        : !isPeerOnline
+                            ? YamiTheme.textGhost
+                            : isTrusted
+                                ? YamiTheme.accentBrass
+                                : YamiTheme.textSub,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Mute
+        IconButton(
+          icon: Icon(
+            isMuted ? Icons.volume_off_rounded : Icons.volume_up_outlined,
+            size: 20,
+          ),
+          color: isMuted ? YamiTheme.accentEmber : YamiTheme.textSub,
+          onPressed: () => isMuted
+              ? _unmute(repo, livePeer)
+              : _showMuteSheet(repo, livePeer),
+          tooltip: isMuted ? 'Unmute' : 'Mute',
+        ),
+        // Block
+        IconButton(
+          icon: Icon(
+            isBlocked ? Icons.block_rounded : Icons.block_outlined,
+            size: 20,
+          ),
+          color: isBlocked ? YamiTheme.accentEmber : YamiTheme.textSub,
+          onPressed: () => isBlocked
+              ? _unblock(repo, livePeer)
+              : _block(repo, livePeer),
+          tooltip: isBlocked ? 'Unblock' : 'Block',
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  void _unmute(YamiLinkRepository repo, Peer peer) {
+    repo.unmutePeer(peer.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${peer.alias} unmuted')),
+    );
+  }
+
+  void _unblock(YamiLinkRepository repo, Peer peer) {
+    repo.unblockPeer(peer.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${peer.alias} unblocked')),
+    );
+  }
+
+  void _block(YamiLinkRepository repo, Peer peer) {
+    repo.blockPeer(peer.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${peer.alias} blocked')),
+    );
+    Navigator.pop(context);
+  }
+
+  void _showMuteSheet(YamiLinkRepository repo, Peer peer) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => _MuteSheet(
+        peerAlias: peer.alias,
+        onMute: (duration) {
+          repo.mutePeer(peer.id, duration);
+          Navigator.pop(ctx);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${peer.alias} muted')),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyChat(String alias) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(YamiTheme.spaceXl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline_rounded,
+                size: 36, color: YamiTheme.textGhost),
+            const SizedBox(height: YamiTheme.spaceMd),
+            Text(
+              'This channel is empty',
+              style: YamiTheme.headingStyle.copyWith(
+                fontSize: 16,
+                color: YamiTheme.textBody,
               ),
+            ),
+            const SizedBox(height: YamiTheme.spaceSm),
+            Text(
+              'Messages to $alias are end-to-end encrypted and ephemeral.',
+              textAlign: TextAlign.center,
+              style: YamiTheme.captionStyle.copyWith(height: 1.6),
             ),
           ],
         ),
@@ -544,111 +396,426 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
   }
 
-  Widget _buildMessageRow(Message message, bool isMe, bool isTrusted) {
-    final Alignment alignment = isMe
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
-    final CrossAxisAlignment crossAlignment = isMe
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.start;
-    final String timeStr =
+  Widget _buildComposer(
+    YamiLinkRepository repo,
+    bool isPeerOnline,
+    bool isBlocked,
+    bool isTrusted,
+  ) {
+    final canSend = isPeerOnline && !isBlocked;
+    return Container(
+      decoration: const BoxDecoration(
+        color: YamiTheme.surfaceBase,
+        border: Border(top: BorderSide(color: YamiTheme.borderFaint, width: 1)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: YamiTheme.spaceMd,
+            vertical: YamiTheme.spaceSm,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Campo testo
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 120),
+                  child: TextField(
+                    controller: _messageController,
+                    focusNode: _focusNode,
+                    style: YamiTheme.bodyStyle.copyWith(
+                      color: YamiTheme.textBright,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                    maxLines: null,
+                    enabled: canSend,
+                    decoration: InputDecoration(
+                      hintText: isBlocked
+                          ? 'Peer is blocked'
+                          : !isPeerOnline
+                              ? 'Peer is offline'
+                              : isTrusted
+                                  ? 'Encrypted message…'
+                                  : 'Message…',
+                      hintStyle: YamiTheme.bodyStyle.copyWith(
+                        color: YamiTheme.textGhost,
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: YamiTheme.spaceMd,
+                        vertical: 10,
+                      ),
+                    ),
+                    onSubmitted: canSend ? (_) => _sendMessage(repo) : null,
+                  ),
+                ),
+              ),
+
+              // Bottone invio
+              const SizedBox(width: YamiTheme.spaceSm),
+              GestureDetector(
+                onTapDown: canSend && _hasText ? (_) => _sendBtnCtrl.forward() : null,
+                onTapUp: canSend && _hasText
+                    ? (_) {
+                        _sendBtnCtrl.reverse();
+                        _sendMessage(repo);
+                      }
+                    : null,
+                onTapCancel: () => _sendBtnCtrl.reverse(),
+                child: ScaleTransition(
+                  scale: _sendBtnScale,
+                  child: AnimatedContainer(
+                    duration: YamiTheme.motionNormal,
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: canSend && _hasText
+                          ? YamiTheme.accentWine
+                          : YamiTheme.surfaceRaised,
+                      borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                      border: Border.all(
+                        color: canSend && _hasText
+                            ? YamiTheme.accentWine
+                            : YamiTheme.borderMid,
+                      ),
+                      boxShadow: canSend && _hasText
+                          ? [
+                              BoxShadow(
+                                color: YamiTheme.accentWine.withValues(alpha: 0.35),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              )
+                            ]
+                          : [],
+                    ),
+                    child: Icon(
+                      Icons.send_rounded,
+                      size: 18,
+                      color: canSend && _hasText
+                          ? YamiTheme.textBright
+                          : YamiTheme.textGhost,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status Banner
+// ---------------------------------------------------------------------------
+class _StatusBanner extends StatelessWidget {
+  final bool isTrusted;
+  final bool isPeerOnline;
+  final bool isBlocked;
+  final bool isMuted;
+
+  const _StatusBanner({
+    required this.isTrusted,
+    required this.isPeerOnline,
+    required this.isBlocked,
+    required this.isMuted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final String text;
+    final Color color;
+
+    if (isBlocked) {
+      icon = Icons.block_rounded;
+      text = 'This peer is blocked. No messages will be sent or received.';
+      color = YamiTheme.accentEmber;
+    } else if (isMuted) {
+      icon = Icons.volume_off_rounded;
+      text = 'This peer is muted for this session.';
+      color = YamiTheme.accentEmber;
+    } else if (!isPeerOnline) {
+      icon = Icons.cloud_off_rounded;
+      text = 'Peer offline. Messages will queue and deliver when they return.';
+      color = YamiTheme.textGhost;
+    } else if (isTrusted) {
+      icon = Icons.lock_rounded;
+      text = 'End-to-end encrypted. Session keys verified.';
+      color = YamiTheme.accentBrass;
+    } else {
+      icon = Icons.lock_open_rounded;
+      text = 'Unverified. Use Verify Pairing in the Space tab to encrypt.';
+      color = YamiTheme.textSub;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: YamiTheme.spaceMd,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.15))),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: YamiTheme.spaceSm),
+          Expanded(
+            child: Text(
+              text,
+              style: YamiTheme.captionStyle.copyWith(
+                color: color.withValues(alpha: 0.85),
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Message Bubble
+// ---------------------------------------------------------------------------
+class _MessageBubble extends StatelessWidget {
+  final Message message;
+  final bool isMe;
+  final bool isTrusted;
+  final bool isRevealed;
+  final VoidCallback onReveal;
+
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.isTrusted,
+    required this.isRevealed,
+    required this.onReveal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final shouldBlur = message.isBlurred && !isRevealed;
+    final timeStr =
         '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}';
 
-    final shouldBlur =
-        message.isBlurred && !_revealedMessageIds.contains(message.id);
-
-    final glowColor = shouldBlur
-        ? YamiTheme.accentWarning
-        : (isMe
-              ? YamiTheme.accentActive
-              : (isTrusted ? YamiTheme.accentSecure : Colors.transparent));
+    // Colori bolla
+    final Color bubbleBg;
+    final Color bubbleBorder;
+    if (shouldBlur) {
+      bubbleBg = YamiTheme.surfaceBase;
+      bubbleBorder = YamiTheme.accentEmber.withValues(alpha: 0.5);
+    } else if (isMe) {
+      bubbleBg = YamiTheme.accentWine.withValues(alpha: 0.18);
+      bubbleBorder = YamiTheme.accentWine.withValues(alpha: 0.35);
+    } else {
+      bubbleBg = YamiTheme.surfaceRaised;
+      bubbleBorder = YamiTheme.borderMid;
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.only(bottom: YamiTheme.spaceSm),
       child: Align(
-        alignment: alignment,
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Column(
-          crossAxisAlignment: crossAlignment,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            Container(
+            ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.76,
+                maxWidth: MediaQuery.of(context).size.width * 0.74,
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14.0,
-                vertical: 10.0,
-              ),
-              decoration: YamiTheme.tactileDecoration(
-                backgroundColor: shouldBlur
-                    ? YamiTheme.surfaceDark
-                    : (isMe ? YamiTheme.surfaceLight : YamiTheme.surfaceDark),
-                opacity: 0.85,
-                borderColor: glowColor == Colors.transparent ? YamiTheme.borderMetallic : glowColor,
-                borderRadius: 12.0,
-              ),
-              child: shouldBlur
-                  ? GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _revealedMessageIds.add(message.id);
-                        });
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.visibility_off,
-                            size: 14,
-                            color: YamiTheme.accentWarning.withValues(alpha: 0.8),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              message.moderationExplanation != null
-                                  ? 'Sensibile: ${message.moderationExplanation} (Tocca per rivelare)'
-                                  : 'Contenuto Sensibile (Tocca per rivelare)',
-                              style: YamiTheme.captionStyle.copyWith(
-                                color: YamiTheme.accentWarning,
-                                fontStyle: FontStyle.italic,
-                                fontSize: 11,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: bubbleBg,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(14),
+                    topRight: const Radius.circular(14),
+                    bottomLeft: Radius.circular(isMe ? 14 : 4),
+                    bottomRight: Radius.circular(isMe ? 4 : 14),
+                  ),
+                  border: Border.all(color: bubbleBorder, width: 1.0),
+                  boxShadow: YamiTheme.shadowLow,
+                ),
+                child: shouldBlur
+                    ? GestureDetector(
+                        onTap: onReveal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.visibility_off_outlined,
+                              size: 14,
+                              color: YamiTheme.accentEmber,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Sensitive content · tap to reveal',
+                                style: YamiTheme.bodySmallStyle.copyWith(
+                                  color: YamiTheme.accentEmber,
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Text(
+                        message.content,
+                        style: YamiTheme.bodyStyle.copyWith(
+                          color: YamiTheme.textBright,
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
                       ),
-                    )
-                  : Text(message.content, style: YamiTheme.bodyStyle),
+              ),
             ),
+
+            // Meta riga
             const SizedBox(height: 3),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '$timeStr | ',
-                  style: YamiTheme.captionStyle.copyWith(fontSize: 8.5),
+                  timeStr,
+                  style: YamiTheme.captionStyle.copyWith(
+                    fontSize: 10,
+                    color: YamiTheme.textGhost,
+                  ),
                 ),
                 if (isMe) ...[
+                  const SizedBox(width: 4),
                   Icon(
                     message.status == MessageStatus.delivered
-                        ? Icons.done_all
-                        : Icons.done,
-                    size: 11,
+                        ? Icons.done_all_rounded
+                        : Icons.done_rounded,
+                    size: 12,
                     color: message.status == MessageStatus.delivered
-                        ? YamiTheme.accentSecure
-                        : YamiTheme.textMuted,
+                        ? YamiTheme.accentBrass
+                        : YamiTheme.textGhost,
                   ),
                 ] else ...[
+                  const SizedBox(width: 4),
                   Text(
-                    message.hopCount == 1 ? '1-HOP P2P' : '${message.hopCount}-HOP MESH',
-                    style: YamiTheme.monoStyle.copyWith(
-                      fontSize: 7.5,
-                      color: message.hopCount == 1 ? YamiTheme.textMuted : YamiTheme.accentActive,
+                    message.hopCount == 1 ? '· direct' : '· ${message.hopCount}-hop',
+                    style: YamiTheme.captionStyle.copyWith(
+                      fontSize: 10,
+                      color: message.hopCount == 1
+                          ? YamiTheme.textGhost
+                          : YamiTheme.accentWine,
                     ),
                   ),
                 ],
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mute Bottom Sheet
+// ---------------------------------------------------------------------------
+class _MuteSheet extends StatelessWidget {
+  final String peerAlias;
+  final void Function(Duration) onMute;
+
+  const _MuteSheet({required this.peerAlias, required this.onMute});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        YamiTheme.spaceMd,
+        YamiTheme.spaceMd,
+        YamiTheme.spaceMd,
+        YamiTheme.spaceLg,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 3,
+              decoration: BoxDecoration(
+                color: YamiTheme.borderStrong,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: YamiTheme.spaceLg),
+          Text(
+            'Mute $peerAlias',
+            style: YamiTheme.headingStyle,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Incoming messages will be silenced.',
+            style: YamiTheme.captionStyle,
+          ),
+          const SizedBox(height: YamiTheme.spaceMd),
+          ...[
+            ('10 seconds', const Duration(seconds: 10)),
+            ('30 seconds', const Duration(seconds: 30)),
+            ('1 minute', const Duration(minutes: 1)),
+            ('5 minutes', const Duration(minutes: 5)),
+          ].map((e) => _MuteOption(label: e.$1, onTap: () => onMute(e.$2))),
+        ],
+      ),
+    );
+  }
+}
+
+class _MuteOption extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _MuteOption({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: YamiTheme.spaceMd,
+          vertical: 14,
+        ),
+        margin: const EdgeInsets.only(bottom: YamiTheme.spaceXs),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: YamiTheme.borderFaint, width: 1),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.timer_outlined, size: 16, color: YamiTheme.textSub),
+            const SizedBox(width: YamiTheme.spaceMd),
+            Text(label, style: YamiTheme.bodyStyle.copyWith(fontSize: 15)),
+            const Spacer(),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: YamiTheme.textGhost),
           ],
         ),
       ),

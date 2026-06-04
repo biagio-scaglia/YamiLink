@@ -75,7 +75,7 @@ class _TactileLoaderPainter extends CustomPainter {
 
     // Background track (sunken metallic ring)
     final trackPaint = Paint()
-      ..color = YamiTheme.surfaceDark
+      ..color = YamiTheme.surfaceBase
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius - strokeWidth / 2, trackPaint);
@@ -180,12 +180,12 @@ class _YamiLinearLoaderState extends State<YamiLinearLoader>
                         ? color
                         : (isPassed
                             ? color.withValues(alpha: 0.3)
-                            : YamiTheme.surfaceDark),
+                            : YamiTheme.surfaceBase),
                     borderRadius: BorderRadius.circular(1.0),
                     border: Border.all(
                       color: isActive
                           ? color
-                          : YamiTheme.borderMetallic.withValues(alpha: 0.2),
+                          : YamiTheme.borderMid.withValues(alpha: 0.2),
                       width: 0.5,
                     ),
                     boxShadow: isActive

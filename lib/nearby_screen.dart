@@ -46,6 +46,7 @@ class _NearbyScreenState extends State<NearbyScreen>
     final isScanning = simulation.isScanning;
 
     return Scaffold(
+      backgroundColor: YamiTheme.bgDeep,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -76,7 +77,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: YamiTheme.accentActive.withValues(
+                                    color: YamiTheme.accentWine.withValues(
                                       alpha: isScanning
                                           ? (1.0 - _radarController.value) * 0.4
                                           : 0.1,
@@ -96,13 +97,13 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: YamiTheme.accentAmbient.withValues(
+                                    color: YamiTheme.accentBrass.withValues(
                                       alpha: isScanning
                                           ? (1.0 -
                                                     ((_radarController.value +
                                                             0.5) %
                                                         1.0)) *
-                                                0.25
+                                                  0.25
                                           : 0.05,
                                     ),
                                     width: 1.0,
@@ -111,28 +112,31 @@ class _NearbyScreenState extends State<NearbyScreen>
                               ),
 
                               Container(
-                                width: 28,
-                                height: 28,
+                                width: 32,
+                                height: 32,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isScanning
-                                      ? YamiTheme.accentActive
-                                      : YamiTheme.textMuted,
+                                      ? YamiTheme.accentWine
+                                      : YamiTheme.surfaceRaised,
+                                  border: Border.all(
+                                    color: isScanning ? YamiTheme.accentBrass : YamiTheme.borderMid,
+                                    width: 1,
+                                  ),
                                   boxShadow: isScanning
                                       ? [
                                           BoxShadow(
-                                            color: YamiTheme.accentActive
-                                                .withValues(alpha: 0.4),
-                                            blurRadius: 18.0,
-                                            spreadRadius: 4.0,
+                                            color: YamiTheme.accentWine.withValues(alpha: 0.5),
+                                            blurRadius: 16.0,
+                                            spreadRadius: 2.0,
                                           ),
                                         ]
                                       : null,
                                 ),
-                                child: const Icon(
-                                  Icons.wifi_tethering,
-                                  size: 14,
-                                  color: YamiTheme.bgDeep,
+                                child: Icon(
+                                  Icons.radar_rounded,
+                                  size: 16,
+                                  color: isScanning ? YamiTheme.textBright : YamiTheme.textSub,
                                 ),
                               ),
                             ],
@@ -144,11 +148,12 @@ class _NearbyScreenState extends State<NearbyScreen>
                         isScanning
                             ? 'BROADCASTING PRESENCE BEACON...'
                             : 'DISCOVERY TRANSMITTER PAUSED',
-                        style: YamiTheme.monoStyle.copyWith(
+                        style: YamiTheme.monoBrightStyle.copyWith(
                           color: isScanning
-                              ? YamiTheme.accentActive
-                              : YamiTheme.textMuted,
-                          fontSize: 10,
+                              ? YamiTheme.accentBrass
+                              : YamiTheme.textGhost,
+                          fontSize: 9.5,
+                          letterSpacing: 1.2,
                         ),
                       ),
                     ],
@@ -159,9 +164,9 @@ class _NearbyScreenState extends State<NearbyScreen>
             actions: [
               IconButton(
                 icon: const Icon(
-                  Icons.help_outline,
-                  color: YamiTheme.textSecondary,
-                  size: 24,
+                  Icons.help_outline_rounded,
+                  color: YamiTheme.textSub,
+                  size: 22,
                 ),
                 onPressed: () {
                   YamiTutorialHelper.showHelpBottomSheet(
@@ -174,12 +179,12 @@ class _NearbyScreenState extends State<NearbyScreen>
               IconButton(
                 icon: Icon(
                   isScanning
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled,
+                      ? Icons.pause_circle_filled_rounded
+                      : Icons.play_circle_filled_rounded,
                   color: isScanning
-                      ? YamiTheme.accentActive
-                      : YamiTheme.textSecondary,
-                  size: 28,
+                      ? YamiTheme.accentWine
+                      : YamiTheme.textSub,
+                  size: 26,
                 ),
                 onPressed: () {
                   if (isScanning) {
@@ -196,16 +201,16 @@ class _NearbyScreenState extends State<NearbyScreen>
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 10.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 12.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'SPATIAL PEERS IN SCOPE',
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.textSecondary,
-                      letterSpacing: 2.0,
-                      fontSize: 11,
+                    style: YamiTheme.labelStyle.copyWith(
+                      color: YamiTheme.textSub,
+                      letterSpacing: 1.5,
+                      fontSize: 10.5,
                     ),
                   ),
                   Container(
@@ -213,10 +218,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                       horizontal: 10,
                       vertical: 4,
                     ),
-                    decoration: YamiTheme.tactileDecoration(
-                      backgroundColor: YamiTheme.surfaceLight,
-                      opacity: 0.8,
-                      borderRadius: 20,
+                    decoration: BoxDecoration(
+                      color: YamiTheme.surfaceRaised,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: YamiTheme.borderFaint),
                     ),
                     child: Row(
                       children: [
@@ -226,18 +231,18 @@ class _NearbyScreenState extends State<NearbyScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isScanning
-                                ? YamiTheme.accentSecure
-                                : YamiTheme.textMuted,
+                                ? YamiTheme.accentBrass
+                                : YamiTheme.textGhost,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           '${simulation.peers.length} ONLINE',
-                          style: YamiTheme.monoStyle.copyWith(
+                          style: YamiTheme.labelStyle.copyWith(
                             color: isScanning
-                                ? YamiTheme.textPrimary
-                                : YamiTheme.textMuted,
-                            fontSize: 9,
+                                ? YamiTheme.textBright
+                                : YamiTheme.textSub,
+                            fontSize: 9.5,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -254,27 +259,29 @@ class _NearbyScreenState extends State<NearbyScreen>
                   hasScrollBody: false,
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.all(32.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.radar,
-                            size: 48,
-                            color: YamiTheme.textMuted.withValues(alpha: 0.2),
+                            Icons.sensors_off_rounded,
+                            size: 40,
+                            color: YamiTheme.textGhost.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Local Proximity Layer is Empty.',
-                            style: YamiTheme.subtitleStyle.copyWith(
-                              color: YamiTheme.textSecondary,
+                            'Proximity Layer Offline',
+                            style: YamiTheme.headingStyle.copyWith(
+                              color: YamiTheme.textBright,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Activate the beacon or wait for peers to enter range.',
+                            'Activate the beacon or wait for nearby peers to join the grid.',
                             textAlign: TextAlign.center,
-                            style: YamiTheme.captionStyle,
+                            style: YamiTheme.bodySmallStyle.copyWith(
+                              color: YamiTheme.textSub,
+                            ),
                           ),
                         ],
                       ),
@@ -303,22 +310,22 @@ class _NearbyScreenState extends State<NearbyScreen>
 
     switch (peer.proximityHint) {
       case ProximityHint.immediate:
-        proximityColor = YamiTheme.accentSecure;
+        proximityColor = YamiTheme.accentBrass;
         proximityText = 'IMMEDIATE';
         proximityBars = 3;
         break;
       case ProximityHint.near:
-        proximityColor = YamiTheme.accentActive;
+        proximityColor = YamiTheme.accentWine;
         proximityText = 'NEAR';
         proximityBars = 2;
         break;
       case ProximityHint.far:
-        proximityColor = YamiTheme.accentAmbient;
+        proximityColor = YamiTheme.textSub;
         proximityText = 'FAR';
         proximityBars = 1;
         break;
       case ProximityHint.unknown:
-        proximityColor = YamiTheme.textMuted;
+        proximityColor = YamiTheme.textGhost;
         proximityText = 'UNKNOWN';
         proximityBars = 0;
         break;
@@ -327,14 +334,13 @@ class _NearbyScreenState extends State<NearbyScreen>
     final isTrusted = peer.trustLevel == TrustLevel.paired;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      padding: const EdgeInsets.symmetric(horizontal: YamiTheme.spaceMd, vertical: YamiTheme.spaceXs),
       child: GestureDetector(
         onTap: () => _showPeerDetailsSheet(context, peer, simulation),
         child: Container(
-          padding: const EdgeInsets.all(12.0),
-          decoration: YamiTheme.tactileDecoration(
-            backgroundColor: YamiTheme.surfaceDark,
-            borderColor: isTrusted ? YamiTheme.accentSecure : YamiTheme.accentActive,
+          padding: const EdgeInsets.all(YamiTheme.spaceMd),
+          decoration: YamiTheme.surfaceCard(
+            borderColor: isTrusted ? YamiTheme.accentBrass.withValues(alpha: 0.3) : YamiTheme.borderMid,
           ),
           child: Row(
             children: [
@@ -343,8 +349,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                 height: 38,
                 decoration: BoxDecoration(
                   color: isTrusted
-                      ? YamiTheme.accentSecure
-                      : YamiTheme.accentActive.withValues(alpha: 0.3),
+                      ? YamiTheme.accentBrass
+                      : YamiTheme.textGhost,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -352,10 +358,8 @@ class _NearbyScreenState extends State<NearbyScreen>
 
               YamiAvatar(
                 seed: peer.avatarSeed,
-                size: 46,
-                glowColor: isTrusted
-                    ? YamiTheme.accentSecure
-                    : YamiTheme.accentActive,
+                size: 48,
+                glowColor: isTrusted ? YamiTheme.accentBrass : YamiTheme.accentWine,
                 isGlowing: isTrusted,
               ),
               const SizedBox(width: 14),
@@ -369,15 +373,16 @@ class _NearbyScreenState extends State<NearbyScreen>
                         Text(
                           peer.alias,
                           style: YamiTheme.bodyStyle.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.2,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: YamiTheme.textBright,
                           ),
                         ),
                         if (isTrusted) ...[
                           const SizedBox(width: 6),
                           const Icon(
-                            Icons.verified,
-                            color: YamiTheme.accentSecure,
+                            Icons.verified_rounded,
+                            color: YamiTheme.accentBrass,
                             size: 14,
                           ),
                         ],
@@ -397,8 +402,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                                 borderRadius: BorderRadius.circular(1),
                                 color: index < proximityBars
                                     ? proximityColor
-                                    : YamiTheme.textMuted.withValues(
-                                        alpha: 0.2,
+                                    : YamiTheme.textGhost.withValues(
+                                        alpha: 0.3,
                                       ),
                               ),
                             );
@@ -407,26 +412,28 @@ class _NearbyScreenState extends State<NearbyScreen>
                         const SizedBox(width: 8),
                         Text(
                           proximityText,
-                          style: YamiTheme.monoStyle.copyWith(
+                          style: YamiTheme.monoBrightStyle.copyWith(
                             color: proximityColor,
-                            fontSize: 8.5,
+                            fontSize: 9,
                             letterSpacing: 0.5,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
 
                         if (peer.relayCapability) ...[
                           const SizedBox(width: 12),
                           const Icon(
-                            Icons.router,
-                            size: 11,
-                            color: YamiTheme.textSecondary,
+                            Icons.router_rounded,
+                            size: 12,
+                            color: YamiTheme.textSub,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             'RELAY',
                             style: YamiTheme.captionStyle.copyWith(
-                              fontSize: 8,
-                              color: YamiTheme.textSecondary,
+                              fontSize: 8.5,
+                              color: YamiTheme.textSub,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -436,10 +443,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                 ),
               ),
 
-              Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: YamiTheme.textMuted.withValues(alpha: 0.7),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: YamiTheme.textGhost,
               ),
             ],
           ),
@@ -474,431 +481,451 @@ class _NearbyScreenState extends State<NearbyScreen>
               pairCode = '${code % 9000 + 1000} ${code ~/ 9000 % 9000 + 1000}';
             }
 
+            Color proximityColor;
+            switch (currentPeer.proximityHint) {
+              case ProximityHint.immediate:
+                proximityColor = YamiTheme.accentBrass;
+                break;
+              case ProximityHint.near:
+                proximityColor = YamiTheme.accentWine;
+                break;
+              case ProximityHint.far:
+                proximityColor = YamiTheme.textSub;
+                break;
+              case ProximityHint.unknown:
+                proximityColor = YamiTheme.textGhost;
+                break;
+            }
+
             return Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24.0,
                 vertical: 26.0,
               ),
               decoration: const BoxDecoration(
-                color: YamiTheme.bgDeep,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+                color: YamiTheme.surfaceRaised,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(YamiTheme.radiusRound)),
                 border: Border(
-                  top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
+                  top: BorderSide(color: YamiTheme.borderMid, width: 1.0),
                 ),
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: YamiTheme.borderMetallic,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  YamiAvatar(
-                    seed: currentPeer.avatarSeed,
-                    size: 80,
-                    glowColor: isTrusted
-                        ? YamiTheme.accentSecure
-                        : YamiTheme.accentActive,
-                    isGlowing: true,
-                  ),
-                  const SizedBox(height: 16),
-
-                  Text(currentPeer.alias, style: YamiTheme.titleStyle),
-                  const SizedBox(height: 4),
-
-                  Text(
-                    'NODE KEY: sha256::${currentPeer.id.substring(0, 8)}...${currentPeer.id.substring(currentPeer.id.length - 4)}',
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.textMuted,
-                      fontSize: 9,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14.0),
-                    decoration: YamiTheme.tactileDecoration(
-                      backgroundColor: YamiTheme.surfaceDark,
-                      opacity: 0.8,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'LOCAL SPACE ADJACENCY',
-                          style: YamiTheme.monoStyle.copyWith(
-                            color: YamiTheme.textSecondary,
-                            fontSize: 9.5,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Proximity range',
-                              style: YamiTheme.bodyStyle.copyWith(
-                                color: YamiTheme.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              currentPeer.proximityHint
-                                  .toString()
-                                  .split('.')
-                                  .last
-                                  .toUpperCase(),
-                              style: YamiTheme.monoStyle.copyWith(
-                                color:
-                                    currentPeer.proximityHint ==
-                                        ProximityHint.immediate
-                                    ? YamiTheme.accentSecure
-                                    : YamiTheme.accentActive,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Relay capabilities',
-                              style: YamiTheme.bodyStyle.copyWith(
-                                color: YamiTheme.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              currentPeer.relayCapability
-                                  ? 'ACTIVE MESH NODE'
-                                  : 'ENDPOINT NODE',
-                              style: YamiTheme.monoStyle.copyWith(
-                                color: currentPeer.relayCapability
-                                    ? YamiTheme.accentActive
-                                    : YamiTheme.textMuted,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  if (isTrusted) ...[
+                  children: [
                     Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 24.0),
-                      padding: const EdgeInsets.all(12),
+                      width: 40,
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: YamiTheme.accentSecure.withValues(alpha: 0.04),
-                        border: Border.all(
-                          color: YamiTheme.accentSecure.withValues(alpha: 0.2),
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.verified,
-                            color: YamiTheme.accentSecure,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Device verified. Cryptographic pairing completed.',
-                              style: YamiTheme.captionStyle.copyWith(
-                                color: YamiTheme.accentSecure,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        ],
+                        color: YamiTheme.borderStrong,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ] else ...[
+                    const SizedBox(height: 24),
+
+                    YamiAvatar(
+                      seed: currentPeer.avatarSeed,
+                      size: 80,
+                      glowColor: isTrusted ? YamiTheme.accentBrass : YamiTheme.accentWine,
+                      isGlowing: true,
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      currentPeer.alias,
+                      style: YamiTheme.headingStyle.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+
+                    Text(
+                      'NODE KEY: sha256::${currentPeer.id.substring(0, 8)}...${currentPeer.id.substring(currentPeer.id.length - 4)}',
+                      style: YamiTheme.monoBrightStyle.copyWith(
+                        color: YamiTheme.textSub,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     Container(
                       width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 24.0),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
-                      decoration: YamiTheme.tactileDecoration(
-                        backgroundColor: YamiTheme.surfaceLight,
-                        opacity: 0.5,
+                      padding: const EdgeInsets.all(YamiTheme.spaceMd),
+                      decoration: BoxDecoration(
+                        color: YamiTheme.surfaceBase,
+                        borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                        border: Border.all(color: YamiTheme.borderFaint),
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'MATCHING VERIFICATION CODE',
+                            'LOCAL SPACE ADJACENCY',
                             style: YamiTheme.monoStyle.copyWith(
-                              fontSize: 9,
-                              color: YamiTheme.textMuted,
+                              color: YamiTheme.accentWine,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.0,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            pairCode,
-                            style: YamiTheme.titleStyle.copyWith(
-                              letterSpacing: 3,
-                              fontSize: 22,
-                              color: YamiTheme.accentActive,
-                            ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Proximity range',
+                                style: YamiTheme.bodyStyle.copyWith(
+                                  color: YamiTheme.textBody,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                currentPeer.proximityHint
+                                    .toString()
+                                    .split('.')
+                                    .last
+                                    .toUpperCase(),
+                                style: YamiTheme.monoBrightStyle.copyWith(
+                                  color: proximityColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Verify this number matches on their screen.',
-                            style: YamiTheme.captionStyle.copyWith(
-                              fontSize: 10,
-                            ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Relay capabilities',
+                                style: YamiTheme.bodyStyle.copyWith(
+                                  color: YamiTheme.textBody,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                currentPeer.relayCapability
+                                    ? 'ACTIVE MESH NODE'
+                                    : 'ENDPOINT NODE',
+                                style: YamiTheme.monoBrightStyle.copyWith(
+                                  color: currentPeer.relayCapability
+                                      ? YamiTheme.accentBrass
+                                      : YamiTheme.textSub,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ],
+                    const SizedBox(height: 24),
 
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: YamiTheme.accentActive,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              widget.onOpenDirectChat(currentPeer);
-                            },
-                            child: Text(
-                              'DIRECT CHAT',
-                              style: YamiTheme.monoStyle.copyWith(
-                                color: YamiTheme.accentActive,
-                                fontSize: 11,
-                              ),
-                            ),
+                    if (isTrusted) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: YamiTheme.spaceLg),
+                        padding: const EdgeInsets.all(YamiTheme.spaceMd),
+                        decoration: BoxDecoration(
+                          color: YamiTheme.accentBrass.withValues(alpha: 0.05),
+                          border: Border.all(
+                            color: YamiTheme.accentBrass.withValues(alpha: 0.2),
                           ),
+                          borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.verified_rounded,
+                              color: YamiTheme.accentBrass,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Device verified. Cryptographic pairing completed.',
+                                style: YamiTheme.bodySmallStyle.copyWith(
+                                  color: YamiTheme.accentBrass,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isTrusted
-                                  ? YamiTheme.accentWarning
-                                  : YamiTheme.accentSecure,
-                              foregroundColor: YamiTheme.bgDeep,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                    ] else ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: YamiTheme.spaceLg),
+                        padding: const EdgeInsets.all(YamiTheme.spaceMd),
+                        decoration: BoxDecoration(
+                          color: YamiTheme.surfaceBase,
+                          borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                          border: Border.all(color: YamiTheme.borderMid),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              'MATCHING VERIFICATION CODE',
+                              style: YamiTheme.labelStyle.copyWith(
+                                fontSize: 10,
+                                letterSpacing: 1.0,
+                                color: YamiTheme.textSub,
                               ),
                             ),
-                            onPressed: () {
-                              if (!isTrusted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => QRPairingScreen(
-                                      myProfile: simulation.profile,
-                                      targetPeer: currentPeer,
-                                      onVerified: (verifiedId) {
-                                        simulation.initiatePairing(verifiedId);
-                                        simulation.togglePeerTrust(verifiedId);
-                                      },
-                                    ),
-                                  ),
-                                ).then((_) {
-                                  setModalState(() {});
-                                });
-                              } else {
-                                simulation.togglePeerTrust(currentPeer.id);
-                              }
-                              setModalState(() {});
-                            },
-                            child: Text(
-                              isTrusted ? 'REVOKE TRUST' : 'VERIFY PAIRING',
-                              style: YamiTheme.monoStyle.copyWith(
-                                color: YamiTheme.bgDeep,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
+                            const SizedBox(height: YamiTheme.spaceSm),
+                            Text(
+                              pairCode,
+                              style: YamiTheme.displayStyle.copyWith(
+                                letterSpacing: 4,
+                                fontSize: 24,
+                                color: YamiTheme.accentWine,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: YamiTheme.spaceXs),
+                            Text(
+                              'Verify this number matches on their screen.',
+                              style: YamiTheme.captionStyle.copyWith(
+                                color: YamiTheme.textSub,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: TextButton.icon(
-                      icon: Icon(
-                        simulation.isPeerMuted(currentPeer.id)
-                            ? Icons.volume_up
-                            : Icons.volume_off,
-                        color: simulation.isPeerMuted(currentPeer.id)
-                            ? YamiTheme.accentSecure
-                            : YamiTheme.accentWarning,
-                        size: 16,
-                      ),
-                      label: Text(
-                        simulation.isPeerMuted(currentPeer.id)
-                            ? 'UNMUTE PEER'
-                            : 'MUTE PEER',
-                        style: YamiTheme.monoStyle.copyWith(
-                          color: simulation.isPeerMuted(currentPeer.id)
-                              ? YamiTheme.accentSecure
-                              : YamiTheme.accentWarning,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: YamiTheme.borderStrong,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                                ),
+                                foregroundColor: YamiTheme.textBright,
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                widget.onOpenDirectChat(currentPeer);
+                              },
+                              child: Text(
+                                'DIRECT CHAT',
+                                style: YamiTheme.labelStyle.copyWith(
+                                  fontSize: 12,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isTrusted
+                                    ? YamiTheme.accentEmber
+                                    : YamiTheme.accentWine,
+                                foregroundColor: YamiTheme.textBright,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                                ),
+                              ),
+                              onPressed: () {
+                                if (!isTrusted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => QRPairingScreen(
+                                        myProfile: simulation.profile,
+                                        targetPeer: currentPeer,
+                                        onVerified: (verifiedId) {
+                                          simulation.initiatePairing(verifiedId);
+                                          simulation.togglePeerTrust(verifiedId);
+                                        },
+                                      ),
+                                    ),
+                                  ).then((_) {
+                                    setModalState(() {});
+                                  });
+                                } else {
+                                  simulation.togglePeerTrust(currentPeer.id);
+                                }
+                                setModalState(() {});
+                              },
+                              child: Text(
+                                isTrusted ? 'REVOKE TRUST' : 'VERIFY PAIRING',
+                                style: YamiTheme.labelStyle.copyWith(
+                                  color: YamiTheme.textBright,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: TextButton.icon(
+                        icon: Icon(
+                          simulation.isPeerMuted(currentPeer.id)
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
+                          color: simulation.isPeerMuted(currentPeer.id)
+                              ? YamiTheme.accentBrass
+                              : YamiTheme.accentEmber,
+                          size: 18,
+                        ),
+                        label: Text(
+                          simulation.isPeerMuted(currentPeer.id)
+                              ? 'UNMUTE PEER'
+                              : 'MUTE PEER',
+                          style: YamiTheme.labelStyle.copyWith(
+                            color: simulation.isPeerMuted(currentPeer.id)
+                                ? YamiTheme.accentBrass
+                                : YamiTheme.accentEmber,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onPressed: () {
+                          if (simulation.isPeerMuted(currentPeer.id)) {
+                            simulation.unmutePeer(currentPeer.id);
+                            setModalState(() {});
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${currentPeer.alias} is no longer muted',
+                                ),
+                                backgroundColor: YamiTheme.accentBrass,
+                              ),
+                            );
+                          } else {
+                            showDialog(
+                              context: context,
+                              builder: (context) => SimpleDialog(
+                                backgroundColor: YamiTheme.surfaceRaised,
+                                title: Text(
+                                  'MUTE PEER',
+                                  style: YamiTheme.headingStyle.copyWith(fontSize: 16),
+                                ),
+                                children: [
+                                  SimpleDialogOption(
+                                    onPressed: () {
+                                      simulation.mutePeer(
+                                        currentPeer.id,
+                                        const Duration(seconds: 10),
+                                      );
+                                      Navigator.pop(context);
+                                      setModalState(() {});
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Peer muted for 10 seconds',
+                                          ),
+                                          backgroundColor: YamiTheme.accentEmber,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      '10 Seconds',
+                                      style: YamiTheme.bodyStyle,
+                                    ),
+                                  ),
+                                  SimpleDialogOption(
+                                    onPressed: () {
+                                      simulation.mutePeer(
+                                        currentPeer.id,
+                                        const Duration(seconds: 30),
+                                      );
+                                      Navigator.pop(context);
+                                      setModalState(() {});
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Peer muted for 30 seconds',
+                                          ),
+                                          backgroundColor: YamiTheme.accentEmber,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      '30 Seconds',
+                                      style: YamiTheme.bodyStyle,
+                                    ),
+                                  ),
+                                  SimpleDialogOption(
+                                    onPressed: () {
+                                      simulation.mutePeer(
+                                        currentPeer.id,
+                                        const Duration(minutes: 1),
+                                      );
+                                      Navigator.pop(context);
+                                      setModalState(() {});
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Peer muted for 1 minute',
+                                          ),
+                                          backgroundColor: YamiTheme.accentEmber,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      '1 Minute',
+                                      style: YamiTheme.bodyStyle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
                       ),
-                      onPressed: () {
-                        if (simulation.isPeerMuted(currentPeer.id)) {
-                          simulation.unmutePeer(currentPeer.id);
-                          setModalState(() {});
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: TextButton.icon(
+                        icon: const Icon(
+                          Icons.block_rounded,
+                          color: YamiTheme.accentEmber,
+                          size: 18,
+                        ),
+                        label: Text(
+                          'BLOCK PEER',
+                          style: YamiTheme.labelStyle.copyWith(
+                            color: YamiTheme.accentEmber,
+                            fontSize: 12,
+                          ),
+                        ),
+                        onPressed: () {
+                          simulation.blockPeer(currentPeer.id);
+                          Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                '${currentPeer.alias} is no longer muted',
-                              ),
-                              backgroundColor: YamiTheme.accentSecure,
+                              content: Text('${currentPeer.alias} blocked'),
+                              backgroundColor: YamiTheme.accentEmber,
                             ),
                           );
-                        } else {
-                          showDialog(
-                            context: context,
-                            builder: (context) => SimpleDialog(
-                              backgroundColor: YamiTheme.bgDeep,
-                              title: Text(
-                                'SILENZIA PEER',
-                                style: YamiTheme.monoStyle.copyWith(
-                                  color: YamiTheme.accentActive,
-                                ),
-                              ),
-                              children: [
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    simulation.mutePeer(
-                                      currentPeer.id,
-                                      const Duration(seconds: 10),
-                                    );
-                                    Navigator.pop(context);
-                                    setModalState(() {});
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Peer muted for 10 seconds',
-                                        ),
-                                        backgroundColor: YamiTheme.accentWarning,
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    '10 Secondi',
-                                    style: YamiTheme.bodyStyle,
-                                  ),
-                                ),
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    simulation.mutePeer(
-                                      currentPeer.id,
-                                      const Duration(seconds: 30),
-                                    );
-                                    Navigator.pop(context);
-                                    setModalState(() {});
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Peer muted for 30 seconds',
-                                        ),
-                                        backgroundColor: YamiTheme.accentWarning,
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    '30 Secondi',
-                                    style: YamiTheme.bodyStyle,
-                                  ),
-                                ),
-                                SimpleDialogOption(
-                                  onPressed: () {
-                                    simulation.mutePeer(
-                                      currentPeer.id,
-                                      const Duration(minutes: 1),
-                                    );
-                                    Navigator.pop(context);
-                                    setModalState(() {});
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Peer muted for 1 minute',
-                                        ),
-                                        backgroundColor: YamiTheme.accentWarning,
-                                      ),
-                                    );
-                                  },
-                                  child: Text(
-                                    '1 Minuto',
-                                    style: YamiTheme.bodyStyle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44,
-                    child: TextButton.icon(
-                      icon: const Icon(
-                        Icons.block,
-                        color: YamiTheme.accentWarning,
-                        size: 16,
+                        },
                       ),
-                      label: Text(
-                        'BLOCK PEER',
-                        style: YamiTheme.monoStyle.copyWith(
-                          color: YamiTheme.accentWarning,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      onPressed: () {
-                        simulation.blockPeer(currentPeer.id);
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${currentPeer.alias} bloccato'),
-                            backgroundColor: YamiTheme.accentWarning,
-                          ),
-                        );
-                      },
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               ),
             );
           },

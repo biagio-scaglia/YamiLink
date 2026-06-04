@@ -28,17 +28,14 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YamiTheme.surfaceDark,
+      backgroundColor: YamiTheme.bgDeep,
       appBar: AppBar(
         backgroundColor: YamiTheme.bgDeep,
         title: Text(
           'VERIFY: ${widget.targetPeer.alias}',
-          style: YamiTheme.monoStyle.copyWith(
-            color: YamiTheme.textMuted,
-            fontSize: 16,
-          ),
+          style: YamiTheme.headingStyle,
         ),
-        iconTheme: IconThemeData(color: YamiTheme.accentActive),
+        iconTheme: const IconThemeData(color: YamiTheme.textBright),
       ),
       body: Column(
         children: [
@@ -50,9 +47,9 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
                 children: [
                   Text(
                     'YOUR IDENTITY (SHOW TO PEER)',
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.accentActive,
-                      fontWeight: FontWeight.bold,
+                    style: YamiTheme.labelStyle.copyWith(
+                      color: YamiTheme.accentWine,
+                      letterSpacing: 1.0,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -79,8 +76,8 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
                   const SizedBox(height: 10),
                   Text(
                     '${widget.myProfile.id.substring(0, 16)}...',
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.textMuted,
+                    style: YamiTheme.monoBrightStyle.copyWith(
+                      color: YamiTheme.textSub,
                       fontSize: 10,
                     ),
                   ),
@@ -90,7 +87,7 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
           ),
           Container(
             height: 1,
-            color: YamiTheme.accentActive.withValues(alpha: 0.2),
+            color: YamiTheme.borderMid,
           ),
           Expanded(
             flex: 1,
@@ -111,29 +108,35 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
             children: [
               const Icon(
                 Icons.camera_alt_outlined,
-                color: YamiTheme.textMuted,
+                color: YamiTheme.textGhost,
                 size: 48,
               ),
               const SizedBox(height: 16),
               Text(
                 'Camera scanning is only supported on mobile devices.',
                 textAlign: TextAlign.center,
-                style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.textMuted,
+                style: YamiTheme.bodySmallStyle.copyWith(
+                  color: YamiTheme.textSub,
                 ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: YamiTheme.accentSecure,
+                  backgroundColor: YamiTheme.accentBrass,
                   foregroundColor: YamiTheme.bgDeep,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                  ),
                 ),
                 onPressed: () {
                   // Fallback for Windows: trust blindly
                   widget.onVerified(widget.targetPeer.id);
                   Navigator.pop(context);
                 },
-                child: const Text('FORCE VERIFY (DESKTOP)'),
+                child: Text(
+                  'FORCE VERIFY (DESKTOP)',
+                  style: YamiTheme.labelStyle.copyWith(color: YamiTheme.bgDeep),
+                ),
               ),
             ],
           ),
@@ -147,12 +150,18 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton.icon(
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('SCAN PEER QR'),
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: Text(
+                'SCAN PEER QR',
+                style: YamiTheme.labelStyle.copyWith(color: YamiTheme.bgDeep),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: YamiTheme.accentSecure,
+                backgroundColor: YamiTheme.accentBrass,
                 foregroundColor: YamiTheme.bgDeep,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+                ),
               ),
               onPressed: () {
                 setState(() {
@@ -165,9 +174,8 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
               const SizedBox(height: 16),
               Text(
                 _errorMsg,
-                style: YamiTheme.monoStyle.copyWith(
-                  color: YamiTheme.accentWarning,
-                  fontSize: 12,
+                style: YamiTheme.bodySmallStyle.copyWith(
+                  color: YamiTheme.accentEmber,
                 ),
               ),
             ]
@@ -215,7 +223,7 @@ class _QRPairingScreenState extends State<QRPairingScreen> {
             width: 250,
             height: 250,
             decoration: BoxDecoration(
-              border: Border.all(color: YamiTheme.accentSecure, width: 2),
+              border: Border.all(color: YamiTheme.accentBrass, width: 2),
               borderRadius: BorderRadius.circular(16),
             ),
           ),

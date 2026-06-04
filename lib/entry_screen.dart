@@ -7,7 +7,6 @@ import 'widgets/loaders.dart';
 
 class EntryScreen extends StatefulWidget {
   final Function(EphemeralProfile) onProfileCreated;
-
   const EntryScreen({super.key, required this.onProfileCreated});
 
   @override
@@ -15,55 +14,59 @@ class EntryScreen extends StatefulWidget {
 }
 
 class _EntryScreenState extends State<EntryScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _aliasController = TextEditingController();
   int _currentSeed = 12345;
   final Random _random = Random();
-  late AnimationController _pulseController;
+
+  late AnimationController _ambientCtrl;
+  late AnimationController _enterCtrl;
+  late Animation<double> _fadeIn;
+  late Animation<Offset> _slideIn;
+
   bool _isGeneratingKeys = false;
 
   final List<String> _prefixes = [
-    'Ghost',
-    'Neon',
-    'Echo',
-    'Vector',
-    'Quantum',
-    'Shadow',
-    'Solar',
-    'Void',
-    'Grid',
-    'Net',
+    'Ghost', 'Echo', 'Vector', 'Shadow', 'Void',
+    'Ash', 'Cipher', 'Dusk', 'Frost', 'Nox',
   ];
   final List<String> _suffixes = [
-    'Seeker',
-    'Rider',
-    'Node',
-    'Beacon',
-    'Phantom',
-    'Runner',
-    'Pulse',
-    'Link',
-    'Signal',
-    'Zero',
+    'Rider', 'Node', 'Phantom', 'Pulse', 'Signal',
+    'Veil', 'Drift', 'Flux', 'Shard', 'Wire',
   ];
 
   @override
   void initState() {
     super.initState();
     _generateRandomAlias();
-    _pulseController = AnimationController(
+
+    _ambientCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
+
+    _enterCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _fadeIn = CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut);
+    _slideIn = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOutCubic));
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) _enterCtrl.forward();
+    });
   }
 
   void _generateRandomAlias() {
     final prefix = _prefixes[_random.nextInt(_prefixes.length)];
     final suffix = _suffixes[_random.nextInt(_suffixes.length)];
     final code = _random.nextInt(900) + 100;
-
     setState(() {
-      _aliasController.text = '$prefix$suffix-$code';
+      _aliasController.text = '$prefix$suffix·$code';
       _currentSeed = _random.nextInt(1000000);
     });
   }
@@ -72,248 +75,342 @@ class _EntryScreenState extends State<EntryScreen>
     final alias = _aliasController.text.trim();
     if (alias.isEmpty) return;
 
-    setState(() {
-      _isGeneratingKeys = true;
-    });
-
+    setState(() => _isGeneratingKeys = true);
     try {
       final profile = await EphemeralProfile.generate(alias);
       widget.onProfileCreated(profile);
     } finally {
-      if (mounted) {
-        setState(() {
-          _isGeneratingKeys = false;
-        });
-      }
+      if (mounted) setState(() => _isGeneratingKeys = false);
     }
   }
 
   @override
   void dispose() {
     _aliasController.dispose();
-    _pulseController.dispose();
+    _ambientCtrl.dispose();
+    _enterCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
+      backgroundColor: YamiTheme.bgDeep,
       body: Stack(
         children: [
-          Positioned.fill(child: Container(color: YamiTheme.bgDeep)),
-
+          // Sfondo atmosferico animato
           AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              return Positioned(
-                right: -100 + (30 * _pulseController.value),
-                top: -100 + (20 * _pulseController.value),
-                width: 450,
-                height: 450,
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: YamiTheme.accentAmbient.withValues(
-                      alpha: 0.04 + (0.04 * _pulseController.value),
-                    ),
+            animation: _ambientCtrl,
+            builder: (context, child) => Positioned(
+              left: -size.width * 0.3 + (20 * _ambientCtrl.value),
+              bottom: -size.height * 0.2 - (15 * _ambientCtrl.value),
+              width: size.width * 1.2,
+              height: size.height * 0.7,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      YamiTheme.accentWine.withValues(
+                        alpha: 0.05 + 0.04 * _ambientCtrl.value,
+                      ),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 1.0],
                   ),
                 ),
-              );
-            },
+              ),
+            ),
+          ),
+
+          // Linea sottile decorativa in alto
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(height: 1, color: YamiTheme.borderFaint),
           ),
 
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: YamiTheme.tactileDecoration(
-                        backgroundColor: YamiTheme.bgDeep,
-                        borderColor: YamiTheme.accentActive,
-                        raised: true,
-                        borderRadius: 16.0,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.radar,
-                          size: 32,
-                          color: YamiTheme.accentActive,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'YAMILINK',
-                      style: YamiTheme.titleStyle.copyWith(
-                        fontSize: 32,
-                        letterSpacing: 8.0,
-                        color: YamiTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: YamiTheme.accentActive.withValues(alpha: 0.1),
-                        border: Border.all(color: YamiTheme.accentActive.withValues(alpha: 0.3)),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'SECURE LOCAL BROADCAST',
-                        textAlign: TextAlign.center,
-                        style: YamiTheme.monoStyle.copyWith(
-                          fontSize: 10,
-                          color: YamiTheme.accentActive,
-                          letterSpacing: 2.0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    Container(
-                      padding: const EdgeInsets.all(24.0),
-                      decoration: YamiTheme.tactileDecoration(
-                        backgroundColor: YamiTheme.surfaceDark,
-                        opacity: 1.0,
-                        borderColor: YamiTheme.borderMetallic,
-                        raised: true,
-                      ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: YamiTheme.spaceMd,
+                  vertical: YamiTheme.spaceXl,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: FadeTransition(
+                    opacity: _fadeIn,
+                    child: SlideTransition(
+                      position: _slideIn,
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          YamiAvatar(
-                            seed: _currentSeed,
-                            size: 84,
-                            glowColor: YamiTheme.accentActive,
-                            isGlowing: true,
-                          ),
-                          const SizedBox(height: 24),
-
-                          Container(
-                            decoration: YamiTheme.tactileDecoration(
-                              backgroundColor: YamiTheme.bgDeep,
-                              borderColor: YamiTheme.borderMetallic,
-                            ),
-                            child: TextField(
-                              controller: _aliasController,
-                              style: YamiTheme.monoStyle.copyWith(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: 'EPHEMERAL ALIAS',
-                                labelStyle: YamiTheme.captionStyle.copyWith(
-                                  color: YamiTheme.textSecondary,
-                                  letterSpacing: 1.5,
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                prefixIcon: const Icon(
-                                  Icons.terminal,
-                                  color: YamiTheme.textSecondary,
-                                  size: 18,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(
-                                    Icons.autorenew,
-                                    color: YamiTheme.accentActive,
-                                    size: 18,
-                                  ),
-                                  onPressed: _generateRandomAlias,
-                                  tooltip: 'Regenerate',
-                                ),
-                              ),
-                              onChanged: (val) {
-                                setState(() {
-                                  _currentSeed = val.hashCode;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.info_outline, size: 14, color: YamiTheme.textSecondary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Identity is stored in volatile memory only. Cryptographic keys evaporate upon termination.',
-                                  style: YamiTheme.monoStyle.copyWith(
-                                    color: YamiTheme.textSecondary,
-                                    fontSize: 9,
-                                    letterSpacing: 0.5,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildBrand(),
+                          const SizedBox(height: YamiTheme.spaceXl),
+                          _buildProfileCard(),
+                          const SizedBox(height: YamiTheme.spaceLg),
+                          _buildEnterButton(),
+                          const SizedBox(height: YamiTheme.spaceMd),
+                          _buildFooter(),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 36),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: GestureDetector(
-                        onTap: _isGeneratingKeys ? null : _onEnter,
-                        child: Container(
-                          decoration: YamiTheme.tactileDecoration(
-                            backgroundColor: YamiTheme.accentActive,
-                            borderColor: YamiTheme.borderMetallic,
-                            raised: true,
-                          ),
-                          child: Center(
-                            child: _isGeneratingKeys 
-                              ? const YamiTactileLoader(size: 24, activeColor: YamiTheme.bgDeep)
-                              : Text(
-                                  'INITIALIZE SYSTEM',
-                                  style: YamiTheme.monoStyle.copyWith(
-                                    color: YamiTheme.bgDeep,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 2.0,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.shield,
-                          size: 12,
-                          color: YamiTheme.textMuted,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'FULLY OFFLINE. ZERO TRACE.',
-                          style: YamiTheme.monoStyle.copyWith(
-                            color: YamiTheme.textMuted,
-                            fontSize: 9,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBrand() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Logo mark
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: YamiTheme.surfaceBase,
+            borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+            border: Border.all(color: YamiTheme.borderStrong, width: 1.0),
+            boxShadow: YamiTheme.shadowMid,
+          ),
+          child: const Icon(
+            Icons.radar,
+            size: 28,
+            color: YamiTheme.accentWine,
+          ),
+        ),
+        const SizedBox(height: YamiTheme.spaceMd),
+
+        // Titolo display
+        Text(
+          'YamiLink',
+          style: YamiTheme.displayStyle.copyWith(
+            fontSize: 36,
+            letterSpacing: 1.0,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: YamiTheme.spaceSm),
+
+        // Tag line
+        Text(
+          'Local · Private · Ephemeral',
+          style: YamiTheme.captionStyle.copyWith(
+            color: YamiTheme.textSub,
+            fontSize: 13,
+            letterSpacing: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileCard() {
+    return Container(
+      padding: const EdgeInsets.all(YamiTheme.spaceLg),
+      decoration: YamiTheme.surfaceCard(
+        borderColor: YamiTheme.borderMid,
+        radius: YamiTheme.radiusRound,
+      ).copyWith(
+        boxShadow: YamiTheme.shadowHigh,
+      ),
+      child: Column(
+        children: [
+          // Avatar con tap per rigenerare
+          GestureDetector(
+            onTap: _generateRandomAlias,
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                YamiAvatar(
+                  seed: _currentSeed,
+                  size: 80,
+                  glowColor: YamiTheme.accentWine,
+                  isGlowing: false,
+                ),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: YamiTheme.surfaceRaised,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: YamiTheme.borderStrong),
+                  ),
+                  child: const Icon(
+                    Icons.shuffle_rounded,
+                    size: 12,
+                    color: YamiTheme.textSub,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: YamiTheme.spaceLg),
+
+          // Campo alias
+          TextField(
+            controller: _aliasController,
+            style: YamiTheme.bodyStyle.copyWith(
+              color: YamiTheme.textBright,
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              labelText: 'Your alias',
+              floatingLabelBehavior: FloatingLabelBehavior.auto,
+              prefixIcon: const Icon(
+                Icons.person_outline_rounded,
+                size: 18,
+                color: YamiTheme.textSub,
+              ),
+              suffixIcon: IconButton(
+                icon: const Icon(
+                  Icons.shuffle_rounded,
+                  size: 16,
+                  color: YamiTheme.accentWine,
+                ),
+                onPressed: _generateRandomAlias,
+                tooltip: 'Regenerate',
+              ),
+            ),
+            onChanged: (val) {
+              setState(() => _currentSeed = val.hashCode.abs());
+            },
+            onSubmitted: (_) => _onEnter(),
+          ),
+          const SizedBox(height: YamiTheme.spaceMd),
+
+          // Nota ephemeral
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.lock_clock_outlined,
+                size: 14,
+                color: YamiTheme.textGhost,
+              ),
+              const SizedBox(width: YamiTheme.spaceSm),
+              Expanded(
+                child: Text(
+                  'Your identity lives only in volatile memory. Keys evaporate when you close the app.',
+                  style: YamiTheme.captionStyle.copyWith(
+                    color: YamiTheme.textGhost,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnterButton() {
+    return _PressableButton(
+      onTap: _isGeneratingKeys ? null : _onEnter,
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: YamiTheme.accentWine,
+          borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
+          boxShadow: [
+            BoxShadow(
+              color: YamiTheme.accentWine.withValues(alpha: 0.30),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: _isGeneratingKeys
+              ? const YamiTactileLoader(size: 22, activeColor: YamiTheme.textBright)
+              : Text(
+                  'Enter the network',
+                  style: YamiTheme.labelStyle.copyWith(
+                    color: YamiTheme.textBright,
+                    fontSize: 15,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.shield_outlined, size: 12, color: YamiTheme.textGhost),
+        const SizedBox(width: 6),
+        Text(
+          'Fully offline · Zero trace · No accounts',
+          style: YamiTheme.captionStyle.copyWith(
+            color: YamiTheme.textGhost,
+            fontSize: 11,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bottone con feedback scale-on-press
+class _PressableButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+
+  const _PressableButton({required this.child, this.onTap});
+
+  @override
+  State<_PressableButton> createState() => _PressableButtonState();
+}
+
+class _PressableButtonState extends State<_PressableButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 90),
+      reverseDuration: const Duration(milliseconds: 180),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) => _ctrl.reverse(),
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(scale: _scale, child: widget.child),
     );
   }
 }

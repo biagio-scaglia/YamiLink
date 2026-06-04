@@ -25,7 +25,7 @@ class YamiAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: isGlowing ? activeGlowColor : YamiTheme.borderMetallic,
+          color: isGlowing ? activeGlowColor : YamiTheme.borderMid,
           width: isGlowing ? 1.5 : 1.0,
         ),
         boxShadow: isGlowing
@@ -72,7 +72,7 @@ class YamiAvatarPainter extends CustomPainter {
             random.nextInt(60) + 10,
             random.nextInt(100) + 50,
           ),
-          YamiTheme.surfaceDark,
+          YamiTheme.surfaceBase,
         ],
       ).createShader(Rect.fromLTWH(0, 0, width, height));
     canvas.drawRect(Rect.fromLTWH(0, 0, width, height), bgPaint);
@@ -169,7 +169,7 @@ class YamiAvatarPainter extends CustomPainter {
       innerPath.close();
       canvas.drawPath(
         innerPath,
-        strokePaint..color = YamiTheme.accentAmbient.withValues(alpha: 0.5),
+        strokePaint..color = YamiTheme.accentWine.withValues(alpha: 0.5),
       );
     } else if (geometryType == 2) {
       final points = <Offset>[];
@@ -222,13 +222,13 @@ class YamiAvatarPainter extends CustomPainter {
         canvas.drawCircle(
           satellite,
           3.5,
-          fillPaint..color = YamiTheme.accentAmbient,
+          fillPaint..color = YamiTheme.accentWine,
         );
         canvas.drawLine(
           center,
           satellite,
           strokePaint
-            ..color = YamiTheme.borderMetallic
+            ..color = YamiTheme.borderMid
             ..strokeWidth = 0.4,
         );
       }

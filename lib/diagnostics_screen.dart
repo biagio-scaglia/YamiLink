@@ -65,7 +65,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
+          child: Container(color: YamiTheme.borderMid, height: 1.0),
         ),
       ),
       body: Container(
@@ -91,11 +91,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildMetricCard(
-                      title: 'PACKETS',
-                      value: '${simulation.packetsProcessed}',
-                      subtitle: 'Routed payloads',
-                      icon: Icons.leak_add,
-                      accentColor: YamiTheme.accentSecure,
+                       title: 'PACKETS',
+                       value: '${simulation.packetsProcessed}',
+                       subtitle: 'Routed payloads',
+                       icon: Icons.leak_add,
+                       accentColor: YamiTheme.accentBrass,
                     ),
                   ),
                 ],
@@ -110,7 +110,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       subtitle: 'Local space quality',
                       icon: Icons.wifi_tethering,
                       accentColor: simulation.signalStrength > 0.8
-                          ? YamiTheme.accentSecure
+                          ? YamiTheme.accentBrass
                           : YamiTheme.accentActive,
                     ),
                   ),
@@ -121,7 +121,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       value: '3-HOPS',
                       subtitle: 'Epidemic bounds',
                       icon: Icons.alt_route,
-                      accentColor: YamiTheme.accentAmbient,
+                      accentColor: YamiTheme.accentBrass,
                     ),
                   ),
                 ],
@@ -134,10 +134,10 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   vertical: 12.0,
                 ),
                 decoration: YamiTheme.tactileDecoration(
-                  backgroundColor: YamiTheme.surfaceDark,
+                  backgroundColor: YamiTheme.surfaceBase,
                   borderColor: simulation.relayEnabled
-                      ? YamiTheme.accentSecure
-                      : YamiTheme.borderMetallic,
+                      ? YamiTheme.accentBrass
+                      : YamiTheme.borderMid,
                 ),
                 child: Row(
                   children: [
@@ -166,8 +166,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                     ),
                     Switch.adaptive(
                       value: simulation.relayEnabled,
-                      activeThumbColor: YamiTheme.accentSecure,
-                      activeTrackColor: YamiTheme.accentSecure.withValues(
+                      activeThumbColor: YamiTheme.accentBrass,
+                      activeTrackColor: YamiTheme.accentBrass.withValues(
                         alpha: 0.2,
                       ),
                       onChanged: (val) {
@@ -196,7 +196,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.55),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: YamiTheme.borderMetallic),
+                    border: Border.all(color: YamiTheme.borderMid),
                   ),
                   child: ListView.builder(
                     controller: _consoleScrollController,
@@ -205,11 +205,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       final log = logs[index];
                       Color logColor = YamiTheme.textSecondary;
                       if (log.contains('SEC:')) {
-                        logColor = YamiTheme.accentSecure;
+                        logColor = YamiTheme.accentBrass;
                       } else if (log.contains('NET:')) {
-                        logColor = YamiTheme.accentAmbient;
+                        logColor = YamiTheme.accentWine;
                       } else if (log.contains('DBG:')) {
-                        logColor = YamiTheme.accentActive;
+                        logColor = YamiTheme.textBright;
                       } else if (log.contains('ERR:')) {
                         logColor = YamiTheme.accentWarning;
                       }
@@ -229,8 +229,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                                 offset: Offset((1.0 - value) * -12, 0.0),
                                 child: Text(
                                   log,
-                                  style: TextStyle(
-                                    fontFamily: 'SpaceMono',
+                                  style: YamiTheme.monoBrightStyle.copyWith(
                                     fontSize: 10.5,
                                     color: logColor,
                                     height: 1.3,
@@ -263,7 +262,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     return Container(
       padding: const EdgeInsets.all(14.0),
       decoration: YamiTheme.tactileDecoration(
-        backgroundColor: YamiTheme.surfaceDark,
+        backgroundColor: YamiTheme.surfaceBase,
         opacity: 0.75,
       ),
       child: Column(

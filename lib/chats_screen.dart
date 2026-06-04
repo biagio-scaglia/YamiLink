@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'models.dart';
 import 'theme.dart';
 import 'repository/yamilink_repository.dart';
@@ -9,7 +10,6 @@ import 'core/tutorial/tutorial_helper.dart';
 
 class ChatsScreen extends StatelessWidget {
   final VoidCallback onRunTutorial;
-
   const ChatsScreen({super.key, required this.onRunTutorial});
 
   @override
@@ -18,63 +18,21 @@ class ChatsScreen extends StatelessWidget {
     final conversations = repository.conversations;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'DIRECT CHATS',
-              style: YamiTheme.monoStyle.copyWith(
-                fontSize: 13,
-                color: YamiTheme.textPrimary,
-                letterSpacing: 1.0,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'EPHEMERAL POINT-TO-POINT CHANNELS',
-              style: YamiTheme.captionStyle.copyWith(
-                fontSize: 8,
-                color: YamiTheme.accentActive,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: YamiTheme.bgDeep,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.help_outline,
-              color: YamiTheme.textSecondary,
-              size: 24,
-            ),
-            onPressed: () {
-              YamiTutorialHelper.showHelpBottomSheet(context, onRunTutorial);
-            },
-            tooltip: 'Help',
-          ),
-          const SizedBox(width: 8),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: YamiTheme.borderMetallic, height: 1.0),
-        ),
-      ),
+      backgroundColor: YamiTheme.bgDeep,
+      appBar: _buildAppBar(context),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: YamiTheme.ambientBackgroundGradient(),
-        ),
+        decoration: BoxDecoration(gradient: YamiTheme.ambientGradient),
         child: conversations.isEmpty
             ? _buildEmptyState()
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
+            : ListView.separated(
+                padding: const EdgeInsets.symmetric(
+                  vertical: YamiTheme.spaceMd,
+                  horizontal: YamiTheme.spaceMd,
+                ),
                 itemCount: conversations.length,
+                separatorBuilder: (context, index) => const SizedBox(height: YamiTheme.spaceSm),
                 itemBuilder: (context, index) {
                   final conv = conversations[index];
-
                   final livePeer = repository.peers.firstWhere(
                     (p) => p.id == conv.peerId,
                     orElse: () => Peer(
@@ -86,13 +44,11 @@ class ChatsScreen extends StatelessWidget {
                     ),
                   );
                   final isTrusted = livePeer.trustLevel == TrustLevel.paired;
-
-                  return _buildConversationTile(
-                    context,
-                    conv,
-                    livePeer,
-                    isTrusted,
-                    repository,
+                  return _ConversationTile(
+                    conv: conv,
+                    peer: livePeer,
+                    isTrusted: isTrusted,
+                    repository: repository,
                   );
                 },
               ),
@@ -100,44 +56,56 @@ class ChatsScreen extends StatelessWidget {
     );
   }
 
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      backgroundColor: YamiTheme.bgDeep,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Direct Chats', style: YamiTheme.headingStyle),
+          Text(
+            'Encrypted point-to-point',
+            style: YamiTheme.headingSubStyle,
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.help_outline_rounded),
+          onPressed: () => YamiTutorialHelper.showHelpBottomSheet(
+            context, onRunTutorial,
+          ),
+          tooltip: 'Help',
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+        padding: const EdgeInsets.symmetric(horizontal: YamiTheme.spaceXl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24.0),
-              decoration: YamiTheme.tactileDecoration(
-                backgroundColor: YamiTheme.surfaceDark.withValues(alpha: 0.4),
-                borderColor: YamiTheme.accentActive,
-                borderRadius: 50,
-              ),
-              child: const Icon(
-                Icons.forum_outlined,
-                color: YamiTheme.accentActive,
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: 24),
+            _EmptyStateIcon(),
+            const SizedBox(height: YamiTheme.spaceLg),
             Text(
-              'SECURE P2P SPACE',
-              style: YamiTheme.monoStyle.copyWith(
-                fontSize: 14,
-                color: YamiTheme.textPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
+              'No conversations yet',
+              style: YamiTheme.headingStyle.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 18,
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'No direct connection records in the current session.\nTap a nearby node in the SPACE radar tab to open a private encrypted channel.',
               textAlign: TextAlign.center,
-              style: YamiTheme.captionStyle.copyWith(
-                fontSize: 11,
-                color: YamiTheme.textSecondary,
-                height: 1.5,
+            ),
+            const SizedBox(height: YamiTheme.spaceSm),
+            Text(
+              'Find nearby users in the Space tab and open a private encrypted channel.',
+              textAlign: TextAlign.center,
+              style: YamiTheme.bodySmallStyle.copyWith(
+                color: YamiTheme.textSub,
+                height: 1.6,
               ),
             ),
           ],
@@ -145,185 +113,335 @@ class ChatsScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildConversationTile(
-    BuildContext context,
-    Conversation conv,
-    Peer peer,
-    bool isTrusted,
-    YamiLinkRepository repository,
-  ) {
+// ---------------------------------------------------------------------------
+// Empty state icon con animazione respiro
+// ---------------------------------------------------------------------------
+class _EmptyStateIcon extends StatefulWidget {
+  @override
+  State<_EmptyStateIcon> createState() => _EmptyStateIconState();
+}
+
+class _EmptyStateIconState extends State<_EmptyStateIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.96, end: 1.04).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: YamiTheme.surfaceBase,
+          shape: BoxShape.circle,
+          border: Border.all(color: YamiTheme.borderMid, width: 1.0),
+          boxShadow: YamiTheme.shadowMid,
+        ),
+        child: const Icon(
+          Icons.chat_bubble_outline_rounded,
+          size: 32,
+          color: YamiTheme.textSub,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Conversation tile
+// ---------------------------------------------------------------------------
+class _ConversationTile extends StatefulWidget {
+  final Conversation conv;
+  final Peer peer;
+  final bool isTrusted;
+  final YamiLinkRepository repository;
+
+  const _ConversationTile({
+    required this.conv,
+    required this.peer,
+    required this.isTrusted,
+    required this.repository,
+  });
+
+  @override
+  State<_ConversationTile> createState() => _ConversationTileState();
+}
+
+class _ConversationTileState extends State<_ConversationTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final conv = widget.conv;
+    final isTrusted = widget.isTrusted;
+    final hasUnread = conv.unreadCount > 0;
+
     final String timeStr =
         '${conv.lastTimestamp.hour.toString().padLeft(2, '0')}:${conv.lastTimestamp.minute.toString().padLeft(2, '0')}';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ChangeNotifierProvider<YamiLinkRepository>.value(
-                value: repository,
-                child: DirectChatScreen(peer: peer),
-              ),
+    Color borderColor = YamiTheme.borderMid;
+    if (hasUnread) {
+      borderColor = YamiTheme.accentWine;
+    } else if (isTrusted) {
+      borderColor = YamiTheme.accentBrass.withValues(alpha: 0.5);
+    }
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, animation, secondaryAnimation) =>
+                ChangeNotifierProvider<YamiLinkRepository>.value(
+              value: widget.repository,
+              child: DirectChatScreen(peer: widget.peer),
             ),
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.all(12.0),
-          decoration: YamiTheme.tactileDecoration(
-            backgroundColor: YamiTheme.surfaceDark,
-            borderColor: conv.unreadCount > 0
-                ? YamiTheme.accentActive
-                : (isTrusted ? YamiTheme.accentSecure : YamiTheme.borderMetallic),
+            transitionDuration: YamiTheme.motionNormal,
+            transitionsBuilder: (_, anim, secondaryAnimation, child) => FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+              child: child,
+            ),
           ),
+        );
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.975 : 1.0,
+        duration: YamiTheme.motionFast,
+        curve: Curves.easeInOut,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: YamiTheme.spaceMd,
+            vertical: YamiTheme.spaceMd,
+          ),
+          decoration: YamiTheme.surfaceCard(borderColor: borderColor),
           child: Row(
             children: [
+              // Avatar + online dot
               Stack(
                 clipBehavior: Clip.none,
                 children: [
                   YamiAvatar(
                     seed: conv.peerAvatarSeed,
-                    size: 46,
+                    size: 48,
                     glowColor: isTrusted
-                        ? YamiTheme.accentSecure
-                        : YamiTheme.accentActive,
+                        ? YamiTheme.accentBrass
+                        : YamiTheme.accentWine,
                     isGlowing: isTrusted,
                   ),
                   Positioned(
-                    bottom: -2,
-                    right: -2,
-                    child: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: conv.isPeerOnline
-                            ? YamiTheme.accentSecure
-                            : YamiTheme.textMuted,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: YamiTheme.bgDeep, width: 2),
-                      ),
-                    ),
+                    bottom: -1,
+                    right: -1,
+                    child: _OnlineDot(isOnline: conv.isPeerOnline),
                   ),
                 ],
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: YamiTheme.spaceMd),
 
+              // Contenuto
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Nome + trust badge + offline tag
                     Row(
                       children: [
-                        Text(
-                          conv.peerAlias,
-                          style: YamiTheme.bodyStyle.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.2,
+                        Expanded(
+                          child: Text(
+                            conv.peerAlias,
+                            style: YamiTheme.bodyStyle.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: YamiTheme.textBright,
+                              fontSize: 15,
+                              height: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (isTrusted) ...[
-                          const SizedBox(width: 5),
+                          const SizedBox(width: YamiTheme.spaceXs),
                           const Icon(
-                            Icons.verified,
-                            color: YamiTheme.accentSecure,
-                            size: 13,
+                            Icons.verified_rounded,
+                            color: YamiTheme.accentBrass,
+                            size: 14,
                           ),
                         ],
                         if (!conv.isPeerOnline) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: YamiTheme.textMuted.withValues(
-                                alpha: 0.15,
-                              ),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: YamiTheme.textMuted.withValues(
-                                  alpha: 0.3,
-                                ),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Text(
-                              'OFFLINE',
-                              style: YamiTheme.monoStyle.copyWith(
-                                fontSize: 6.5,
-                                color: YamiTheme.textMuted,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          const SizedBox(width: YamiTheme.spaceSm),
+                          _StatusTag(label: 'Offline', color: YamiTheme.textGhost),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
+                    // Preview messaggio
                     Text(
-                      conv.lastMessage,
+                      conv.lastMessage.isEmpty ? 'No messages yet' : conv.lastMessage,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: YamiTheme.captionStyle.copyWith(
-                        color: conv.unreadCount > 0
-                            ? YamiTheme.textPrimary
-                            : YamiTheme.textSecondary,
-                        fontSize: 12,
+                      style: YamiTheme.bodySmallStyle.copyWith(
+                        color: hasUnread ? YamiTheme.textBody : YamiTheme.textSub,
+                        fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+                        fontSize: 13,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: YamiTheme.spaceSm),
 
+              // Timestamp + badge
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     timeStr,
-                    style: YamiTheme.monoStyle.copyWith(
-                      color: YamiTheme.textMuted,
-                      fontSize: 9,
+                    style: YamiTheme.captionStyle.copyWith(
+                      color: hasUnread ? YamiTheme.accentWine : YamiTheme.textGhost,
+                      fontSize: 11,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  if (conv.unreadCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: YamiTheme.accentActive,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: YamiTheme.accentActive.withValues(alpha: 0.4),
-                            blurRadius: 4,
-                            spreadRadius: 0.5,
-                          ),
-                        ],
-                      ),
-                      constraints: const BoxConstraints(minWidth: 16),
-                      child: Center(
-                        child: Text(
-                          '${conv.unreadCount}',
-                          style: YamiTheme.monoStyle.copyWith(
-                            color: YamiTheme.bgDeep,
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                  const SizedBox(height: YamiTheme.spaceSm),
+                  if (hasUnread)
+                    _UnreadBadge(count: conv.unreadCount)
+                  else
+                    const SizedBox(width: 20),
                 ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _OnlineDot extends StatefulWidget {
+  final bool isOnline;
+  const _OnlineDot({required this.isOnline});
+
+  @override
+  State<_OnlineDot> createState() => _OnlineDotState();
+}
+
+class _OnlineDotState extends State<_OnlineDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.isOnline ? YamiTheme.accentBrass : YamiTheme.textGhost;
+    return widget.isOnline
+        ? AnimatedBuilder(
+            animation: _pulse,
+            builder: (context, child) => _dot(color.withValues(alpha: _pulse.value)),
+          )
+        : _dot(color);
+  }
+
+  Widget _dot(Color c) => Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: c,
+          shape: BoxShape.circle,
+          border: Border.all(color: YamiTheme.bgDeep, width: 1.5),
+        ),
+      );
+}
+
+class _StatusTag extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _StatusTag({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(YamiTheme.radiusSharp),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 0.5),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: GoogleFonts.inter(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  final int count;
+  const _UnreadBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: YamiTheme.accentWine,
+        borderRadius: BorderRadius.circular(YamiTheme.radiusPill),
+      ),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: YamiTheme.textBright,
+          height: 1.2,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }
