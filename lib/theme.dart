@@ -112,6 +112,14 @@ class YamiTheme {
         surface: surfaceDark,
         error: accentWarning,
       ),
+      dialogTheme: DialogTheme(
+        backgroundColor: surfaceDark,
+        elevation: 24,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4.0),
+          side: const BorderSide(color: borderMetallic, width: 1.0),
+        ),
+      ),
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
           fontSize: 22,
