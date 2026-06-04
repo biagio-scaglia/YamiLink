@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:cryptography/cryptography.dart';
+import 'package:convert/convert.dart';
 
 enum TrustLevel { unverified, paired, blocked }
 
@@ -11,25 +13,31 @@ class EphemeralProfile {
   final String alias;
   final int avatarSeed;
   final DateTime createdAt;
+  final SimpleKeyPair? identityKeyPair;
 
   EphemeralProfile({
     required this.id,
     required this.alias,
     required this.avatarSeed,
     required this.createdAt,
+    this.identityKeyPair,
   });
 
-  factory EphemeralProfile.generate(String alias) {
+  static Future<EphemeralProfile> generate(String alias) async {
     final random = Random();
-    final id = List.generate(
-      16,
-      (_) => random.nextInt(16).toRadixString(16),
-    ).join();
+    
+    // Generate Ed25519 KeyPair for PKI identity
+    final ed25519 = Ed25519();
+    final keyPair = await ed25519.newKeyPair();
+    final publicKey = await keyPair.extractPublicKey();
+    final id = hex.encode(publicKey.bytes);
+
     return EphemeralProfile(
       id: id,
       alias: alias,
       avatarSeed: random.nextInt(1000000),
       createdAt: DateTime.now(),
+      identityKeyPair: keyPair,
     );
   }
 }

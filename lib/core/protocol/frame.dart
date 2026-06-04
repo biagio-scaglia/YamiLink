@@ -55,6 +55,7 @@ class Frame {
   final int hopCount;
   final String payloadType;
   final String payloadBody;
+  final String? signature;
 
   Frame({
     this.version = 'YML1',
@@ -68,14 +69,26 @@ class Frame {
     this.hopCount = 1,
     this.payloadType = 'text',
     required this.payloadBody,
+    this.signature,
   });
 
+  /// Returns the bytes that should be signed. Excludes hopCount and flags.
+  List<int> get signableBytes {
+    final bodyBase64 = base64.encode(utf8.encode(payloadBody));
+    final signableStr = '${type.code}:$senderId:$recipientId:$sessionId:$messageId:$timestamp:$payloadType:$bodyBase64';
+    return utf8.encode(signableStr);
+  }
+
   /// Serializes the Frame to a delimited String envelope:
-  /// YML1:TYPE:senderId:recipientId:sessionId:messageId:timestamp:flags:payloadType:base64(payloadBody)
+  /// YML1:TYPE:senderId:recipientId:sessionId:messageId:timestamp:flags:payloadType:base64(payloadBody)[:signature]
   String serialize() {
     final bodyBytes = utf8.encode(payloadBody);
     final bodyBase64 = base64.encode(bodyBytes);
-    return '$version:${type.code}:$senderId:$recipientId:$sessionId:$messageId:$timestamp:$flags:$hopCount:$payloadType:$bodyBase64';
+    var str = '$version:${type.code}:$senderId:$recipientId:$sessionId:$messageId:$timestamp:$flags:$hopCount:$payloadType:$bodyBase64';
+    if (signature != null) {
+      str += ':$signature';
+    }
+    return str;
   }
 
   /// Deserializes a delimited String envelope into a Frame instance.
@@ -116,8 +129,22 @@ class Frame {
     final flags = int.tryParse(parts[7]) ?? 0;
     final hopCount = int.tryParse(parts[8]) ?? 1;
     final payloadType = parts[9];
-
-    final bodyBase64 = parts.sublist(10).join(':'); // In case base64 somehow has colons or payload uses them.
+    
+    // Extract signature if it exists (parts.length >= 12 implies part[11] is signature)
+    // Be careful because base64 body might not have colons, but let's assume we split max 12 times or handle it properly.
+    // The safest way is to check parts length.
+    String bodyBase64;
+    String? signature;
+    
+    if (parts.length == 11) {
+      bodyBase64 = parts[10];
+    } else {
+      // We have 12 or more parts.
+      // Since base64 does not contain colons in standard base64 string,
+      // parts[10] is payload, parts[11] is signature.
+      bodyBase64 = parts[10];
+      signature = parts[11];
+    }
 
     if (bodyBase64.length > 2800) {
       throw const FormatException('Payload exceeds maximum allowed length.');
@@ -143,6 +170,7 @@ class Frame {
       hopCount: hopCount,
       payloadType: payloadType,
       payloadBody: payloadBody,
+      signature: signature,
     );
   }
 }

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:convert/convert.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 import '../protocol/frame.dart';
 
@@ -38,10 +41,10 @@ class TeslaEngine {
   }
 
   /// Inspects a parsed Frame for logical spoofing and replay attacks.
-  TeslaDecision inspectParsedFrame(Frame frame, String senderHash) {
-    // 1. Check Spoofing (Does the senderId match the network hash?)
-    if (!_spoofGuard.verifyIdentity(frame.senderId, senderHash)) {
-      debugPrint('TESLA: Spoofing detected! Frame senderId ${frame.senderId} does not match network hash $senderHash');
+  Future<TeslaDecision> inspectParsedFrame(Frame frame, String senderHash) async {
+    // 1. Check Spoofing (Cryptographic verification)
+    if (!await _spoofGuard.verifyIdentity(frame, senderHash)) {
+      debugPrint('TESLA: Spoofing detected! Invalid signature for senderId ${frame.senderId}');
       return TeslaDecision.drop;
     }
 
@@ -81,34 +84,41 @@ class TeslaPacketValidator {
   }
 }
 
-/// Guards against identity reuse and spoofing by binding logical senderId to network senderHash.
+/// Guards against identity reuse and spoofing by verifying Ed25519 PKI signatures.
 class TeslaSpoofGuard {
-  // Maps senderId -> senderHash
-  final Map<String, String> _identityBindings = {};
+  final Map<String, int> _violationCounts = {};
 
-  bool verifyIdentity(String senderId, String senderHash) {
-    // In local broadcast without strong PKI on every packet, we bind the first
-    // senderHash that claims an ID. If it changes, it's a suspicious identity takeover.
-    // If senderId is "*", it's a broadcast recipient, but here we check senderId (the origin).
-    
-    if (senderId.isEmpty || senderHash.isEmpty) return false;
+  Future<bool> verifyIdentity(Frame frame, String senderHash) async {
+    final senderId = frame.senderId;
+    if (senderId.isEmpty || frame.signature == null) return false;
 
-    if (_identityBindings.containsKey(senderId)) {
-      if (_identityBindings[senderId] != senderHash) {
-        // Identity collision! Someone is spoofing an existing senderId.
-        return false;
-      }
-    } else {
-      // First time seeing this senderId, bind it to this hash for the session
-      _identityBindings[senderId] = senderHash;
-      
-      // Limit memory
-      if (_identityBindings.length > 1000) {
-        _identityBindings.remove(_identityBindings.keys.first);
-      }
+    // Rate-limit check to prevent CPU exhaustion from bad signatures
+    final violations = _violationCounts[senderHash] ?? 0;
+    if (violations > 10) {
+      return false; // Drop without verifying if this hash is spamming bad sigs
     }
 
-    return true;
+    try {
+      final pubKeyBytes = hex.decode(senderId);
+      final signatureBytes = base64.decode(frame.signature!);
+
+      final ed25519 = Ed25519();
+      final pubKey = SimplePublicKey(pubKeyBytes, type: KeyPairType.ed25519);
+      final sig = Signature(signatureBytes, publicKey: pubKey);
+
+      final isValid = await ed25519.verify(
+        frame.signableBytes,
+        signature: sig,
+      );
+
+      if (!isValid) {
+        _violationCounts[senderHash] = violations + 1;
+      }
+      return isValid;
+    } catch (e) {
+      _violationCounts[senderHash] = violations + 1;
+      return false;
+    }
   }
 }
 

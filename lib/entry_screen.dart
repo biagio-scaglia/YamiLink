@@ -19,6 +19,7 @@ class _EntryScreenState extends State<EntryScreen>
   int _currentSeed = 12345;
   final Random _random = Random();
   late AnimationController _pulseController;
+  bool _isGeneratingKeys = false;
 
   final List<String> _prefixes = [
     'Ghost',
@@ -66,21 +67,24 @@ class _EntryScreenState extends State<EntryScreen>
     });
   }
 
-  void _onEnter() {
+  Future<void> _onEnter() async {
     final alias = _aliasController.text.trim();
     if (alias.isEmpty) return;
 
-    final profile = EphemeralProfile(
-      id: List.generate(
-        16,
-        (_) => _random.nextInt(16).toRadixString(16),
-      ).join(),
-      alias: alias,
-      avatarSeed: _currentSeed,
-      createdAt: DateTime.now(),
-    );
+    setState(() {
+      _isGeneratingKeys = true;
+    });
 
-    widget.onProfileCreated(profile);
+    try {
+      final profile = await EphemeralProfile.generate(alias);
+      widget.onProfileCreated(profile);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingKeys = false;
+        });
+      }
+    }
   }
 
   @override
@@ -245,8 +249,13 @@ class _EntryScreenState extends State<EntryScreen>
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        onPressed: _onEnter,
-                        child: Text(
+                        onPressed: _isGeneratingKeys ? null : _onEnter,
+                        child: _isGeneratingKeys 
+                          ? const SizedBox(
+                              width: 20, height: 20, 
+                              child: CircularProgressIndicator(strokeWidth: 2, color: YamiTheme.bgDeep)
+                            )
+                          : Text(
                           'INITIALIZE CONNECTION',
                           style: YamiTheme.bodyStyle.copyWith(
                             color: YamiTheme.bgDeep,

@@ -116,7 +116,7 @@ class YamiLinkRepository extends ChangeNotifier {
       try {
         final frame = Frame.deserialize(rawText);
 
-        final frameDecision = TeslaEngine.instance.inspectParsedFrame(frame, senderHash);
+        final frameDecision = await TeslaEngine.instance.inspectParsedFrame(frame, senderHash);
         if (frameDecision == TeslaDecision.drop) return;
 
         if (frame.senderId == profile.id) return;
@@ -181,6 +181,7 @@ class YamiLinkRepository extends ChangeNotifier {
               hopCount: frame.hopCount + 1,
               payloadType: frame.payloadType,
               payloadBody: frame.payloadBody,
+              signature: frame.signature,
             );
 
             final relayedBytes = utf8.encode(relayedFrame.serialize());
@@ -272,6 +273,7 @@ class YamiLinkRepository extends ChangeNotifier {
                   hopCount: frame.hopCount,
                   payloadType: 'text',
                   payloadBody: decryptedPayload,
+                  signature: frame.signature,
                 )
               : frame;
 
@@ -362,10 +364,10 @@ class YamiLinkRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  ModerationDecision? sendBroadcastMessage(
+  Future<ModerationDecision?> sendBroadcastMessage(
     String content, {
     bool force = false,
-  }) {
+  }) async {
     if (content.trim().isEmpty) return null;
 
     final decision = ModerationService.instance.moderateOutgoing(content);
@@ -389,7 +391,8 @@ class YamiLinkRepository extends ChangeNotifier {
       payloadBody: content,
     );
 
-    final frameBytes = utf8.encode(frame.serialize());
+    final signedFrame = await _signFrame(frame);
+    final frameBytes = utf8.encode(signedFrame.serialize());
     _messageTransport.sendBroadcast(frameBytes);
     logDiagnostic('DBG: Sent room broadcast: [${content.length} chars]');
 
@@ -407,7 +410,7 @@ class YamiLinkRepository extends ChangeNotifier {
           : null,
     );
 
-    _sessionManager.addOutgoingMessage(userMsg, frame);
+    _sessionManager.addOutgoingMessage(userMsg, signedFrame);
     _packetsProcessed++;
     return decision;
   }
@@ -463,7 +466,8 @@ class YamiLinkRepository extends ChangeNotifier {
       payloadBody: finalPayload,
     );
 
-    final frameBytes = utf8.encode(frame.serialize());
+    final signedFrame = await _signFrame(frame);
+    final frameBytes = utf8.encode(signedFrame.serialize());
     _messageTransport.sendDirect(peerId, frameBytes);
     logDiagnostic(
       'DBG: Sent direct message to peer $peerId: [${content.length} chars]',
@@ -496,7 +500,7 @@ class YamiLinkRepository extends ChangeNotifier {
 
     _sessionManager.addOutgoingMessage(
       userMsg,
-      frame,
+      signedFrame,
       peerAlias: peer.alias,
       peerAvatarSeed: peer.avatarSeed,
     );
@@ -577,6 +581,26 @@ class YamiLinkRepository extends ChangeNotifier {
     logDiagnostic('SEC: Local X25519 KeyPair generated');
   }
 
+  Future<Frame> _signFrame(Frame frame) async {
+    if (profile.identityKeyPair == null) return frame;
+    final ed25519 = Ed25519();
+    final signature = await ed25519.sign(frame.signableBytes, keyPair: profile.identityKeyPair!);
+    return Frame(
+      version: frame.version,
+      type: frame.type,
+      senderId: frame.senderId,
+      recipientId: frame.recipientId,
+      sessionId: frame.sessionId,
+      messageId: frame.messageId,
+      timestamp: frame.timestamp,
+      flags: frame.flags,
+      hopCount: frame.hopCount,
+      payloadType: frame.payloadType,
+      payloadBody: frame.payloadBody,
+      signature: base64.encode(signature.bytes),
+    );
+  }
+
   Future<void> initiatePairing(String peerId) async {
     if (_localKeyPair == null) return;
     try {
@@ -593,7 +617,8 @@ class YamiLinkRepository extends ChangeNotifier {
         payloadBody: pkBase64,
       );
 
-      final frameBytes = utf8.encode(frame.serialize());
+      final signedFrame = await _signFrame(frame);
+      final frameBytes = utf8.encode(signedFrame.serialize());
       _messageTransport.sendDirect(peerId, frameBytes);
       logDiagnostic('SEC: Initiated Diffie-Hellman pairing with \$peerId');
     } catch (e) {

@@ -1,6 +1,6 @@
 # YamiLink
 
-YamiLink e' un'applicazione di comunicazione locale e decentralizzata progettata per operare offline, sfruttando la prossimita' fisica delle stazioni peer. Pensata per scenari temporanei o a infrastruttura assente (come conferenze, campus universitari, LAN party, sistemi di transito o contesti di emergenza), YamiLink implementa un livello sociale effimero che si attiva esclusivamente quando i partecipanti sono fisicamente vicini, per poi svanire senza lasciare tracce persistenti una volta che le stazioni si allontanano.
+YamiLink è un'applicazione di comunicazione locale e decentralizzata progettata per operare offline, sfruttando la prossimità fisica delle stazioni peer. Pensata per scenari temporanei o a infrastruttura assente (come conferenze, campus universitari, LAN party, sistemi di transito o contesti di emergenza), YamiLink implementa un livello sociale effimero che si attiva esclusivamente quando i partecipanti sono fisicamente vicini, per poi svanire senza lasciare tracce persistenti una volta che le stazioni si allontanano.
 
 ---
 
@@ -9,129 +9,102 @@ YamiLink e' un'applicazione di comunicazione locale e decentralizzata progettata
 * **Definizione:** Un livello sociale locale che esiste unicamente laddove si trova l'utente.
 * **Promessa Fondamentale:** Identificare i nodi limitrofi, stabilire canali di comunicazione locale, non memorizzare alcuna informazione permanente.
 * **Tono del Progetto:** Minimale, orientato alla sicurezza e alla privacy, improntato ad uno stile cyberpunk pulito e funzionale.
-* **Ambito Tecnico:** Scoperta dei nodi a 1-hop, profili effimeri, comunicazioni broadast locali, abbinamento sicuro delle chiavi crittografiche dei peer (ECDH) e diagnostica di telemetria a basso livello.
+* **Ambito Tecnico:** Scoperta dei nodi a n-hop (mesh epidemico), profili effimeri PKI, comunicazioni broadcast locali, abbinamento sicuro delle chiavi crittografiche dei peer (ECDH) e diagnostica di telemetria a basso livello.
+* **Target Tecnologico:** Core nativo in C interfacciato tramite FFI a logica Dart, con target principale Windows Desktop e compatibilità nativa preservata per Android.
 
 ---
 
 ## Funzionalità Principali
 
-* **Routing Mesh Epidemico (Store-and-Forward):** I messaggi broadcast vengono ritrasmessi dai nodi della rete adiacenti incrementando il contatore degli hop. Il sistema implementa una cache di deduplica `_processedMessageKeys` nel `SessionManager` che scarta i messaggi già visti per prevenire tempeste di broadcast (loop infiniti).
-* **Accoppiamento Crittografico (Diffie-Hellman):** I nodi possono avviare uno scambio effimero di chiavi X25519 (ECDH) tramite pacchetti HELLO. Questo genera un segreto condiviso utilizzato per crittografare i Direct Message con AES-GCM.
+### 1. Mesh Routing Epidemico (Store-and-Forward)
+I messaggi broadcast (e i Direct Message diretti ad altri nodi) vengono ritrasmessi dai nodi della rete adiacenti incrementando il contatore degli hop (`hopCount`). 
+Il sistema implementa una cache di deduplica `_relayedMessageKeys` nel `YamiLinkRepository` che scarta i messaggi già ritrasmessi per prevenire loop infiniti o broadcast storm. I frame mantengono traccia della loro vita nella rete, garantendo che i messaggi possano superare la distanza di singolo hop se i nodi intermedi offrono ritrasmissione.
+
+### 2. Identità Crittografica (Ed25519 PKI)
+La vulnerabilità classica delle reti ad-hoc (Spoofing dell'identità First-Come First-Served) è mitigata tramite una **Public Key Infrastructure (PKI) effimera**.
+Alla creazione del profilo, ogni nodo genera una coppia di chiavi asimmetriche Ed25519. L'identificativo del nodo (`senderId`) sulla rete corrisponde all'hash della chiave pubblica. Ogni singolo pacchetto (`Frame`) inviato sulla rete include una firma crittografica generata con la chiave privata. I nodi riceventi (tramite il sottosistema Tesla) verificano la firma rispetto all'ID dichiarato prima di elaborare qualsiasi dato.
+
+### 3. Accoppiamento Crittografico (Trust Pairing ECDH - V2)
+I nodi possono avviare uno scambio effimero di chiavi tramite la curva X25519 (ECDH) inviando pacchetti di tipo `HELLO`. Al completamento dello scambio, i due nodi calcolano un segreto condiviso univoco (derivato tramite SHA-256). Questo segreto viene impiegato per stabilire canali sicuri End-to-End, crittografando payload privati in **AES-GCM a 256 bit**, rendendoli inleggibili ai relay intermedi della rete mesh.
 
 ---
 
 ## Architettura di Sistema
 
-L'architettura dell'applicazione segue una chiara separazione dei compiti tra l'interfaccia utente in Flutter, lo strato di controller Dart e il core nativo in linguaggio C per la gestione dei socket.
+L'architettura dell'applicazione segue una rigorosa separazione delle responsabilità (Separation of Concerns) e confini netti (Boundary FFI):
 
-Il seguente diagramma illustra il flusso dei dati e l'interazione tra i componenti:
+1. **Frontend (Flutter):** Gestisce lo stato reattivo e l'UI (Room, Chat, Telemetria).
+2. **Business Logic (Dart):** `YamiLinkRepository` funge da orchestratore. Gestisce sessioni, code di ritrasmissione, crittografia e smistamento dei pacchetti verso la logica di Moderazione o il Tesla Engine.
+3. **Core Nativo (C / FFI):** La comunicazione di rete raw UDP è delegata ad una libreria C nativa (es. Winsock2 su Windows). Le routine C sono chiamate in background tramite *Dart Isolate* e inviano i raw byte ricevuti all'infrastruttura Dart.
 
 ```mermaid
 graph TD
-    UI[Interfaccia Utente - Flutter] --> |Richieste Azioni / Stato| Repo[YamiLinkRepository - ChangeNotifier]
-    Repo --> |Filtro Peer Bloccati / Stato Radar| PM[PeerManager]
-    Repo --> |Gestione Messaggi / Coda Affidabilita| SM[SessionManager]
-    Repo --> |Invio Byte| Trans[TransportInterface - WinUdpTransport / NoOpTransport]
-    Trans --> |Integrazione FFI| FFI[YamiLinkFfiBridge]
-    FFI --> |Background Threads| C[Core C Nativo - Win32 / POSIX]
-    C --> |Ricezione Pacchetti UDP| FFI
-    Repo --> |Byte in Ingresso| Tesla[TeslaEngine - Packet & Frame Security]
-    Tesla --> |Drop/Block Malformed| Discard[Cestino]
-    Tesla --> |Frame Sicuro| Repo
-    Repo --> |Controllo Antispam e Keywords| Mod[ModerationEngine]
-    Mod --> |Se Valido| SM
+    UI[Interfaccia Utente - Flutter] --> |Azione Utente| Repo[YamiLinkRepository]
+    Repo --> |Crypto PKI / Sign| Frame[Costruzione e Firma Frame]
+    Frame --> |Serialize| Trans[TransportInterface]
+    Trans --> |FFI Bridge| C[Core C Nativo]
+    
+    C --> |Ricezione Byte UDP| FFI[YamiLinkFfiBridge - ReceivePort]
+    FFI --> |Raw Bytes| Tesla[TeslaEngine - Sicurezza Ingressi]
+    Tesla --> |Drop se Invalid/Spoofed/Replay| Discard[Cestino]
+    Tesla --> |Frame Verificato| Repo
+    Repo --> |Moderazione Locale| Mod[ModerationService]
+    Mod --> |Se Pulito / Blurrato| SM[SessionManager]
+    SM --> UI
 ```
 
 ---
 
-## Struttura del Protocollo Frame
+## Struttura del Protocollo Frame (V1.2)
 
-Le comunicazioni di rete utilizzano un protocollo a livello applicativo basato su stringhe ASCII delimitate. Questo formato garantisce la compatibilita' cross-platform evitando problemi di endianness o padding delle strutture binarie C:
+Le comunicazioni di rete utilizzano un protocollo a livello applicativo basato su stringhe delimitato dai due punti (`:`). Questo formato garantisce compatibilità cross-platform evitando problemi di endianness/padding binario.
 
-```
-VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:HOP_COUNT:PAYLOAD_TYPE:BASE64_PAYLOAD
-```
+Il Frame completo (serializzato in utf-8) appare così:
+`VERSIONE:TIPO:SENDER_ID:RECIPIENT_ID:SESSION_ID:MESSAGE_ID:TIMESTAMP:FLAGS:HOP_COUNT:PAYLOAD_TYPE:BASE64_PAYLOAD:SIGNATURE`
 
 ### Componenti del Frame
 
 | Campo | Descrizione |
 | --- | --- |
-| VERSIONE | Identificatore del protocollo applicativo (es. YML1). |
-| TIPO | Tipologia di pacchetto (RM = Room Message, DM = Direct Message, ACK = Acknowledgment, BC = Beacon). |
-| SENDER_ID | Hash esadecimale a 16 caratteri che identifica univocamente la stazione trasmittente. |
-| RECIPIENT_ID | Hash esadecimale del destinatario per i DM, oppure "*" per i messaggi broadcast. |
+| VERSIONE | Identificatore del protocollo applicativo (attualmente `YML1`). |
+| TIPO | Tipologia di pacchetto (`RM` = Room Message, `DM` = Direct Message, `ACK` = Acknowledgment, `HLO` = Hello Pairing). |
+| SENDER_ID | Chiave pubblica Ed25519 esadecimale (o hash) che identifica il mittente. |
+| RECIPIENT_ID | Chiave destinatario per i DM/ACK/HLO, oppure `*` per i messaggi broadcast. |
 | SESSION_ID | Identificatore casuale della sessione temporanea della stazione trasmittente. |
 | MESSAGE_ID | Contatore sequenziale dei messaggi per la rilevazione dei duplicati e gestione ACK. |
-| TIMESTAMP | Tempo Unix Epoch in millisecondi. |
-| FLAGS | Maschera di bit per opzioni speciali (es. inoltro abilitato). |
-| HOP_COUNT | Contatore dei salti per il routing mesh (incrementato ad ogni relay). |
-| PAYLOAD_TYPE | Formato del corpo del pacchetto (es. text/plain o crypto/aes). |
-| BASE64_PAYLOAD | Corpo del messaggio codificato in Base64 (contenente il ciphertext se criptato). |
-
----
-
-## Sistema di Moderazione e Antispam Locale
-
-La moderazione dei contenuti in YamiLink e' decentralizzata ed in-memory. Non dipende da server centrali e opera in tempo reale su ogni singolo client.
-
-Il flusso di elaborazione dei pacchetti ricevuti segue questo schema decisionale:
-
-```mermaid
-graph TD
-    Packet[Pacchetto Ricevuto] --> CheckBlock{Mittente Bloccato?}
-    CheckBlock -->|Si| Discard[Scarta Pacchetto]
-    CheckBlock -->|No| CheckSpam{Spam Burst? >5 msg / 3s}
-    CheckSpam -->|Si| BlockPeer[Segna come Bloccato ed Escludi dai Radar]
-    BlockPeer --> Discard
-    CheckSpam -->|No| Normalize[Normalizzazione Testo]
-    Normalize --> FilterRed{Keyword Proibita - Red Card?}
-    FilterRed -->|Si| LogRed[Log SEC in Console e Scarta]
-    LogRed --> Discard
-    FilterRed -->|No| FilterYellow{Keyword Sensibile - Yellow Card?}
-    FilterYellow -->|Si| AddSensitive[Salva Messaggio con Blur e Tap-to-Reveal]
-    FilterYellow -->|No| AddClean[Salva Messaggio Pulito in Chiaro]
-    AddSensitive --> Deliver[Disponibile per la UI]
-    AddClean --> Deliver
-```
-
-### Dettaglio dei Sotto-Sistemi
-
-* **Rilevazione dello Spam (Burst Rate-Limiting):** Per ogni peer viene mantenuta una finestra scorrevole temporale. Se un peer trasmette piu' di 5 messaggi entro un intervallo di 3 secondi, viene automaticamente identificato come spammer. Il suo stato di confidenza passa a `blocked`, tutti i suoi pacchetti futuri vengono rifiutati all'ingresso ed il peer svanisce dalla lista radar.
-* **Normalizzazione del Testo:** Al fine di prevenire l'aggiramento dei filtri tramite l'uso di spazi, punteggiatura o simboli speciali, la stringa viene normalizzata convertendola in minuscolo e rimuovendo qualsiasi carattere non alfanumerico prima del controllo (es. `s.p.a.m_m_i_n.g` viene normalizzato in `spamming`).
-* **Regole a Semaforo:**
-  * **Rosso (Disallowed):** Parole chiave associate a violazioni gravi dei termini d'uso (es. minacce o doxxing). I messaggi vengono bloccati immediatamente alla ricezione e scartati. L'evento viene registrato nella console di diagnostica con tag `SEC:`.
-  * **Giallo (Sensitive):** Termini sensibili o volgari. Il messaggio viene accettato, ma visualizzato nella chat con un filtro grafico offuscato (sfocatura). Il destinatario puo' toccare la bolla per rimuovere la sfocatura (meccanismo Tap-to-Reveal).
+| TIMESTAMP | Tempo Unix Epoch in millisecondi (usato anche per la finestra temporale anti-replay). |
+| FLAGS | Maschera di bit per opzioni speciali. |
+| HOP_COUNT | Contatore dei salti per il routing mesh (incrementato ad ogni relay). Non incluso nella firma per permettere la mutabilità di routing. |
+| PAYLOAD_TYPE | Formato del corpo del pacchetto (`text` per in chiaro, `crypto/aes` per pacchetti E2EE). |
+| BASE64_PAYLOAD | Corpo del messaggio codificato in Base64 (contenente il ciphertext AES-GCM o il plaintext). |
+| SIGNATURE | (Opzionale/Richiesto) Firma crittografica Ed25519 in Base64 applicata a tutti i campi immutabili precedenti. |
 
 ---
 
 ## Sicurezza e Hardening: Il Sottosistema Tesla
 
-Per proteggere l'applicazione da attacchi Denial of Service (DoS) locali, tampering, spoofing e replay, YamiLink integra **Tesla**, un firewall applicativo posizionato tra il layer FFI C-Native e il parsing Dart.
+Per proteggere l'applicazione da attacchi Denial of Service (DoS) locali, tampering, spoofing e replay, YamiLink integra **TeslaEngine**, un firewall applicativo posizionato tra il layer FFI C-Native e il gestore della sessione Dart.
 
 ### Funzioni di Difesa (Tesla Engine)
 
-1. **Protezione FFI (Boundary Safety):** I payload provenienti dalla FFI sono strettamente limitati a 2048 byte per scongiurare buffer overflow logici e memory exhaustion. Inoltre, `TeslaPacketValidator` cestina istantaneamente pacchetti senza la signature `YML1:` evitando costose conversioni UTF-8 su spazzatura (UDP flood prevention).
-2. **Prevenzione Peer Spoofing:** `TeslaSpoofGuard` memorizza una tabella hash di routing (`senderId` logico -> `senderHash` FFI nativo). Se un attaccante tenta di forgiare pacchetti con l'ID di un altro nodo dalla propria rete, Tesla rileva l'incoerenza dell'identita' e scarta il pacchetto silenziosamente.
-3. **Difesa Anti-Replay:** `TeslaReplayGuard` implementa una cache con *sliding window* di 60 secondi che ispeziona in tandem `(senderId, messageId)` e timestamp. I frame replicati, incollati sulla rete o catturati nel passato, vengono cestinati, rendendo immuni le chat a flood da replay.
+1. **Protezione Boundary FFI (PacketValidator):** I payload raw provenienti dalla FFI C sono strettamente limitati (massimo 2048/3072 byte) per scongiurare buffer overflow logici e memory exhaustion in Dart. Pacchetti senza il prefisso `YML1:` vengono scartati immediatamente prima di allocare stringhe UTF-8 (difesa attiva contro UDP flood e spazzatura).
+2. **Prevenzione Peer Spoofing (SpoofGuard):** Decodifica asincronamente la `SIGNATURE` Ed25519 del frame. Se la firma non è compatibile con i dati del frame e con la chiave pubblica specificata nel `senderId`, il pacchetto viene considerato frutto di spoofing (tentativo di furto d'identità) e cestinato.
+3. **Difesa Anti-Replay (ReplayGuard):** Implementa una *sliding window* rigorosa di 60 secondi che ispeziona `(senderId, messageId)` e timestamp. Frame identici rigiocati da attaccanti, o frame con timestamp palesemente futuri o troppo vecchi, sono droppati.
 
-### TamperGuard (Environment & Anti-Reverse Engineering)
+### Moderazione Locale e Antispam
 
-L'app implementa controlli custom leggeri per il rilevamento di ambienti modificati o ostili.
-Su build **Release**, `TamperGuard` analizza:
-* La presenza anomala di debug flag o Virtual Machine observatory injection in produzione.
-* Variabili d'ambiente comuni usate da framework di strumentazione (es. Frida, Xposed).
-* (Su Android) Binari classici indicanti root (es. magisk, su) usando euristiche basate su file system standard.
+La moderazione è decentralizzata e in-memory su ogni client:
+* **Spam Burst Limiting:** Un peer che trasmette messaggi ad un rate elevato anomalo viene bloccato localmente (scartando i successivi payload a monte).
+* **Filtro Semantico (Semaforo):** Il testo in chiaro (o quello decifrato nei DM) subisce una normalizzazione. Se viola le regole locali per minacce o doxxing (Filtro Rosso), viene distrutto e viene emesso un alert di sicurezza. Se contiene linguaggio volgare o sensibile (Filtro Giallo), viene salvato ma coperto da una **grafica Glassmorfica sfocata**, sbloccabile solo con un tocco consenziente (Tap-to-Reveal).
 
 ---
 
-## Affidabilita' delle Connessioni P2P (Strato di Trasporto)
+## Affidabilità delle Connessioni (Strato di Trasporto)
 
-Dato che il protocollo UDP non garantisce la consegna o l'ordinamento dei pacchetti, YamiLink implementa un sistema di conferma a livello applicativo:
-
-1. **Trasmissione e Timeout:** Quando viene inviato un pacchetto diretto (DM), questo viene inserito in una coda temporanea e marcato come `sending`. Viene contemporaneamente impostato un timer a 400ms.
-2. **Ricezione ACK:** Il destinatario, alla ricezione del pacchetto di tipo `directMsg`, risponde immediatamente con un frame di tipo `ack`.
-3. **Retransmit Loop:** Se il mittente riceve l'ACK entro 400ms, cancella il timer e aggiorna lo stato in `delivered`. In caso contrario, esegue un tentativo di reinvio del pacchetto, fino a un massimo di 3 tentativi. Raggiunto il limite senza riscontro, il messaggio assume lo stato `failed`.
-4. **Deduplicazione:** Per evitare di elaborare piu' volte messaggi duplicati a causa di ACK persi, ogni stazione mantiene una lista degli ultimi 50 ID messaggio elaborati per ciascun peer. I messaggi duplicati vengono scartati ma l'ACK viene inviato nuovamente al mittente.
+Dato che la rete sottostante (UDP) non garantisce la consegna, YamiLink implementa un sistema logico a Livello Applicativo per garantire certezza dell'invio:
+1. **Trasmissione e Timeout:** Un DM viene marcato come `sending` nella UI. Un timer interno controlla la ricezione di una risposta.
+2. **ACK Automatici:** Il destinatario di un DM valido emette automaticamente (e in forma sicura firmata) un Frame `ACK`.
+3. **Deduplicazione Mesh:** Siccome un pacchetto potrebbe arrivare due volte da due nodi relay diversi, il `SessionManager` e il `TeslaEngine` lavorano in sinergia per bloccare duplicati visivi, ma la rete mesh permette all'ACK di ritornare indietro attraverso i vari hop (percorso inverso).
 
 ---
 
@@ -141,69 +114,65 @@ Dato che il protocollo UDP non garantisce la consegna o l'ordinamento dei pacche
 yamilink/
 ├── lib/
 │   ├── core/
-│   │   ├── moderation/
-│   │   │   └── moderation_engine.dart   # Motore di normalizzazione e analisi semantica
-│   │   ├── protocol/
-│   │   │   └── frame.dart               # Serializzazione/Deserializzazione protocollo applicativo
-│   │   ├── state/
-│   │   │   ├── peer_manager.dart        # Gestione liveness del radar, blocchi ed antispam
-│   │   │   └── session_manager.dart     # Storia dei messaggi, code ACK e rilevazione duplicati
-│   │   └── transport/
-│   │       ├── noop_transport.dart      # Adattatore strutturale (fallback) per piattaforme sprovviste di FFI
-│   │       ├── transport_interface.dart # Interfacce astratte per la trasmissione di rete
-│   │       └── win_udp_transport.dart   # Implementazione Winsock per Windows
-│   ├── repository/
-│   │   └── yamilink_repository.dart     # Controller centralizzato ChangeNotifier
-│   ├── chats_screen.dart                # Lista delle conversazioni private attive
-│   ├── diagnostics_screen.dart          # Telemetria di sistema e log di sicurezza SEC
-│   ├── direct_chat_screen.dart          # Chat diretta crittografata con gestione blocchi e blur
-│   ├── entry_screen.dart                # Configurazione del profilo temporaneo
-│   ├── main.dart                        # Struttura di navigazione e gestione del badge notifiche
-│   ├── nearby_screen.dart               # Radar di prossimita' spaziale e foglio di accoppiamento
-│   ├── room_screen.dart                 # Chat di gruppo broadcast locale
-│   ├── theme.dart                       # Sistema di design cyberpunk, sfumature neon e glassmorfismo
-│   └── widgets/
-│       └── avatar.dart                  # Generatore vettoriale di avatar basato su seed
+│   │   ├── moderation/      # Motore semantico di local-filtering e antispam
+│   │   ├── protocol/        # DTO del protocollo e logica di Serializzazione (Frame)
+│   │   ├── security/        # Motore Tesla (SpoofGuard, ReplayGuard, TamperGuard, PacketValidator)
+│   │   ├── state/           # Mantenimento stato, code ritrasmissioni e profili peer
+│   │   └── transport/       # Wrapper per connessioni FFI e socket fallback
+│   ├── repository/          # YamiLinkRepository - Controller architetturale primario
+│   ├── ui/                  # Componentistica grafica e schermate applicative
+│   ├── theme.dart           # Sistema di design cyberpunk, sfumature neon, glassmorfismo
+│   └── models.dart          # Modelli dati principali (Profilo Effimero, Messaggi)
 ├── test/
-│   ├── moderation_test.dart             # Test unitari per moderazione, spam rate-limit e normalizzazione
-│   ├── protocol_test.dart               # Test di conformita' della serializzazione dei frame
-│   └── reliability_test.dart            # Test delle code di re-invio, deduplicazione e logica unread
+│   ├── fuzzing_test.dart        # Test ai limiti dei boundary parser
+│   ├── stress_test.dart         # Simulazioni UDP flood e stress test firme PKI in bulk
+│   ├── tesla_security_test.dart # Test validazione e bypass del protocollo e firme
+│   └── mesh_routing_test.dart   # Verifiche flussi epidemici e loop mesh
 └── windows/
     └── src/
-        └── yamilink_core.c              # Logica UDP nativa multithread per la piattaforma Windows
+        └── yamilink_core.c      # Logica di bind socket multithread C per Windows FFI
 ```
 
 ---
 
-## Istruzioni per l'Avvio
+## Istruzioni per lo Sviluppo e l'Esecuzione
 
 ### Prerequisiti
 
-* SDK Flutter (compatibile con Dart 3.x)
-* Compilatore C++ (MSVC su Windows per il build nativo)
+* SDK Flutter (Dart 3.x)
+* Compilatore C++ / C (MSVC su Windows è necessario per il build nativo FFI)
 
 ### Configurazione
 
-1. Clonare il repository nella cartella di lavoro locale.
-2. Scaricare le dipendenze del framework:
+1. Clona il repository e scarica le dipendenze:
    ```bash
+   git clone <repo-url>
+   cd yamilink
    flutter pub get
    ```
-3. Eseguire l'analisi statica per verificare l'assenza di warning di compilazione:
+
+2. (Solo per sviluppo su piattaforma target Windows) Assicurati che il bridge FFI compili correttamente assieme al client Flutter:
    ```bash
-   flutter analyze
+   flutter build windows --debug
    ```
-4. Avviare i test unitari integrati:
+
+3. Esegui la suite di validazione e Penetration Testing di Tesla:
    ```bash
-   flutter test
+   flutter test test/tesla_security_test.dart
+   flutter test test/stress_test.dart
    ```
-5. Eseguire l'applicazione in modalita' debug:
+   *(Nota: i test di stress validano migliaia di firme PKI Ed25519 asincrone)*
+
+4. Avvia l'applicazione:
    ```bash
    flutter run -d windows
    ```
+   *(Puoi avviare più istanze da terminali diversi per testare il Mesh e il Pairing P2P in locale sullo stesso PC).*
 
 ---
 
-## Sviluppi Futuri
+## Prossimi Sviluppi (V2 Roadmap)
 
-* **Supporto Cross-Platform Nativo:** Sviluppo dei bridge nativi per iOS (Multipeer Connectivity) ed Android (Nearby Connections / Wi-Fi Direct Sockets).
+* **FFI Boundary Hardening:** Transizione da scambio di stringhe JSON/Delimiter ad un memory layout sicuro e struct rigorose via FFI pointer passing (Zero-Copy parsing).
+* **Integrazione Mobile:** Refactoring delle build C-native tramite CMake/NDK per estendere il core FFI UDP anche ad Android/iOS (Wi-Fi Aware e Bonjour).
+* **Multi-hop E2E Encryption:** Migliorare il key exchange ECDH in modalità multi-hop in modo che i peer non debbano essere per forza ad 1 hop di distanza per accordarsi sulle chiavi AES.

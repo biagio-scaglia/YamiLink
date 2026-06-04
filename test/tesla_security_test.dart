@@ -1,18 +1,36 @@
+import 'dart:convert';
 import 'dart:typed_data';
+import 'package:cryptography/cryptography.dart';
+import 'package:convert/convert.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yamilink/core/protocol/frame.dart';
 import 'package:yamilink/core/security/tesla_engine.dart';
+import 'package:yamilink/models.dart';
 
 void main() {
   group('TeslaEngine Security & Penetration Tests', () {
     late TeslaEngine engine;
 
+    Future<Frame> signTestFrame(Frame frame, SimpleKeyPair keyPair) async {
+      final ed25519 = Ed25519();
+      final signature = await ed25519.sign(frame.signableBytes, keyPair: keyPair);
+      return Frame(
+        version: frame.version,
+        type: frame.type,
+        senderId: frame.senderId,
+        recipientId: frame.recipientId,
+        sessionId: frame.sessionId,
+        messageId: frame.messageId,
+        timestamp: frame.timestamp,
+        flags: frame.flags,
+        hopCount: frame.hopCount,
+        payloadType: frame.payloadType,
+        payloadBody: frame.payloadBody,
+        signature: base64.encode(signature.bytes),
+      );
+    }
+
     setUp(() {
-      // In dart, singletons carry state between tests if not reset,
-      // but TeslaEngine doesn't have a direct reset. We will clear
-      // state by using a new mock setup or testing via its public sweep methods.
-      // For proper test isolation, we'd ideally reset the singleton,
-      // but we can just use new senderIds for each test.
       engine = TeslaEngine.instance;
       engine.sweep(); // Clear what we can
     });
@@ -37,9 +55,7 @@ void main() {
       });
 
       test('Oversized frames should be dropped before UTF-8 decoding', () {
-        // Limit is 2048. Create a 2049 byte array.
         final oversized = Uint8List(2049);
-        // Fill signature so validator doesn't fail early on signature
         final sig = 'YML1:'.codeUnits;
         for (int i = 0; i < sig.length; i++) {
           oversized[i] = sig[i];
@@ -63,16 +79,17 @@ void main() {
       test('Frame with non-UTF8 bytes should pass raw validator (dropped later in parser)', () {
         final badBytes = Uint8List.fromList([89, 77, 76, 49, 58, 255, 254, 253]);
         final decision = engine.inspectRawPacket('hash1', badBytes);
-        // Raw packet validator only checks signature and size, not utf8 correctness
         expect(decision, TeslaDecision.allow);
       });
     });
 
     group('TeslaSpoofGuard Tests', () {
-      test('Initial binding allows packet', () {
+      test('Valid PKI signed frame allows packet', () async {
+        final profile = await EphemeralProfile.generate('alice');
+        
         final frame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'alice_1',
+          senderId: profile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 1,
@@ -83,31 +100,19 @@ void main() {
           payloadBody: 'hello',
         );
 
-        final decision = engine.inspectParsedFrame(frame, 'alice_hash');
+        final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
+        final decision = await engine.inspectParsedFrame(signedFrame, 'alice_hash');
         expect(decision, TeslaDecision.allow);
       });
 
-      test('Peer spoofing senderId drops packet', () {
-        final frame = Frame(
-          type: FrameType.roomMsg,
-          senderId: 'alice_2', // new ID
-          recipientId: '*',
-          sessionId: 'sess_1',
-          messageId: 1,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-          flags: 0,
-          hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hello',
-        );
-
-        // Bind alice_2 to alice_hash_2
-        engine.inspectParsedFrame(frame, 'alice_hash_2');
-
-        // Attacker with attacker_hash tries to spoof alice_2
+      test('Peer spoofing senderId drops packet (bad PKI signature)', () async {
+        final aliceProfile = await EphemeralProfile.generate('alice');
+        final attackerProfile = await EphemeralProfile.generate('attacker');
+        
+        // Attacker creates a frame pretending to be alice
         final spoofedFrame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'alice_2',
+          senderId: aliceProfile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 2,
@@ -118,16 +123,19 @@ void main() {
           payloadBody: 'imposter!',
         );
 
-        final decision = engine.inspectParsedFrame(spoofedFrame, 'attacker_hash');
+        // Attacker signs it with their own key, but senderId is alice's pub key
+        final signedSpoofedFrame = await signTestFrame(spoofedFrame, attackerProfile.identityKeyPair!);
+        final decision = await engine.inspectParsedFrame(signedSpoofedFrame, 'attacker_hash');
         expect(decision, TeslaDecision.drop);
       });
     });
 
     group('TeslaReplayGuard Tests', () {
-      test('Fresh unique frame is allowed', () {
+      test('Fresh unique frame is allowed', () async {
+        final profile = await EphemeralProfile.generate('charlie');
         final frame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'charlie_1',
+          senderId: profile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 100,
@@ -138,14 +146,16 @@ void main() {
           payloadBody: 'hi',
         );
 
-        final decision = engine.inspectParsedFrame(frame, 'charlie_hash');
+        final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
+        final decision = await engine.inspectParsedFrame(signedFrame, 'charlie_hash');
         expect(decision, TeslaDecision.allow);
       });
 
-      test('Exact duplicate frame is dropped (replay/deduplication)', () {
+      test('Exact duplicate frame is dropped (replay/deduplication)', () async {
+        final profile = await EphemeralProfile.generate('charlie');
         final frame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'charlie_2',
+          senderId: profile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 101,
@@ -156,19 +166,21 @@ void main() {
           payloadBody: 'hi',
         );
 
-        final decision1 = engine.inspectParsedFrame(frame, 'charlie_hash_2');
+        final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
+        final decision1 = await engine.inspectParsedFrame(signedFrame, 'charlie_hash_2');
         expect(decision1, TeslaDecision.allow);
 
         // Send exact same frame again
-        final decision2 = engine.inspectParsedFrame(frame, 'charlie_hash_2');
+        final decision2 = await engine.inspectParsedFrame(signedFrame, 'charlie_hash_2');
         expect(decision2, TeslaDecision.drop);
       });
 
-      test('Frame with old timestamp (> 60s) is dropped', () {
+      test('Frame with old timestamp (> 60s) is dropped', () async {
+        final profile = await EphemeralProfile.generate('dave');
         final oldTime = DateTime.now().millisecondsSinceEpoch - 65000;
         final frame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'dave_1',
+          senderId: profile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 1,
@@ -179,15 +191,17 @@ void main() {
           payloadBody: 'hi',
         );
 
-        final decision = engine.inspectParsedFrame(frame, 'dave_hash');
+        final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
+        final decision = await engine.inspectParsedFrame(signedFrame, 'dave_hash');
         expect(decision, TeslaDecision.drop);
       });
 
-      test('Frame with anomalous future timestamp (> 5s) is dropped', () {
+      test('Frame with anomalous future timestamp (> 5s) is dropped', () async {
+        final profile = await EphemeralProfile.generate('eve');
         final futureTime = DateTime.now().millisecondsSinceEpoch + 10000;
         final frame = Frame(
           type: FrameType.roomMsg,
-          senderId: 'eve_1',
+          senderId: profile.id,
           recipientId: '*',
           sessionId: 'sess_1',
           messageId: 1,
@@ -198,7 +212,8 @@ void main() {
           payloadBody: 'hi',
         );
 
-        final decision = engine.inspectParsedFrame(frame, 'eve_hash');
+        final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
+        final decision = await engine.inspectParsedFrame(signedFrame, 'eve_hash');
         expect(decision, TeslaDecision.drop);
       });
     });

@@ -39,11 +39,11 @@ class _RoomScreenState extends State<RoomScreen> {
     }
   }
 
-  void _sendMessage(YamiLinkRepository simulation) {
+  Future<void> _sendMessage(YamiLinkRepository simulation) async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
-    final decision = simulation.sendBroadcastMessage(text);
+    final decision = await simulation.sendBroadcastMessage(text);
     if (decision == null) return;
 
     if (decision.action == ModerationAction.block) {
@@ -99,9 +99,9 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                simulation.sendBroadcastMessage(text, force: true);
+                await simulation.sendBroadcastMessage(text, force: true);
                 _messageController.clear();
                 Future.delayed(
                   const Duration(milliseconds: 80),
