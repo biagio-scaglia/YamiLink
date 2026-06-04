@@ -138,34 +138,52 @@ class _MainShellState extends State<MainShell> {
     final simulation = Provider.of<YamiLinkRepository>(context);
 
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.02, 0.0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
+      backgroundColor: YamiTheme.bgDeep,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.symmetric(
+                vertical: BorderSide(color: YamiTheme.borderMetallic.withValues(alpha: 0.3), width: 1.0),
+              ),
             ),
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _screens[_currentIndex],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: YamiTheme.surfaceDark,
-          border: Border(
-            top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.02, 0.0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey<int>(_currentIndex),
+                child: _screens[_currentIndex],
+              ),
+            ),
           ),
         ),
+      ),
+      bottomNavigationBar: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Container(
+            decoration: BoxDecoration(
+              color: YamiTheme.surfaceDark,
+              border: Border(
+                top: const BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
+                left: BorderSide(color: YamiTheme.borderMetallic.withValues(alpha: 0.3), width: 1.0),
+                right: BorderSide(color: YamiTheme.borderMetallic.withValues(alpha: 0.3), width: 1.0),
+              ),
+            ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(

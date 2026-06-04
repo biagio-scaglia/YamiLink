@@ -67,6 +67,13 @@ void* BeaconThreadFunc(void* lpParam) {
 
     while (g_running) {
         sendto(send_socket, beacon_msg, (int)strlen(beacon_msg), 0, (struct sockaddr*)&recv_addr, sizeof(recv_addr));
+        
+        struct sockaddr_in multi_addr;
+        multi_addr.sin_family = AF_INET;
+        multi_addr.sin_port = htons(UDP_PORT);
+        multi_addr.sin_addr.s_addr = inet_addr("224.0.0.1");
+        sendto(send_socket, beacon_msg, (int)strlen(beacon_msg), 0, (struct sockaddr*)&multi_addr, sizeof(multi_addr));
+        
 #ifdef _WIN32
         Sleep(3000); // 3 seconds
 #else
@@ -242,6 +249,12 @@ DART_EXPORT int32_t yamilink_core_send(const uint8_t* data, uint32_t length) {
     recv_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
 
     int sent = sendto(send_socket, (const char*)data, (int)length, 0, (struct sockaddr*)&recv_addr, sizeof(recv_addr));
+
+    struct sockaddr_in multi_addr;
+    multi_addr.sin_family = AF_INET;
+    multi_addr.sin_port = htons(UDP_PORT);
+    multi_addr.sin_addr.s_addr = inet_addr("224.0.0.1");
+    sendto(send_socket, (const char*)data, (int)length, 0, (struct sockaddr*)&multi_addr, sizeof(multi_addr));
 
 #ifdef _WIN32
     closesocket(send_socket);

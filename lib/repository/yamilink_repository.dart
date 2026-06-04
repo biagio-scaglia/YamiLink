@@ -61,7 +61,12 @@ class YamiLinkRepository extends ChangeNotifier {
     DiscoveryTransport? discoveryTransport,
     MessageTransport? messageTransport,
   }) {
-    YamiLinkFfiBridge.instance.load();
+    final loadError = YamiLinkFfiBridge.instance.load();
+    if (loadError != null) {
+      logDiagnostic('ERR: FFI Load Failed: $loadError');
+    } else {
+      logDiagnostic('SEC: FFI Bridge Loaded Successfully');
+    }
     _initCrypto();
 
     logDiagnostic('SEC: Initialized ephemeral cryptosystem');
@@ -76,7 +81,12 @@ class YamiLinkRepository extends ChangeNotifier {
       _discoveryTransport = winTransport;
       _messageTransport = winTransport;
 
-      YamiLinkFfiBridge.instance.start(profile.alias, profile.avatarSeed);
+      final startRes = YamiLinkFfiBridge.instance.start(profile.alias, profile.avatarSeed);
+      if (startRes == 0) {
+        logDiagnostic('NET: UDP Socket Bound Successfully on 8099');
+      } else {
+        logDiagnostic('ERR: UDP Socket Bind Failed. Code: $startRes');
+      }
       _packetsProcessed = 0;
     } else {
       final noOp = NoOpTransport();

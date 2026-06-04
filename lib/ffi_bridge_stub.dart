@@ -16,7 +16,9 @@ class YamiLinkFfiBridge {
   )?
   onEvent;
 
-  void load() {}
+  String? load() {
+    return 'Stub platform not supported';
+  }
 
   int start(String alias, int seed) {
     return -1;

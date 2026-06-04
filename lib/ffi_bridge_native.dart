@@ -107,11 +107,11 @@ class YamiLinkFfiBridge {
 
   bool get isSupported => _isSupported;
 
-  void load() {
+  String? load() {
     try {
       if (identical(0, 0.0)) {
         _isSupported = false;
-        return;
+        return 'Web platform not supported for FFI.';
       }
 
       if (Platform.isWindows) {
@@ -122,7 +122,7 @@ class YamiLinkFfiBridge {
         _lib = DynamicLibrary.open('libyamilink_core.dylib');
       } else {
         _isSupported = false;
-        return;
+        return 'Unsupported platform: ${Platform.operatingSystem}';
       }
 
       if (_lib != null) {
@@ -136,12 +136,12 @@ class YamiLinkFfiBridge {
           'yamilink_core_stop',
         );
         _isSupported = true;
+        return null; // Success
       }
+      return 'Library not found';
     } catch (e) {
       _isSupported = false;
-      debugPrint(
-        'YamiLink Core FFI unavailable: $e. Falling back to Simulated Space.',
-      );
+      return 'FFI unavailable: $e';
     }
   }
 
