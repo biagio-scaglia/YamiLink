@@ -114,7 +114,7 @@ class YamiLinkFfiBridge {
 
       if (Platform.isWindows) {
         _lib = DynamicLibrary.open('yamilink_core.dll');
-      } else if (Platform.isLinux) {
+      } else if (Platform.isLinux || Platform.isAndroid) {
         _lib = DynamicLibrary.open('libyamilink_core.so');
       } else if (Platform.isMacOS) {
         _lib = DynamicLibrary.open('libyamilink_core.dylib');

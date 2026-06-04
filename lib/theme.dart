@@ -112,7 +112,7 @@ class YamiTheme {
         surface: surfaceDark,
         error: accentWarning,
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: surfaceDark,
         elevation: 24,
         shape: RoundedRectangleBorder(
