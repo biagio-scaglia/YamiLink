@@ -219,8 +219,10 @@ class YamiLinkRepository extends ChangeNotifier {
                   final encryptedBytes = frame.payloadBytes;
                   // IV is first 12 bytes
                   final iv = encryptedBytes.sublist(0, 12);
-                  final cipherText = encryptedBytes.sublist(12);
-                  final secretBox = SecretBox(cipherText, nonce: iv, mac: Mac.empty);
+                  final macLength = 16;
+                  final cipherText = encryptedBytes.sublist(12, encryptedBytes.length - macLength);
+                  final macBytes = encryptedBytes.sublist(encryptedBytes.length - macLength);
+                  final secretBox = SecretBox(cipherText, nonce: iv, mac: Mac(macBytes));
                   
                   final clearBytes = await _aesGcm.decrypt(
                     secretBox,
