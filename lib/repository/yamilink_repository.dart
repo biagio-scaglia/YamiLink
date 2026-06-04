@@ -119,7 +119,8 @@ class YamiLinkRepository extends ChangeNotifier {
       try {
         final frame = Frame.fromBytes(packetBytes);
 
-        final frameDecision = await TeslaEngine.instance.inspectParsedFrame(frame, senderHash);
+        final effectiveHash = senderHash.isEmpty ? frame.senderId : senderHash;
+        final frameDecision = await TeslaEngine.instance.inspectParsedFrame(frame, effectiveHash);
         if (frameDecision == TeslaDecision.drop) return;
 
         if (frame.senderId == profile.id) return;
