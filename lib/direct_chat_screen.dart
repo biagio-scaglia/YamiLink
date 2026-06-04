@@ -58,7 +58,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
-            'MESSAGGIO BLOCCATO',
+            'MESSAGE BLOCKED',
             style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
@@ -87,18 +87,18 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
-            'CONTENUTO SENSIBILE',
+            'SENSITIVE CONTENT',
             style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
-            'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
+            'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
             style: YamiTheme.bodyStyle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'ANNULLA',
+                'CANCEL',
                 style: YamiTheme.monoStyle.copyWith(
                   color: YamiTheme.textSecondary,
                 ),
@@ -115,7 +115,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 );
               },
               child: Text(
-                'INVIA COMUNQUE',
+                'SEND ANYWAY',
                 style: YamiTheme.monoStyle.copyWith(
                   color: YamiTheme.accentWarning,
                 ),
@@ -217,7 +217,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     isBlocked
                         ? 'PEER BLOCCATO'
                         : (isMuted
-                              ? 'PEER SILENZIATO'
+                              ? 'PEER MUTED'
                               : (!isPeerOnline
                                     ? 'PEER OFFLINE - SECURE LINE SUSPENDED'
                                     : (isTrusted
@@ -253,7 +253,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 simulation.unmutePeer(livePeer.id);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${livePeer.alias} non è più silenziato'),
+                    content: Text('${livePeer.alias} is no longer muted'),
                     backgroundColor: YamiTheme.accentSecure,
                   ),
                 );
@@ -278,7 +278,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Peer silenziato per 10 secondi'),
+                              content: Text('Peer muted for 10 seconds'),
                               backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
@@ -294,7 +294,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Peer silenziato per 30 secondi'),
+                              content: Text('Peer muted for 30 seconds'),
                               backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
@@ -310,7 +310,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Peer silenziato per 1 minuto'),
+                              content: Text('Peer muted for 1 minute'),
                               backgroundColor: YamiTheme.accentWarning,
                             ),
                           );
@@ -410,7 +410,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       isBlocked
                           ? 'Questo peer è bloccato. Non riceverai né invierai messaggi.'
                           : (isMuted
-                                ? 'Questo peer è silenziato localmente per la sessione corrente.'
+                                ? 'This peer is locally muted for the current session.'
                                 : (!isPeerOnline
                                       ? 'Connessione persa. La consegna dei messaggi riprenderà quando il peer tornerà online.'
                                       : (isTrusted
@@ -448,7 +448,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'La moderazione è locale ed effimera per la sessione corrente.',
+                      'Moderation is local and ephemeral for the current session.',
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
                         color: YamiTheme.accentSecure,

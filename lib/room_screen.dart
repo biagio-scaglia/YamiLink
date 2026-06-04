@@ -44,7 +44,7 @@ class _RoomScreenState extends State<RoomScreen> {
     if (text.isEmpty) return;
 
     final decision = await simulation.sendBroadcastMessage(text);
-    if (decision == null) return;
+    if (decision != null) {
 
     if (decision.action == ModerationAction.block) {
       if (!mounted) return;
@@ -53,7 +53,7 @@ class _RoomScreenState extends State<RoomScreen> {
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
-            'MESSAGGIO BLOCCATO',
+            'MESSAGE BLOCKED',
             style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
@@ -83,18 +83,18 @@ class _RoomScreenState extends State<RoomScreen> {
         builder: (context) => AlertDialog(
           backgroundColor: YamiTheme.bgDeep,
           title: Text(
-            'CONTENUTO SENSIBILE',
+            'SENSITIVE CONTENT',
             style: YamiTheme.monoStyle.copyWith(color: YamiTheme.accentWarning),
           ),
           content: Text(
-            'Il tuo messaggio contiene parole sensibili:\n\n${decision.explanation}\n\nVuoi inviarlo comunque?',
+            'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
             style: YamiTheme.bodyStyle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'ANNULLA',
+                'CANCEL',
                 style: YamiTheme.monoStyle.copyWith(
                   color: YamiTheme.textSecondary,
                 ),
@@ -111,7 +111,7 @@ class _RoomScreenState extends State<RoomScreen> {
                 );
               },
               child: Text(
-                'INVIA COMUNQUE',
+                'SEND ANYWAY',
                 style: YamiTheme.monoStyle.copyWith(
                   color: YamiTheme.accentWarning,
                 ),
@@ -121,6 +121,7 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
       );
       return;
+    }
     }
 
     _messageController.clear();
@@ -242,7 +243,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'La moderazione è locale ed effimera per la sessione corrente.',
+                      'Moderation is local and ephemeral for the current session.',
                       style: YamiTheme.captionStyle.copyWith(
                         fontSize: 10,
                         color: YamiTheme.accentSecure,
@@ -298,13 +299,9 @@ class _RoomScreenState extends State<RoomScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: YamiTheme.bgDeep,
-                          borderRadius: BorderRadius.circular(24.0),
-                          border: Border.all(
-                            color: YamiTheme.borderMetallic,
-                            width: 1.0,
-                          ),
+                        decoration: YamiTheme.tactileDecoration(
+                          backgroundColor: YamiTheme.bgDeep,
+                          borderColor: YamiTheme.borderMetallic,
                         ),
                         child: TextField(
                           controller: _messageController,
@@ -327,14 +324,15 @@ class _RoomScreenState extends State<RoomScreen> {
                     ),
                     const SizedBox(width: 10),
                     Container(
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: YamiTheme.accentActive,
+                      decoration: YamiTheme.tactileDecoration(
+                        backgroundColor: YamiTheme.surfaceDark,
+                        borderColor: YamiTheme.borderMetallic,
+                        raised: true,
                       ),
                       child: IconButton(
                         icon: const Icon(
                           Icons.arrow_upward,
-                          color: YamiTheme.bgDeep,
+                          color: YamiTheme.accentActive,
                           size: 20,
                         ),
                         onPressed: () => _sendMessage(simulation),

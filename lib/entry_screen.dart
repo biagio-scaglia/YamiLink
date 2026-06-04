@@ -129,31 +129,50 @@ class _EntryScreenState extends State<EntryScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.blur_on,
-                      size: 64,
-                      color: YamiTheme.accentActive.withValues(alpha: 0.8),
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: YamiTheme.tactileDecoration(
+                        backgroundColor: YamiTheme.bgDeep,
+                        borderColor: YamiTheme.accentActive,
+                        raised: true,
+                        borderRadius: 16.0,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.radar,
+                          size: 32,
+                          color: YamiTheme.accentActive,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
 
                     Text(
                       'YAMILINK',
                       style: YamiTheme.titleStyle.copyWith(
                         fontSize: 32,
-                        letterSpacing: 6.0,
-                        shadows: [
-                          BoxShadow(
-                            color: YamiTheme.accentActive.withValues(alpha: 0.35),
-                            blurRadius: 16.0,
-                          ),
-                        ],
+                        letterSpacing: 8.0,
+                        color: YamiTheme.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'A social layer that exists only when you are there.',
-                      textAlign: TextAlign.center,
-                      style: YamiTheme.subtitleStyle,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: YamiTheme.accentActive.withValues(alpha: 0.1),
+                        border: Border.all(color: YamiTheme.accentActive.withValues(alpha: 0.3)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'SECURE LOCAL BROADCAST',
+                        textAlign: TextAlign.center,
+                        style: YamiTheme.monoStyle.copyWith(
+                          fontSize: 10,
+                          color: YamiTheme.accentActive,
+                          letterSpacing: 2.0,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 40),
 
@@ -161,72 +180,80 @@ class _EntryScreenState extends State<EntryScreen>
                       padding: const EdgeInsets.all(24.0),
                       decoration: YamiTheme.tactileDecoration(
                         backgroundColor: YamiTheme.surfaceDark,
-                        opacity: 0.65,
-                        borderColor: YamiTheme.accentActive,
+                        opacity: 1.0,
+                        borderColor: YamiTheme.borderMetallic,
+                        raised: true,
                       ),
                       child: Column(
                         children: [
                           YamiAvatar(
                             seed: _currentSeed,
                             size: 84,
+                            glowColor: YamiTheme.accentActive,
                             isGlowing: true,
                           ),
                           const SizedBox(height: 24),
 
-                          TextField(
-                            controller: _aliasController,
-                            style: YamiTheme.bodyStyle.copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                          Container(
+                            decoration: YamiTheme.tactileDecoration(
+                              backgroundColor: YamiTheme.bgDeep,
+                              borderColor: YamiTheme.borderMetallic,
                             ),
-                            decoration: InputDecoration(
-                              labelText: 'EPHEMERAL ALIAS',
-                              labelStyle: YamiTheme.captionStyle.copyWith(
-                                color: YamiTheme.textSecondary,
-                                letterSpacing: 1.5,
+                            child: TextField(
+                              controller: _aliasController,
+                              style: YamiTheme.monoStyle.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: YamiTheme.borderMetallic,
+                              decoration: InputDecoration(
+                                labelText: 'EPHEMERAL ALIAS',
+                                labelStyle: YamiTheme.captionStyle.copyWith(
+                                  color: YamiTheme.textSecondary,
+                                  letterSpacing: 1.5,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: const BorderSide(
-                                  color: YamiTheme.accentActive,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                prefixIcon: const Icon(
+                                  Icons.terminal,
+                                  color: YamiTheme.textSecondary,
+                                  size: 18,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.face,
-                                color: YamiTheme.textSecondary,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.refresh,
-                                  color: YamiTheme.accentActive,
+                                suffixIcon: IconButton(
+                                  icon: const Icon(
+                                    Icons.autorenew,
+                                    color: YamiTheme.accentActive,
+                                    size: 18,
+                                  ),
+                                  onPressed: _generateRandomAlias,
+                                  tooltip: 'Regenerate',
                                 ),
-                                onPressed: _generateRandomAlias,
-                                tooltip: 'Regenerate',
                               ),
+                              onChanged: (val) {
+                                setState(() {
+                                  _currentSeed = val.hashCode;
+                                });
+                              },
                             ),
-                            onChanged: (val) {
-                              setState(() {
-                                _currentSeed = val.hashCode;
-                              });
-                            },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
 
-                          Text(
-                            'Saved in memory only. Keys evaporate on exit.',
-                            style: YamiTheme.monoStyle.copyWith(
-                              color: YamiTheme.accentActive.withValues(
-                                alpha: 0.85,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline, size: 14, color: YamiTheme.textSecondary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Identity is stored in volatile memory only. Cryptographic keys evaporate upon termination.',
+                                  style: YamiTheme.monoStyle.copyWith(
+                                    color: YamiTheme.textSecondary,
+                                    fontSize: 9,
+                                    letterSpacing: 0.5,
+                                    height: 1.4,
+                                  ),
+                                ),
                               ),
-                              fontSize: 9,
-                              letterSpacing: 0.5,
-                            ),
+                            ],
                           ),
                         ],
                       ),
@@ -235,48 +262,48 @@ class _EntryScreenState extends State<EntryScreen>
 
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: YamiTheme.accentActive,
-                          foregroundColor: YamiTheme.bgDeep,
-                          elevation: 8,
-                          shadowColor: YamiTheme.accentActive.withValues(
-                            alpha: 0.4,
+                      height: 54,
+                      child: GestureDetector(
+                        onTap: _isGeneratingKeys ? null : _onEnter,
+                        child: Container(
+                          decoration: YamiTheme.tactileDecoration(
+                            backgroundColor: YamiTheme.accentActive,
+                            borderColor: YamiTheme.borderMetallic,
+                            raised: true,
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: _isGeneratingKeys ? null : _onEnter,
-                        child: _isGeneratingKeys 
-                          ? const SizedBox(
-                              width: 20, height: 20, 
-                              child: YamiTactileLoader(size: 24, activeColor: YamiTheme.accentActive),
-                            )
-                          : Text(
-                          'INITIALIZE CONNECTION',
-                          style: YamiTheme.bodyStyle.copyWith(
-                            color: YamiTheme.bgDeep,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
+                          child: Center(
+                            child: _isGeneratingKeys 
+                              ? const YamiTactileLoader(size: 24, activeColor: YamiTheme.bgDeep)
+                              : Text(
+                                  'INITIALIZE SYSTEM',
+                                  style: YamiTheme.monoStyle.copyWith(
+                                    color: YamiTheme.bgDeep,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2.0,
+                                    fontSize: 13,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
-                          Icons.security,
-                          size: 14,
+                          Icons.shield,
+                          size: 12,
                           color: YamiTheme.textMuted,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Fully offline. Zero trace left behind.',
-                          style: YamiTheme.captionStyle,
+                          'FULLY OFFLINE. ZERO TRACE.',
+                          style: YamiTheme.monoStyle.copyWith(
+                            color: YamiTheme.textMuted,
+                            fontSize: 9,
+                            letterSpacing: 1.0,
+                          ),
                         ),
                       ],
                     ),

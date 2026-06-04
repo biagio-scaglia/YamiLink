@@ -187,7 +187,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                     simulation.startScanning();
                   }
                 },
-                tooltip: isScanning ? 'Metti in pausa' : 'Attiva scansione',
+                tooltip: isScanning ? 'Pause beacon' : 'Activate beacon',
               ),
               const SizedBox(width: 8),
             ],
@@ -762,7 +762,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                '${currentPeer.alias} non è più silenziato',
+                                '${currentPeer.alias} is no longer muted',
                               ),
                               backgroundColor: YamiTheme.accentSecure,
                             ),
@@ -790,7 +790,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          'Peer silenziato per 10 secondi',
+                                          'Peer muted for 10 seconds',
                                         ),
                                         backgroundColor: YamiTheme.accentWarning,
                                       ),
@@ -812,7 +812,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          'Peer silenziato per 30 secondi',
+                                          'Peer muted for 30 seconds',
                                         ),
                                         backgroundColor: YamiTheme.accentWarning,
                                       ),
@@ -834,7 +834,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          'Peer silenziato per 1 minuto',
+                                          'Peer muted for 1 minute',
                                         ),
                                         backgroundColor: YamiTheme.accentWarning,
                                       ),

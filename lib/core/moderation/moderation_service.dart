@@ -129,7 +129,7 @@ class ModerationService {
         riskScore: 0.0,
         severity: ModerationSeverity.warning,
         action: ModerationAction.hide,
-        explanation: 'Messaggio nascosto: il mittente è silenziato.',
+        explanation: 'Message hidden: sender is muted.',
         shouldHide: true,
         requiresTapToReveal: true,
         shouldBlockSend: false,
