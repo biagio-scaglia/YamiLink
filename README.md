@@ -4,28 +4,97 @@ YamiLink è un'applicazione di comunicazione locale e decentralizzata progettata
 
 ---
 
-## Posizionamento del Prodotto
+## Architettura di Rete e di Sistema
+
+YamiLink è costruito su un'architettura ibrida a tre strati (Tri-Layer) per garantire prestazioni massime su ogni piattaforma.
+
+```mermaid
+graph TD
+    subgraph Livello Applicazione (Dart/Flutter)
+        UI[User Interface & Widget]
+        State[App State & Session Manager]
+        Crypto[Gestione Chiavi Ed25519 e AES-GCM]
+    end
+
+    subgraph Livello Servizi di Piattaforma (Kotlin/Java)
+        Lock[WifiManager.MulticastLock]
+        OS_Settings[Permessi e Configurazione OS]
+    end
+
+    subgraph Livello Core Nativo (C/FFI)
+        Sockets[Socket UDP 0.0.0.0:42142]
+        Parser[Validazione raw bytes]
+        Buffer[Memory Heap Management]
+    end
+
+    UI <--> State
+    State <--> Crypto
+    State -- MethodChannel --> Lock
+    State -- FFI (Zero-Copy) --> Sockets
+    Sockets --> Parser
+    Parser --> Buffer
+```
+
+### Posizionamento del Prodotto
 
 * **Definizione:** Un livello sociale locale che esiste unicamente laddove si trova l'utente.
 * **Promessa Fondamentale:** Identificare i nodi limitrofi, stabilire canali di comunicazione locale, non memorizzare alcuna informazione permanente.
 * **Tono del Progetto:** Minimale, orientato alla sicurezza e alla privacy, improntato ad uno stile cyberpunk pulito e funzionale.
 * **Ambito Tecnico:** Scoperta dei nodi a n-hop (mesh epidemico), profili effimeri PKI, comunicazioni broadcast locali, abbinamento sicuro delle chiavi crittografiche dei peer (ECDH) e diagnostica di telemetria a basso livello.
-* **Target Tecnologico:** Core nativo in C interfacciato tramite FFI a logica Dart. Target principali sono Windows Desktop e Android (NDK/CMake).
+* **Target Tecnologico:** Core nativo in C interfacciato tramite FFI a logica Dart. Implementazione nativa Kotlin per MulticastLock su Android.
 
 ---
 
-## Funzionalità Principali
+## Flusso di Comunicazione e Sicurezza
 
-### 1. Mesh Routing Epidemico (Store-and-Forward)
-I messaggi broadcast e i Direct Message (selezionati e sicuri) vengono ritrasmessi dai nodi della rete adiacenti incrementando il contatore degli hop (`hopCount`). 
-Il sistema implementa una cache di deduplica `_processedMessageKeys` nel `SessionManager` che scarta i messaggi già ritrasmessi o processati per prevenire loop infiniti o broadcast storm a livello di Mesh. I frame mantengono traccia della loro vita nella rete, garantendo che i messaggi possano superare la distanza di singolo hop se i nodi intermedi offrono ritrasmissione.
+La vulnerabilità classica delle reti ad-hoc (Spoofing dell'identità) è mitigata tramite una **Public Key Infrastructure (PKI) effimera**. 
 
-### 2. Identità Crittografica (Ed25519 PKI)
-La vulnerabilità classica delle reti ad-hoc (Spoofing dell'identità) è mitigata tramite una **Public Key Infrastructure (PKI) effimera**.
-Alla creazione del profilo, ogni nodo genera una coppia di chiavi asimmetriche Ed25519. L'identificativo del nodo (`senderId`) sulla rete corrisponde all'hash della chiave pubblica. Ogni pacchetto (`Frame`) inviato sulla rete include una firma crittografica generata con la chiave privata. I nodi riceventi verificano la firma prima di elaborare i dati.
+Ecco come i nodi si scoprono e stabiliscono un canale sicuro:
 
-### 3. Accoppiamento Crittografico Reale (Trust Pairing - V2)
-I nodi avviano uno scambio reale di chiavi crittografiche (scambio effimero X25519) tramite pacchetti `HELLO`. Completato lo scambio, i due nodi derivano un segreto condiviso univoco (Shared Secret). Questo segreto viene impiegato per stabilire canali sicuri End-to-End, cifrando i payload privati in **AES-GCM a 256 bit**, rendendoli totalmente inleggibili ai relay intermedi (hop intermedi) della rete mesh.
+```mermaid
+sequenceDiagram
+    participant Peer A (Alice)
+    participant Rete Locale (UDP)
+    participant Peer B (Bob)
+
+    Note over Peer A: Genera PKI (Ed25519)
+    Note over Peer B: Genera PKI (Ed25519)
+
+    Peer A->>Rete Locale (UDP): Broadcast BEACON (In chiaro, firmato)
+    Rete Locale (UDP)->>Peer B: Riceve BEACON
+    Note over Peer B: Verifica Firma Ed25519
+    Peer B->>Peer A: HELLO / Exchange ECDH Keys (Direct Msg)
+    Peer A->>Peer B: ACK / Shared Secret Derivato
+
+    Note over Peer A, Peer B: Entrambi calcolano AES-GCM Shared Secret
+
+    Peer A->>Rete Locale (UDP): Invia Messaggio Privato (AES-GCM Cifrato)
+    Rete Locale (UDP)->>Peer B: Riceve Messaggio Privato
+    Note over Peer B: Decifra AES-GCM con Shared Secret
+```
+
+### 1. Identità Crittografica
+Alla creazione del profilo, ogni nodo genera una coppia di chiavi asimmetriche Ed25519. L'identificativo del nodo (`senderId`) sulla rete corrisponde all'hash della chiave pubblica. Ogni pacchetto inviato sulla rete include una firma crittografica generata con la chiave privata. 
+
+### 2. Accoppiamento Crittografico Reale (Trust Pairing - V2)
+I nodi avviano uno scambio reale di chiavi crittografiche (scambio effimero X25519). Il segreto condiviso (Shared Secret) viene impiegato per stabilire canali sicuri End-to-End cifrando i payload privati in **AES-GCM a 256 bit**, rendendoli totalmente inleggibili ai relay intermedi della rete mesh.
+
+---
+
+## Mesh Routing Epidemico (Store-and-Forward)
+
+I messaggi broadcast e i Direct Message vengono ritrasmessi dai nodi della rete adiacenti incrementando il contatore degli hop (`hopCount`). 
+
+```mermaid
+graph LR
+    A[Nodo A (Mittente)] -->|Hop 1| B(Nodo B - Relay)
+    A -->|Hop 1| C(Nodo C - Relay)
+    B -->|Hop 2| D[Nodo D (Destinatario Lontano)]
+    C -->|Hop 2| D
+    D -->|Scarta Duplicato| D
+```
+
+Il sistema implementa una cache di deduplica `_processedMessageKeys` nel `SessionManager` che scarta i messaggi già ritrasmessi o processati per prevenire loop infiniti o broadcast storm a livello di Mesh. 
 
 ---
 
@@ -48,7 +117,7 @@ Un Frame YML2 consiste in un **Header Fisso di 178 byte**, un **Payload Dinamico
 | RECIPIENT_ID | 112 | 64 | char[64] | Chiave destinatario o asterisco (`*`) padding. |
 | PAYLOAD_LEN | 176 | 2 | uint16_t | Lunghezza del payload dati (Max 2800 bytes). |
 | PAYLOAD_BODY | 178 | [PAYLOAD_LEN] | uint8_t[] | Dati in chiaro o crittografati in AES-GCM. |
-| SIGNATURE | 178 + LEN | 64 | uint8_t[64] | Firma Ed25519 dei primi 178+LEN byte (meno hop count). |
+| SIGNATURE | 178+LEN | 64 | uint8_t[64] | Firma Ed25519 dei primi 178+LEN byte (meno hop count). |
 
 ---
 
@@ -56,12 +125,9 @@ Un Frame YML2 consiste in un **Header Fisso di 178 byte**, un **Payload Dinamico
 
 Per proteggere l'applicazione da attacchi Denial of Service (DoS), tampering e replay, YamiLink integra **TeslaEngine**, un firewall applicativo C-Native/Dart che ispeziona i pacchetti.
 
-### Funzioni di Difesa (Tesla Engine)
-
-1. **Protezione Boundary FFI (PacketValidator):** I byte raw allocati in C vengono validati in dimensione (max 4096 bytes) e verificati contro versioni non consentite (solo version 2 ammesse) prima che raggiungano il motore Dart, prevenendo flood.
-2. **Prevenzione Peer Spoofing (SpoofGuard):** Elabora la `SIGNATURE` Ed25519. Se la firma non corrisponde al frame (o se il `senderId` è stato rubato e sostituito), la drop è istantanea.
+1. **Protezione Boundary FFI (PacketValidator):** I byte raw allocati in C vengono validati in dimensione e verificati contro versioni non consentite (solo version 2) prima che raggiungano il motore Dart.
+2. **Prevenzione Peer Spoofing (SpoofGuard):** Elabora la `SIGNATURE` Ed25519. Se la firma non corrisponde al frame, la drop è istantanea.
 3. **Difesa Anti-Replay (ReplayGuard):** Implementa una *sliding window* rigorosa di 60 secondi che ispeziona `(senderId, messageId)` e timestamp limitando lo *spam duplicate*.
-4. **Resilienza al Tampering:** A causa della serializzazione binaria strutturata, i malformed packet o input boundary test che superano le lunghezze definite innalzano eccezioni silenziose senza impattare lo stack.
 
 ---
 
@@ -69,8 +135,7 @@ Per proteggere l'applicazione da attacchi Denial of Service (DoS), tampering e r
 
 Dato che la rete sottostante (UDP) non garantisce la consegna, YamiLink implementa un sistema logico a Livello Applicativo per garantire certezza dell'invio:
 1. **Trasmissione e Timeout:** Un DM viene marcato come `sending` nella UI. Un timer interno controlla la ricezione di una risposta.
-2. **ACK Automatici:** Il destinatario di un DM valido emette automaticamente (e in forma sicura firmata) un Frame `ACK`.
-3. **Deduplicazione Mesh:** Siccome un pacchetto potrebbe arrivare due volte da due nodi relay diversi, il `SessionManager` blocca i duplicati visivi, ma la rete mesh permette all'ACK di ritornare indietro attraverso i vari hop (percorso inverso).
+2. **ACK Automatici:** Il destinatario di un DM valido emette automaticamente un Frame `ACK`.
 
 ---
 
@@ -82,17 +147,17 @@ yamilink/
 │   ├── core/
 │   │   ├── moderation/      # Motore semantico di local-filtering e antispam
 │   │   ├── protocol/        # Formato binario YML2 (Serializzazione Frame)
-│   │   ├── security/        # Motore Tesla (SpoofGuard, ReplayGuard, PacketValidator)
-│   │   ├── state/           # Mantenimento stato, code ritrasmissioni e profili peer
-│   │   └── transport/       # Bridge verso strato C per socket
+│   │   ├── security/        # Motore Tesla (SpoofGuard, ReplayGuard)
+│   │   ├── state/           # Mantenimento stato e profili peer
+│   │   └── transport/       # Bridge verso strato C e Kotlin (MulticastManager)
 │   ├── repository/          # YamiLinkRepository - Controller orchestratore E2EE
 │   ├── ui/                  # Componentistica grafica e schermate applicative
-│   └── models.dart          # Modelli dati principali (Profilo Effimero, Messaggi)
+│   └── models.dart          # Modelli dati principali
 ├── native_core/
 │   ├── yamilink_core.c      # Logica nativa FFI, UDP e Memory Mapping binario
 │   └── yamilink_core.h      # C Struct Header per YML2
 ├── android/
-│   └── app/CMakeLists.txt   # Setup NDK per compilazione native_core su Android
+│   └── app/src/main/kotlin/ # Layer nativo per lock Wifi Multicast
 └── test/                    # Suite di penetrazione, stress, e fuzzing binario
 ```
 
@@ -101,12 +166,10 @@ yamilink/
 ## Istruzioni per lo Sviluppo e l'Esecuzione
 
 ### Prerequisiti
-
 * SDK Flutter (Dart 3.x)
 * Compilatore C++ / C (MSVC su Windows o NDK per Android)
 
 ### Configurazione
-
 1. Clona il repository e scarica le dipendenze:
    ```bash
    git clone <repo-url>
@@ -123,6 +186,5 @@ yamilink/
 3. Avvia l'applicazione:
    ```bash
    flutter run -d windows
-   # oppure per Android
    flutter run -d android
    ```
