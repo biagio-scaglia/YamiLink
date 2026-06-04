@@ -24,9 +24,8 @@ void main() {
         timestamp: frame.timestamp,
         flags: frame.flags,
         hopCount: frame.hopCount,
-        payloadType: frame.payloadType,
-        payloadBody: frame.payloadBody,
-        signature: base64.encode(signature.bytes),
+        payloadBytes: frame.payloadBytes,
+        signature: Uint8List.fromList(signature.bytes),
       );
     }
 
@@ -36,49 +35,40 @@ void main() {
     });
 
     group('TeslaPacketValidator Tests', () {
-      test('Valid YML1 frame should pass raw inspection', () {
-        final raw = Uint8List.fromList('YML1:RM:1234:*:1234:1:1234:0:1:text:hello'.codeUnits);
+      test('Valid YML2 frame should pass raw inspection', () {
+        final frame = Frame(
+          type: FrameType.roomMsg,
+          senderId: 'A' * 64,
+          recipientId: '*',
+          sessionId: '1234',
+          messageId: 1,
+          timestamp: 1234,
+          payloadBytes: utf8.encode('hello'),
+        );
+        final raw = frame.serialize(withSignature: false);
         final decision = engine.inspectRawPacket('hash1', raw);
         expect(decision, TeslaDecision.allow);
       });
 
-      test('Frame without YML1 signature should be dropped', () {
+      test('Frame without YML2 signature (version != 2) should be dropped', () {
         final raw = Uint8List.fromList('JSON:{"id": 1}'.codeUnits);
         final decision = engine.inspectRawPacket('hash1', raw);
         expect(decision, TeslaDecision.drop);
       });
 
-      test('Corrupted signature should be dropped', () {
-        final raw = Uint8List.fromList('YMX1:RM:...'.codeUnits);
-        final decision = engine.inspectRawPacket('hash1', raw);
-        expect(decision, TeslaDecision.drop);
-      });
-
-      test('Oversized frames should be dropped before UTF-8 decoding', () {
-        final oversized = Uint8List(2049);
-        final sig = 'YML1:'.codeUnits;
-        for (int i = 0; i < sig.length; i++) {
-          oversized[i] = sig[i];
-        }
-
+      test('Oversized frames should be dropped before decoding', () {
+        final oversized = Uint8List(5000); // larger than maxPacketSize (4096)
+        oversized[0] = 2; // Valid version
+        
         final decision = engine.inspectRawPacket('hash1', oversized);
         expect(decision, TeslaDecision.drop);
       });
 
       test('Frame exactly at limit should pass if valid', () {
-        final exact = Uint8List(2048);
-        final sig = 'YML1:'.codeUnits;
-        for (int i = 0; i < sig.length; i++) {
-          exact[i] = sig[i];
-        }
+        final exact = Uint8List(4096);
+        exact[0] = 2; // version 2
 
         final decision = engine.inspectRawPacket('hash1', exact);
-        expect(decision, TeslaDecision.allow);
-      });
-
-      test('Frame with non-UTF8 bytes should pass raw validator (dropped later in parser)', () {
-        final badBytes = Uint8List.fromList([89, 77, 76, 49, 58, 255, 254, 253]);
-        final decision = engine.inspectRawPacket('hash1', badBytes);
         expect(decision, TeslaDecision.allow);
       });
     });
@@ -96,8 +86,7 @@ void main() {
           timestamp: DateTime.now().millisecondsSinceEpoch,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hello',
+          payloadBytes: utf8.encode('hello'),
         );
 
         final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
@@ -119,8 +108,7 @@ void main() {
           timestamp: DateTime.now().millisecondsSinceEpoch,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'imposter!',
+          payloadBytes: utf8.encode('imposter!'),
         );
 
         // Attacker signs it with their own key, but senderId is alice's pub key
@@ -142,8 +130,7 @@ void main() {
           timestamp: DateTime.now().millisecondsSinceEpoch,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hi',
+          payloadBytes: utf8.encode('hi'),
         );
 
         final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
@@ -162,8 +149,7 @@ void main() {
           timestamp: DateTime.now().millisecondsSinceEpoch,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hi',
+          payloadBytes: utf8.encode('hi'),
         );
 
         final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
@@ -187,8 +173,7 @@ void main() {
           timestamp: oldTime,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hi',
+          payloadBytes: utf8.encode('hi'),
         );
 
         final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);
@@ -208,8 +193,7 @@ void main() {
           timestamp: futureTime,
           flags: 0,
           hopCount: 1,
-          payloadType: 'text',
-          payloadBody: 'hi',
+          payloadBytes: utf8.encode('hi'),
         );
 
         final signedFrame = await signTestFrame(frame, profile.identityKeyPair!);

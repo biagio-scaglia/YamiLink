@@ -91,7 +91,7 @@ class YamiLinkRepository extends ChangeNotifier {
       localNodeId: profile.id,
       onChanged: notifyListeners,
       onRetransmit: (Frame frame) {
-        final frameBytes = utf8.encode(frame.serialize());
+        final frameBytes = frame.serialize();
         _messageTransport.sendDirect(frame.recipientId, frameBytes);
         _packetsProcessed++;
       },
@@ -106,15 +106,8 @@ class YamiLinkRepository extends ChangeNotifier {
       final rawDecision = TeslaEngine.instance.inspectRawPacket(senderHash, packetBytes);
       if (rawDecision == TeslaDecision.drop) return;
 
-      String rawText;
       try {
-        rawText = utf8.decode(packetBytes, allowMalformed: false);
-      } catch (e) {
-        return; // Non-UTF8 packet dropped after raw checks
-      }
-
-      try {
-        final frame = Frame.deserialize(rawText);
+        final frame = Frame.fromBytes(packetBytes);
 
         final frameDecision = await TeslaEngine.instance.inspectParsedFrame(frame, senderHash);
         if (frameDecision == TeslaDecision.drop) return;
@@ -179,12 +172,11 @@ class YamiLinkRepository extends ChangeNotifier {
               timestamp: frame.timestamp,
               flags: frame.flags,
               hopCount: frame.hopCount + 1,
-              payloadType: frame.payloadType,
-              payloadBody: frame.payloadBody,
+              payloadBytes: frame.payloadBytes,
               signature: frame.signature,
             );
 
-            final relayedBytes = utf8.encode(relayedFrame.serialize());
+            final relayedBytes = relayedFrame.serialize();
             if (relayedFrame.recipientId == '*') {
               _messageTransport.sendBroadcast(relayedBytes);
             } else {
@@ -205,11 +197,11 @@ class YamiLinkRepository extends ChangeNotifier {
 
           if (frame.type == FrameType.roomMsg ||
               frame.type == FrameType.directMsg) {
-            if (frame.type == FrameType.directMsg && frame.payloadType == 'crypto/aes') {
+            if (frame.type == FrameType.directMsg && (frame.flags & 1) != 0) {
               final sharedKey = _peerManager.getSharedKey(frame.senderId);
               if (sharedKey != null) {
                 try {
-                  final encryptedBytes = base64.decode(frame.payloadBody);
+                  final encryptedBytes = frame.payloadBytes;
                   // IV is first 12 bytes
                   final iv = encryptedBytes.sublist(0, 12);
                   final cipherText = encryptedBytes.sublist(12);
@@ -260,7 +252,7 @@ class YamiLinkRepository extends ChangeNotifier {
               break;
             }
           }
-          final processedFrame = (frame.type == FrameType.directMsg && frame.payloadType == 'crypto/aes')
+          final processedFrame = (frame.type == FrameType.directMsg && (frame.flags & 1) != 0)
               ? Frame(
                   version: frame.version,
                   type: frame.type,
@@ -269,10 +261,9 @@ class YamiLinkRepository extends ChangeNotifier {
                   sessionId: frame.sessionId,
                   messageId: frame.messageId,
                   timestamp: frame.timestamp,
-                  flags: frame.flags,
+                  flags: frame.flags & ~1, // clear encrypted flag
                   hopCount: frame.hopCount,
-                  payloadType: 'text',
-                  payloadBody: decryptedPayload,
+                  payloadBytes: utf8.encode(decryptedPayload),
                   signature: frame.signature,
                 )
               : frame;
@@ -388,11 +379,11 @@ class YamiLinkRepository extends ChangeNotifier {
       sessionId: _sessionId,
       messageId: _nextMessageId++,
       timestamp: DateTime.now().millisecondsSinceEpoch,
-      payloadBody: content,
+      payloadBytes: utf8.encode(content),
     );
 
     final signedFrame = await _signFrame(frame);
-    final frameBytes = utf8.encode(signedFrame.serialize());
+    final frameBytes = signedFrame.serialize();
     _messageTransport.sendBroadcast(frameBytes);
     logDiagnostic('DBG: Sent room broadcast: [${content.length} chars]');
 
@@ -433,13 +424,13 @@ class YamiLinkRepository extends ChangeNotifier {
       return decision;
     }
 
-    String finalPayload = content;
-    String finalPayloadType = 'text';
+    Uint8List finalPayload = utf8.encode(content);
+    int finalFlags = 0;
 
     final sharedKey = _peerManager.getSharedKey(peerId);
     if (sharedKey != null) {
       try {
-        final clearBytes = utf8.encode(content);
+        final clearBytes = finalPayload;
         final nonce = _aesGcm.newNonce();
         final secretBox = await _aesGcm.encrypt(
           clearBytes,
@@ -447,8 +438,8 @@ class YamiLinkRepository extends ChangeNotifier {
           nonce: nonce,
         );
         final encryptedBytes = <int>[...nonce, ...secretBox.cipherText, ...secretBox.mac.bytes];
-        finalPayload = base64.encode(encryptedBytes);
-        finalPayloadType = 'crypto/aes';
+        finalPayload = Uint8List.fromList(encryptedBytes);
+        finalFlags |= 1; // FLAG_ENCRYPTED
         logDiagnostic('SEC: Encrypted direct message for $peerId');
       } catch (e) {
         logDiagnostic('SEC: Failed to encrypt message for $peerId: $e');
@@ -462,12 +453,12 @@ class YamiLinkRepository extends ChangeNotifier {
       sessionId: _sessionId,
       messageId: _nextMessageId++,
       timestamp: DateTime.now().millisecondsSinceEpoch,
-      payloadType: finalPayloadType,
-      payloadBody: finalPayload,
+      flags: finalFlags,
+      payloadBytes: finalPayload,
     );
 
     final signedFrame = await _signFrame(frame);
-    final frameBytes = utf8.encode(signedFrame.serialize());
+    final frameBytes = signedFrame.serialize();
     _messageTransport.sendDirect(peerId, frameBytes);
     logDiagnostic(
       'DBG: Sent direct message to peer $peerId: [${content.length} chars]',
@@ -595,9 +586,8 @@ class YamiLinkRepository extends ChangeNotifier {
       timestamp: frame.timestamp,
       flags: frame.flags,
       hopCount: frame.hopCount,
-      payloadType: frame.payloadType,
-      payloadBody: frame.payloadBody,
-      signature: base64.encode(signature.bytes),
+      payloadBytes: frame.payloadBytes,
+      signature: Uint8List.fromList(signature.bytes),
     );
   }
 
@@ -605,8 +595,6 @@ class YamiLinkRepository extends ChangeNotifier {
     if (_localKeyPair == null) return;
     try {
       final publicKey = await _localKeyPair!.extractPublicKey();
-      final pkBase64 = base64.encode(publicKey.bytes);
-
       final frame = Frame(
         type: FrameType.hello,
         senderId: profile.id,
@@ -614,22 +602,21 @@ class YamiLinkRepository extends ChangeNotifier {
         sessionId: _sessionId,
         messageId: _nextMessageId++,
         timestamp: DateTime.now().millisecondsSinceEpoch,
-        payloadBody: pkBase64,
+        payloadBytes: Uint8List.fromList(publicKey.bytes),
       );
 
       final signedFrame = await _signFrame(frame);
-      final frameBytes = utf8.encode(signedFrame.serialize());
+      final frameBytes = signedFrame.serialize();
       _messageTransport.sendDirect(peerId, frameBytes);
-      logDiagnostic('SEC: Initiated Diffie-Hellman pairing with \$peerId');
+      logDiagnostic('SEC: Initiated Diffie-Hellman pairing with $peerId');
     } catch (e) {
       logDiagnostic('SEC: Error initiating pairing with \$peerId: \$e');
     }
   }
 
   Future<void> _handleHello(Frame frame) async {
-    if (_localKeyPair == null) return;
     try {
-      final remotePkBytes = base64.decode(frame.payloadBody);
+      final remotePkBytes = frame.payloadBytes;
       final remotePk = SimplePublicKey(remotePkBytes, type: KeyPairType.x25519);
 
       final sharedSecret = await _x25519.sharedSecretKey(
@@ -645,16 +632,16 @@ class YamiLinkRepository extends ChangeNotifier {
       final wasPaired = _peerManager.isPaired(frame.senderId);
       _peerManager.setPaired(frame.senderId);
 
-      logDiagnostic('SEC: ECDH pairing complete with \${frame.senderId}');
+      logDiagnostic('SEC: ECDH pairing complete with ${frame.senderId}');
 
       // If we weren't paired yet, reply with our own HELLO
       if (!wasPaired) {
-        logDiagnostic('SEC: Replying to HELLO from \${frame.senderId}');
+        logDiagnostic('SEC: Replying to HELLO from ${frame.senderId}');
         await initiatePairing(frame.senderId);
       }
       notifyListeners();
     } catch (e) {
-      logDiagnostic('SEC: ECDH pairing failed with \${frame.senderId}: \$e');
+      logDiagnostic('SEC: ECDH pairing failed with ${frame.senderId}: $e');
     }
   }
 }

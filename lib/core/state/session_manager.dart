@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import '../../models.dart';
 import '../protocol/frame.dart';
 
@@ -197,6 +198,7 @@ class SessionManager {
 
       case FrameType.beacon:
       case FrameType.hello:
+      case FrameType.helloAck:
       case FrameType.goodbye:
       case FrameType.error:
         break;
@@ -211,7 +213,7 @@ class SessionManager {
       sessionId: frame.sessionId,
       messageId: frame.messageId,
       timestamp: DateTime.now().millisecondsSinceEpoch,
-      payloadBody: '',
+      payloadBytes: Uint8List(0),
     );
     _onRetransmit(ackFrame);
   }

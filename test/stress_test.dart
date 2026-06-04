@@ -96,11 +96,32 @@ void main() {
       
       for (int i = 0; i < 10000; i++) {
         final time = DateTime.now().millisecondsSinceEpoch;
-        final rawStrBeforeSig = 'YML1:RM:${senderProfile.id}:*:sess_1:$i:$time:0:1:text:$base64Payload';
-        final signature = await ed25519.sign(utf8.encode(rawStrBeforeSig), keyPair: senderProfile.identityKeyPair!);
-        final rawStr = '$rawStrBeforeSig:${base64.encode(signature.bytes)}';
+        final frame = Frame(
+          type: FrameType.roomMsg,
+          senderId: senderProfile.id,
+          recipientId: '*',
+          sessionId: 'sess_1',
+          messageId: i,
+          timestamp: time,
+          payloadBytes: utf8.encode('Stress testing payload'),
+        );
         
-        final rawBytes = Uint8List.fromList(utf8.encode(rawStr));
+        final signature = await ed25519.sign(frame.signableBytes, keyPair: senderProfile.identityKeyPair!);
+        final signedFrame = Frame(
+          version: frame.version,
+          type: frame.type,
+          senderId: frame.senderId,
+          recipientId: frame.recipientId,
+          sessionId: frame.sessionId,
+          messageId: frame.messageId,
+          timestamp: frame.timestamp,
+          flags: frame.flags,
+          hopCount: frame.hopCount,
+          payloadBytes: frame.payloadBytes,
+          signature: Uint8List.fromList(signature.bytes),
+        );
+        
+        final rawBytes = signedFrame.serialize();
 
         // Inject directly into the transport's simulated receive
         mockTransport.simulateReceive('peer_sender_1_hash', rawBytes);

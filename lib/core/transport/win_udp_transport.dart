@@ -3,8 +3,7 @@ import '../../ffi_bridge.dart';
 import 'transport_interface.dart';
 
 class WinUdpTransport implements DiscoveryTransport, MessageTransport {
-  void Function(String nodeHash, String alias, int seed, double rssi)?
-  _onPeerFound;
+  void Function(String senderHash, String senderAlias, int seed, double rssi)? _onPeerFound;
   void Function(String senderHash, Uint8List packetBytes)? _onDataReceived;
   bool _isScanning = false;
 
@@ -33,13 +32,13 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
 
   @override
   Future<bool> sendBroadcast(Uint8List packetBytes) async {
-    final res = YamiLinkFfiBridge.instance.send(null, packetBytes);
+    final res = YamiLinkFfiBridge.instance.send(packetBytes);
     return res == 0;
   }
 
   @override
   Future<bool> sendDirect(String recipientHash, Uint8List packetBytes) async {
-    final res = YamiLinkFfiBridge.instance.send(recipientHash, packetBytes);
+    final res = YamiLinkFfiBridge.instance.send(packetBytes);
     return res == 0;
   }
 
@@ -60,15 +59,15 @@ class WinUdpTransport implements DiscoveryTransport, MessageTransport {
     String senderHash,
     String senderAlias,
     int seed,
-    Uint8List payload,
+    Uint8List packetBytes,
     double signal,
   ) {
     if (!_isScanning) return;
 
     if (eventType == 0) {
       _onPeerFound?.call(senderHash, senderAlias, seed, signal);
-    } else if (eventType == 1) {
-      _onDataReceived?.call(senderHash, payload);
+    } else if (eventType == 1 && packetBytes.isNotEmpty) {
+      _onDataReceived?.call(senderHash, packetBytes);
     }
   }
 }

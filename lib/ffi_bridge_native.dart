@@ -3,6 +3,41 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 
+final class YML2PacketFFI extends Struct {
+  @Uint8()
+  external int version;
+
+  @Uint8()
+  external int type;
+
+  @Array(64)
+  external Array<Uint8> senderId;
+
+  @Array(64)
+  external Array<Uint8> recipientId;
+
+  @Array(32)
+  external Array<Uint8> sessionId;
+
+  @Uint32()
+  external int messageId;
+
+  @Uint64()
+  external int timestamp;
+
+  @Uint8()
+  external int flags;
+
+  @Uint8()
+  external int hopCount;
+
+  @Uint16()
+  external int payloadLen;
+
+  external Pointer<Uint8> payload;
+  external Pointer<Uint8> signature;
+}
+
 final class YamiLinkEvent extends Struct {
   @Uint8()
   external int eventType;
@@ -13,10 +48,7 @@ final class YamiLinkEvent extends Struct {
   @Uint32()
   external int avatarSeed;
 
-  external Pointer<Uint8> payload;
-
-  @Uint32()
-  external int payloadLen;
+  external Pointer<YML2PacketFFI> packet;
 
   @Float()
   external double signalRssi;
@@ -39,12 +71,11 @@ typedef DartStartFunc =
 
 typedef CSendFunc =
     Int32 Function(
-      Pointer<Utf8> recipientHash,
       Pointer<Uint8> data,
       Uint32 length,
     );
 typedef DartSendFunc =
-    int Function(Pointer<Utf8> recipientHash, Pointer<Uint8> data, int length);
+    int Function(Pointer<Uint8> data, int length);
 
 typedef CStopFunc = Int32 Function();
 typedef DartStopFunc = int Function();
@@ -67,7 +98,7 @@ class YamiLinkFfiBridge {
     String senderHash,
     String senderAlias,
     int seed,
-    Uint8List payload,
+    Uint8List packetBytes,
     double signal,
   )?
   onEvent;
@@ -141,23 +172,22 @@ class YamiLinkFfiBridge {
       }
 
       final avatarSeed = event.avatarSeed;
-      final len = event.payloadLen;
       final signal = event.signalRssi;
 
-      // Boundary Hardening: Cap payload length to prevent memory exhaustion
-      final safeLen = len > 2048 ? 2048 : len;
-
-      Uint8List payloadBytes = Uint8List(0);
-      if (safeLen > 0 && event.payload != nullptr) {
+      Uint8List packetBytes = Uint8List(0);
+      if (event.packet != nullptr) {
         try {
-          final list = event.payload.asTypedList(safeLen);
-          payloadBytes = Uint8List.fromList(list);
+          final totalLen = 178 + event.packet.ref.payloadLen + 64; // 178 header + payload + 64 sig
+          // Cap to prevent memory leaks if payloadLen is malformed
+          final safeLen = totalLen > 4096 ? 4096 : totalLen;
+          final list = event.packet.cast<Uint8>().asTypedList(safeLen);
+          packetBytes = Uint8List.fromList(list);
         } catch (_) {
           return;
         }
       }
 
-      onEvent?.call(type, hash, senderAlias, avatarSeed, payloadBytes, signal);
+      onEvent?.call(type, hash, senderAlias, avatarSeed, packetBytes, signal);
     });
 
     final aliasUtf8 = alias.toNativeUtf8();
@@ -172,12 +202,8 @@ class YamiLinkFfiBridge {
     }
   }
 
-  int send(String? recipientHash, Uint8List data) {
+  int send(Uint8List data) {
     if (!_isSupported || _yamilinkCoreSend == null) return -1;
-
-    final recipientUtf8 = recipientHash != null
-        ? recipientHash.toNativeUtf8()
-        : nullptr;
 
     final dataPtr = calloc<Uint8>(data.length);
     final dataPtrList = dataPtr.asTypedList(data.length);
@@ -185,12 +211,10 @@ class YamiLinkFfiBridge {
 
     try {
       return _yamilinkCoreSend!(
-        recipientUtf8,
         dataPtr.cast<Uint8>(),
         data.length,
       );
     } finally {
-      if (recipientUtf8 != nullptr) calloc.free(recipientUtf8);
       calloc.free(dataPtr);
     }
   }

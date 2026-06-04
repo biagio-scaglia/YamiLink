@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yamilink/core/protocol/frame.dart';
 
@@ -6,65 +8,62 @@ void main() {
     test('Successful serialization and deserialization of room message', () {
       final frame = Frame(
         type: FrameType.roomMsg,
-        senderId: 'sender_abc',
+        senderId: 'A' * 64, // 32 bytes hex
         recipientId: '*',
         sessionId: 'session_xyz',
         messageId: 42,
         timestamp: 1625000000000,
         flags: 1,
         hopCount: 2,
-        payloadType: 'text',
-        payloadBody: 'Hello Proximity Network!',
+        payloadBytes: utf8.encode('Hello Proximity Network!'),
       );
 
-      final serialized = frame.serialize();
+      final serialized = frame.serialize(withSignature: false);
       expect(serialized, isNotEmpty);
-      expect(serialized.startsWith('YML1:RM:'), isTrue);
+      expect(serialized[0], 2); // Version 2
 
-      final deserialized = Frame.deserialize(serialized);
-      expect(deserialized.version, 'YML1');
+      final deserialized = Frame.fromBytes(serialized);
+      expect(deserialized.version, 2);
       expect(deserialized.type, FrameType.roomMsg);
-      expect(deserialized.senderId, 'sender_abc');
+      expect(deserialized.senderId, 'A' * 64);
       expect(deserialized.recipientId, '*');
       expect(deserialized.sessionId, 'session_xyz');
       expect(deserialized.messageId, 42);
       expect(deserialized.timestamp, 1625000000000);
       expect(deserialized.flags, 1);
       expect(deserialized.hopCount, 2);
-      expect(deserialized.payloadType, 'text');
-      expect(deserialized.payloadBody, 'Hello Proximity Network!');
+      expect(utf8.decode(deserialized.payloadBytes), 'Hello Proximity Network!');
     });
 
     test('Successful serialization and deserialization of direct message', () {
       final frame = Frame(
         type: FrameType.directMsg,
-        senderId: 'node_1',
-        recipientId: 'node_2',
+        senderId: 'B' * 64,
+        recipientId: 'C' * 64,
         sessionId: 'sess_123',
         messageId: 999,
         timestamp: 1625000000100,
-        payloadBody: 'Secret DM',
+        payloadBytes: utf8.encode('Secret DM'),
       );
 
-      final serialized = frame.serialize();
-      final deserialized = Frame.deserialize(serialized);
+      final serialized = frame.serialize(withSignature: false);
+      final deserialized = Frame.fromBytes(serialized);
       expect(deserialized.type, FrameType.directMsg);
-      expect(deserialized.recipientId, 'node_2');
+      expect(deserialized.recipientId, 'C' * 64);
       expect(deserialized.hopCount, 1);
-      expect(deserialized.payloadBody, 'Secret DM');
+      expect(utf8.decode(deserialized.payloadBytes), 'Secret DM');
     });
 
     test('Throws FormatException on invalid frame data', () {
       expect(
-        () => Frame.deserialize('YML1:RM:short'),
+        () => Frame.fromBytes(Uint8List.fromList([1, 2, 3])),
         throwsA(isA<FormatException>()),
       );
+      
+      final wrongVersion = Uint8List(178);
+      wrongVersion[0] = 3;
       expect(
-        () => Frame.deserialize('YML1:RM:s:r:sess:1:1:0:t:body'),
-        throwsA(isA<FormatException>()),
-      );
-      expect(
-        () => Frame.deserialize('YML2:RM:s:r:sess:1:1:0:1:t:body'),
+        () => Frame.fromBytes(wrongVersion),
         throwsA(isA<FormatException>()),
       );
     });

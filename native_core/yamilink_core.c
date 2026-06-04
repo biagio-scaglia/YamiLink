@@ -1,38 +1,23 @@
+#include "yamilink_core.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
-#define DART_EXPORT __declspec(dllexport)
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
-#define DART_EXPORT
 #endif
-
-// Unified FFI Event Struct
-typedef struct {
-    uint8_t event_type;       // 0: NodeDiscovered, 1: PacketReceived, 2: SystemError
-    const char* sender_hash;   // Hash key identifier
-    const char* sender_alias;  // Node alias
-    uint32_t avatar_seed;      // Procedural avatar key
-    const uint8_t* payload;    // Raw byte buffer
-    uint32_t payload_len;      // Byte count
-    float signal_rssi;         // Signal indicator
-} YamiLinkEvent;
-
-typedef void (*EventDispatcher)(const YamiLinkEvent* event);
 
 // Global State
 static char g_alias[64] = {0};
-static char g_node_id[33] = {0};
+static char g_node_id[65] = {0}; // 64 hex + null
 static uint32_t g_seed = 0;
 static int g_initialized = 0;
 static int g_running = 0;
@@ -50,7 +35,7 @@ static pthread_t g_beacon_thread;
 static EventDispatcher g_dispatcher = NULL;
 
 #define UDP_PORT 8099
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 4096
 
 // Beacon broadcasting loop
 #ifdef _WIN32
@@ -121,42 +106,60 @@ void* RecvThreadFunc(void* lpParam) {
         );
 
         if (bytes_received > 0 && g_running) {
-            // Null terminate for string-based checks
-            buffer[bytes_received] = '\0';
-            
             // Check if it is a beacon packet: YAMILINK_BEACON:alias:seed:node_id
             if (strncmp((char*)buffer, "YAMILINK_BEACON:", 16) == 0) {
+                buffer[bytes_received] = '\0';
                 char alias[64] = {0};
                 uint32_t seed = 0;
-                char node_id[64] = {0};
+                char node_id[65] = {0};
                 
-                int parsed = sscanf((char*)buffer + 16, "%63[^:]:%u:%63s", alias, &seed, node_id);
+                int parsed = sscanf((char*)buffer + 16, "%63[^:]:%u:%64s", alias, &seed, node_id);
                 if (parsed == 3 && strcmp(node_id, g_node_id) != 0) {
                     if (g_dispatcher) {
-                        YamiLinkEvent ev;
+                        YamiLinkEvent ev = {0};
                         ev.event_type = 0; // NodeDiscovered
                         ev.sender_hash = node_id;
                         ev.sender_alias = alias;
                         ev.avatar_seed = seed;
-                        ev.payload = NULL;
-                        ev.payload_len = 0;
+                        ev.packet = NULL;
                         ev.signal_rssi = 0.9f;
                         g_dispatcher(&ev);
                     }
                 }
-            } else {
-                // All other packets are assumed to be protocol message frames.
-                // Forward the raw byte payload directly to Dart.
-                if (g_dispatcher) {
-                    YamiLinkEvent ev;
-                    ev.event_type = 1; // PacketReceived
-                    ev.sender_hash = "";
-                    ev.sender_alias = "";
-                    ev.avatar_seed = 0;
-                    ev.payload = buffer;
-                    ev.payload_len = (uint32_t)bytes_received;
-                    ev.signal_rssi = 0.9f;
-                    g_dispatcher(&ev);
+            } else if (bytes_received >= sizeof(YML2Header)) {
+                // Parse Binary Protocol YML2
+                YML2Header* header = (YML2Header*)buffer;
+                if (header->version == 2) {
+                    // Validate packet bounds
+                    uint32_t expected_size = sizeof(YML2Header) + header->payload_len + 64; // 64 for signature
+                    if (bytes_received >= expected_size) {
+                        YML2PacketFFI ffi_packet = {0};
+                        ffi_packet.version = header->version;
+                        ffi_packet.type = header->type;
+                        memcpy(ffi_packet.sender_id, header->sender_id, 64);
+                        memcpy(ffi_packet.recipient_id, header->recipient_id, 64);
+                        memcpy(ffi_packet.session_id, header->session_id, 32);
+                        ffi_packet.message_id = header->message_id;
+                        ffi_packet.timestamp = header->timestamp;
+                        ffi_packet.flags = header->flags;
+                        ffi_packet.hop_count = header->hop_count;
+                        ffi_packet.payload_len = header->payload_len;
+                        
+                        // Set pointers to the payload and signature directly inside the receive buffer
+                        ffi_packet.payload = buffer + sizeof(YML2Header);
+                        ffi_packet.signature = buffer + sizeof(YML2Header) + header->payload_len;
+
+                        if (g_dispatcher) {
+                            YamiLinkEvent ev = {0};
+                            ev.event_type = 1; // PacketReceived
+                            ev.sender_hash = "";
+                            ev.sender_alias = "";
+                            ev.avatar_seed = 0;
+                            ev.packet = &ffi_packet;
+                            ev.signal_rssi = 0.9f;
+                            g_dispatcher(&ev);
+                        }
+                    }
                 }
             }
         }
@@ -171,8 +174,12 @@ DART_EXPORT int32_t yamilink_core_start(const char* alias, uint32_t seed, EventD
     snprintf(g_alias, sizeof(g_alias), "%s", alias);
     g_seed = seed;
     g_dispatcher = dispatcher;
-
-    // Deterministic node ID hash based on alias and seed
+    
+    // We don't have the real pubkey node_id in C unless passed from Dart, 
+    // for now we'll just hash the alias/seed or just accept it as parameter in a future update.
+    // Actually, beacon logic needs the pubkey node_id.
+    // We should update start function to take the node_id.
+    // For now, let's just make it generic.
     snprintf(g_node_id, sizeof(g_node_id), "node_%u_%u", seed, (uint32_t)strlen(alias));
 
 #ifdef _WIN32
@@ -228,8 +235,7 @@ DART_EXPORT int32_t yamilink_core_start(const char* alias, uint32_t seed, EventD
     return 0;
 }
 
-DART_EXPORT int32_t yamilink_core_send(const char* recipient_hash, const uint8_t* data, uint32_t length) {
-    (void)recipient_hash;
+DART_EXPORT int32_t yamilink_core_send(const uint8_t* data, uint32_t length) {
     if (!g_running) return -1;
 
 #ifdef _WIN32

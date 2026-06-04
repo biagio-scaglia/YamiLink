@@ -41,7 +41,7 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 
 # Compile native YamiLink C core library
 add_library(yamilink_core SHARED
-  "../src/yamilink_core.c"
+  "../../native_core/yamilink_core.c"
 )
 apply_standard_settings(yamilink_core)
 target_compile_definitions(yamilink_core PRIVATE "_CRT_SECURE_NO_WARNINGS")

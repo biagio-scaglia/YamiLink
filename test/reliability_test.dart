@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yamilink/core/protocol/frame.dart';
 import 'package:yamilink/core/state/peer_manager.dart';
@@ -29,7 +31,7 @@ void main() {
           sessionId: 'sess_abc',
           messageId: 101,
           timestamp: DateTime.now().millisecondsSinceEpoch,
-          payloadBody: 'Hello, this is a private message.',
+          payloadBytes: utf8.encode('Hello, this is a private message.'),
         );
 
         sessionManager.processIncomingFrame(frame, 'Alice', 123);
@@ -69,7 +71,7 @@ void main() {
         sessionId: 'sess_abc',
         messageId: 202,
         timestamp: DateTime.now().millisecondsSinceEpoch,
-        payloadBody: 'Direct question?',
+        payloadBytes: utf8.encode('Direct question?'),
       );
 
       final message = Message(
@@ -95,7 +97,7 @@ void main() {
         sessionId: 'sess_abc',
         messageId: 202,
         timestamp: DateTime.now().millisecondsSinceEpoch,
-        payloadBody: '',
+        payloadBytes: Uint8List(0),
       );
 
       sessionManager.processIncomingFrame(ackFrame, 'Alice', 0);
@@ -121,7 +123,7 @@ void main() {
           sessionId: 'sess_abc',
           messageId: 303,
           timestamp: DateTime.now().millisecondsSinceEpoch,
-          payloadBody: 'Hello?',
+          payloadBytes: utf8.encode('Hello?'),
         );
 
         final message = Message(
@@ -196,7 +198,7 @@ void main() {
             sessionId: 'sess_abc',
             messageId: 401,
             timestamp: DateTime.now().millisecondsSinceEpoch,
-            payloadBody: 'Msg 1',
+            payloadBytes: utf8.encode('Msg 1'),
           );
           final msg1 = Message(
             id: 'msg_401',
@@ -224,7 +226,7 @@ void main() {
             sessionId: 'sess_abc',
             messageId: 402,
             timestamp: DateTime.now().millisecondsSinceEpoch,
-            payloadBody: 'Msg 2',
+            payloadBytes: utf8.encode('Msg 2'),
           );
           final msg2 = Message(
             id: 'msg_402',
@@ -261,7 +263,7 @@ void main() {
           sessionId: 'sess_abc',
           messageId: 501,
           timestamp: DateTime.now().millisecondsSinceEpoch,
-          payloadBody: 'Msg 1',
+          payloadBytes: utf8.encode('Msg 1'),
         );
 
         sessionManager.activeConversationId = null;
@@ -276,7 +278,7 @@ void main() {
           sessionId: 'sess_abc',
           messageId: 502,
           timestamp: DateTime.now().millisecondsSinceEpoch,
-          payloadBody: 'Msg 2',
+          payloadBytes: utf8.encode('Msg 2'),
         );
         sessionManager.processIncomingFrame(frame2, 'Alice', 123);
 
@@ -300,7 +302,7 @@ void main() {
           sessionId: 'sess_abc',
           messageId: 601,
           timestamp: DateTime.now().millisecondsSinceEpoch,
-          payloadBody: 'Hi',
+          payloadBytes: utf8.encode('Hi'),
         );
 
         sessionManager.processIncomingFrame(frame, 'Alice', 123);

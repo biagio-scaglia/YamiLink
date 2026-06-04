@@ -78,9 +78,8 @@ void main() {
         timestamp: frame.timestamp,
         flags: frame.flags,
         hopCount: frame.hopCount,
-        payloadType: frame.payloadType,
-        payloadBody: frame.payloadBody,
-        signature: base64.encode(signature.bytes),
+        payloadBytes: frame.payloadBytes,
+        signature: Uint8List.fromList(signature.bytes),
       );
     }
 
@@ -109,8 +108,8 @@ void main() {
       
       expect(transport.sentPackets.length, 1);
 
-      final rawText = utf8.decode(transport.sentPackets.first);
-      final frame = Frame.deserialize(rawText);
+      final rawBytes = transport.sentPackets.first;
+      final frame = Frame.fromBytes(rawBytes);
       expect(frame.hopCount, 1);
     });
 
@@ -124,11 +123,11 @@ void main() {
         messageId: 501,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         hopCount: 1,
-        payloadBody: 'Broadcast test',
+        payloadBytes: utf8.encode('Broadcast test'),
       );
 
       final signedIncomingFrame = await signTestFrame(incomingFrame, peerProfile.identityKeyPair!);
-      final incomingBytes = utf8.encode(signedIncomingFrame.serialize());
+      final incomingBytes = signedIncomingFrame.serialize();
       transport.onDataReceivedCallback?.call('peer_sender_hash', incomingBytes);
 
       await Future.delayed(const Duration(milliseconds: 50));
@@ -138,8 +137,8 @@ void main() {
       expect(repository.roomMessages.last.hopCount, 1);
 
       expect(transport.sentPackets.length, 1);
-      final relayedText = utf8.decode(transport.sentPackets.first);
-      final relayedFrame = Frame.deserialize(relayedText);
+      final relayedBytes = transport.sentPackets.first;
+      final relayedFrame = Frame.fromBytes(relayedBytes);
       expect(relayedFrame.hopCount, 2);
       expect(relayedFrame.senderId, peerProfile.id);
       expect(relayedFrame.recipientId, '*');
@@ -155,11 +154,11 @@ void main() {
         messageId: 502,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         hopCount: 1,
-        payloadBody: 'Unique payload',
+        payloadBytes: utf8.encode('Unique payload'),
       );
 
       final signedIncomingFrame = await signTestFrame(incomingFrame, peerProfile.identityKeyPair!);
-      final incomingBytes = utf8.encode(signedIncomingFrame.serialize());
+      final incomingBytes = signedIncomingFrame.serialize();
       
       transport.onDataReceivedCallback?.call('peer_sender_hash', incomingBytes);
       await Future.delayed(const Duration(milliseconds: 50));
@@ -183,11 +182,11 @@ void main() {
         messageId: 701,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         hopCount: 1,
-        payloadBody: 'Secret DM for Charlie',
+        payloadBytes: utf8.encode('Secret DM for Charlie'),
       );
 
       final signedIncomingFrame = await signTestFrame(incomingFrame, aliceProfile.identityKeyPair!);
-      final incomingBytes = utf8.encode(signedIncomingFrame.serialize());
+      final incomingBytes = signedIncomingFrame.serialize();
       
       transport.onDataReceivedCallback?.call('alice_hash', incomingBytes);
       await Future.delayed(const Duration(milliseconds: 50));
@@ -198,10 +197,10 @@ void main() {
       expect(transport.sentPackets.length, 1);
       expect(transport.sentRecipients.first, charlieProfile.id);
 
-      final relayedText = utf8.decode(transport.sentPackets.first);
-      final relayedFrame = Frame.deserialize(relayedText);
+      final relayedBytes = transport.sentPackets.first;
+      final relayedFrame = Frame.fromBytes(relayedBytes);
       expect(relayedFrame.hopCount, 2);
-      expect(relayedFrame.payloadBody, 'Secret DM for Charlie');
+      expect(utf8.decode(relayedFrame.payloadBytes), 'Secret DM for Charlie');
     });
 
     test('Relays ACK addressed to others and does not process locally', () async {
@@ -216,11 +215,11 @@ void main() {
         messageId: 701,
         timestamp: DateTime.now().millisecondsSinceEpoch,
         hopCount: 1,
-        payloadBody: '',
+        payloadBytes: Uint8List(0),
       );
 
       final signedIncomingFrame = await signTestFrame(incomingFrame, charlieProfile.identityKeyPair!);
-      final incomingBytes = utf8.encode(signedIncomingFrame.serialize());
+      final incomingBytes = signedIncomingFrame.serialize();
       
       transport.onDataReceivedCallback?.call('charlie_hash', incomingBytes);
       await Future.delayed(const Duration(milliseconds: 50));
@@ -228,8 +227,8 @@ void main() {
       expect(transport.sentPackets.length, 1);
       expect(transport.sentRecipients.first, aliceProfile.id);
 
-      final relayedText = utf8.decode(transport.sentPackets.first);
-      final relayedFrame = Frame.deserialize(relayedText);
+      final relayedBytes = transport.sentPackets.first;
+      final relayedFrame = Frame.fromBytes(relayedBytes);
       expect(relayedFrame.hopCount, 2);
       expect(relayedFrame.type, FrameType.ack);
     });
@@ -253,11 +252,11 @@ void main() {
         messageId: 100, // Normally this should match the message ID of the DM
         timestamp: DateTime.now().millisecondsSinceEpoch,
         hopCount: 2,
-        payloadBody: '',
+        payloadBytes: Uint8List(0),
       );
 
       final signedAckFrame = await signTestFrame(ackFrame, destProfile.identityKeyPair!);
-      final ackBytes = utf8.encode(signedAckFrame.serialize());
+      final ackBytes = signedAckFrame.serialize();
       
       transport.onDataReceivedCallback?.call('dest_hash', ackBytes);
       await Future.delayed(const Duration(milliseconds: 50));

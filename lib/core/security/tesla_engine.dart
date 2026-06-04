@@ -23,7 +23,7 @@ class TeslaEngine {
   final _replayGuard = TeslaReplayGuard();
 
   /// Maximum allowed payload size from FFI to prevent memory exhaustion and buffer bloat.
-  static const int maxPacketSize = 2048;
+  static const int maxPacketSize = 4096;
 
   /// Inspects raw packet bytes before they are decoded or parsed.
   TeslaDecision inspectRawPacket(String senderHash, Uint8List packetBytes) {
@@ -66,17 +66,18 @@ class TeslaEngine {
   }
 }
 
-/// Validates raw packets for fundamental structural integrity before UTF-8 decoding.
+/// Validates raw packets for fundamental structural integrity.
 class TeslaPacketValidator {
   bool isValidFormat(Uint8List packetBytes) {
-    // Minimal heuristic: YamiLink frames start with "YML1:"
-    if (packetBytes.length < 5) return false;
+    // Minimal heuristic: YML2 binary frames start with version byte = 2
+    if (packetBytes.isEmpty) return false;
     
-    if (packetBytes[0] != 89 || // Y
-        packetBytes[1] != 77 || // M
-        packetBytes[2] != 76 || // L
-        packetBytes[3] != 49 || // 1
-        packetBytes[4] != 58) { // :
+    if (packetBytes[0] != 2) { 
+      return false;
+    }
+
+    // Must at least have header size
+    if (packetBytes.length < Frame.HEADER_SIZE) {
       return false;
     }
 
@@ -100,11 +101,11 @@ class TeslaSpoofGuard {
 
     try {
       final pubKeyBytes = hex.decode(senderId);
-      final signatureBytes = base64.decode(frame.signature!);
+      final signatureBytes = frame.signature!;
 
       final ed25519 = Ed25519();
       final pubKey = SimplePublicKey(pubKeyBytes, type: KeyPairType.ed25519);
-      final sig = Signature(signatureBytes, publicKey: pubKey);
+      final sig = Signature(signatureBytes.toList(), publicKey: pubKey);
 
       final isValid = await ed25519.verify(
         frame.signableBytes,
