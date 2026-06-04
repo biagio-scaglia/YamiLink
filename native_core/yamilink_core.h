@@ -29,29 +29,15 @@ typedef struct {
 } YML2Header;
 #pragma pack(pop)
 
-// FFI Struct passed to Dart
-typedef struct {
-    uint8_t version;
-    uint8_t type;
-    char sender_id[64];
-    char recipient_id[64];
-    char session_id[32];
-    uint32_t message_id;
-    uint64_t timestamp;
-    uint8_t flags;
-    uint8_t hop_count;
-    uint16_t payload_len;
-    
-    const uint8_t* payload;
-    const uint8_t* signature; // Always 64 bytes Ed25519 signature
-} YML2PacketFFI;
+
 
 typedef struct {
     uint8_t event_type;       // 0: NodeDiscovered, 1: PacketReceived, 2: SystemError
     const char* sender_hash;   // Hash key identifier
     const char* sender_alias;  // Node alias
     uint32_t avatar_seed;      // Procedural avatar key
-    const YML2PacketFFI* packet; // Parsed packet (for event_type == 1)
+    const uint8_t* raw_packet; // RAW buffer (for event_type == 1)
+    uint32_t raw_packet_len;   // RAW buffer length
     float signal_rssi;         // Signal indicator
 } YamiLinkEvent;
 

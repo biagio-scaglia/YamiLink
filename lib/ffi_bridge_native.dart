@@ -48,7 +48,9 @@ final class YamiLinkEvent extends Struct {
   @Uint32()
   external int avatarSeed;
 
-  external Pointer<YML2PacketFFI> packet;
+  external Pointer<Uint8> rawPacket;
+  @Uint32()
+  external int rawPacketLen;
 
   @Float()
   external double signalRssi;
@@ -175,12 +177,10 @@ class YamiLinkFfiBridge {
       final signal = event.signalRssi;
 
       Uint8List packetBytes = Uint8List(0);
-      if (event.packet != nullptr) {
+      if (event.rawPacket != nullptr && event.rawPacketLen > 0) {
         try {
-          final totalLen = 178 + event.packet.ref.payloadLen + 64; // 178 header + payload + 64 sig
-          // Cap to prevent memory leaks if payloadLen is malformed
-          final safeLen = totalLen > 4096 ? 4096 : totalLen;
-          final list = event.packet.cast<Uint8>().asTypedList(safeLen);
+          final safeLen = event.rawPacketLen > 4096 ? 4096 : event.rawPacketLen;
+          final list = event.rawPacket.asTypedList(safeLen);
           packetBytes = Uint8List.fromList(list);
         } catch (_) {
           return;

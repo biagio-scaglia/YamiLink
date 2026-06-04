@@ -121,7 +121,8 @@ void* RecvThreadFunc(void* lpParam) {
                         ev.sender_hash = node_id;
                         ev.sender_alias = alias;
                         ev.avatar_seed = seed;
-                        ev.packet = NULL;
+                        ev.raw_packet = NULL;
+                        ev.raw_packet_len = 0;
                         ev.signal_rssi = 0.9f;
                         g_dispatcher(&ev);
                     }
@@ -133,29 +134,14 @@ void* RecvThreadFunc(void* lpParam) {
                     // Validate packet bounds
                     uint32_t expected_size = sizeof(YML2Header) + header->payload_len + 64; // 64 for signature
                     if (bytes_received >= 0 && (uint32_t)bytes_received >= expected_size) {
-                        YML2PacketFFI ffi_packet = {0};
-                        ffi_packet.version = header->version;
-                        ffi_packet.type = header->type;
-                        memcpy(ffi_packet.sender_id, header->sender_id, 64);
-                        memcpy(ffi_packet.recipient_id, header->recipient_id, 64);
-                        memcpy(ffi_packet.session_id, header->session_id, 32);
-                        ffi_packet.message_id = header->message_id;
-                        ffi_packet.timestamp = header->timestamp;
-                        ffi_packet.flags = header->flags;
-                        ffi_packet.hop_count = header->hop_count;
-                        ffi_packet.payload_len = header->payload_len;
-                        
-                        // Set pointers to the payload and signature directly inside the receive buffer
-                        ffi_packet.payload = buffer + sizeof(YML2Header);
-                        ffi_packet.signature = buffer + sizeof(YML2Header) + header->payload_len;
-
                         if (g_dispatcher) {
                             YamiLinkEvent ev = {0};
                             ev.event_type = 1; // PacketReceived
                             ev.sender_hash = "";
                             ev.sender_alias = "";
                             ev.avatar_seed = 0;
-                            ev.packet = &ffi_packet;
+                            ev.raw_packet = buffer;
+                            ev.raw_packet_len = bytes_received;
                             ev.signal_rssi = 0.9f;
                             g_dispatcher(&ev);
                         }
