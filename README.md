@@ -10,18 +10,18 @@ YamiLink è costruito su un'architettura ibrida a tre strati (Tri-Layer) per gar
 
 ```mermaid
 graph TD
-    subgraph Livello Applicazione (Dart/Flutter)
+    subgraph DartLayer ["Livello Applicazione (Dart/Flutter)"]
         UI[User Interface & Widget]
         State[App State & Session Manager]
         Crypto[Gestione Chiavi Ed25519 e AES-GCM]
     end
 
-    subgraph Livello Servizi di Piattaforma (Kotlin/Java)
+    subgraph KotlinLayer ["Livello Servizi di Piattaforma (Kotlin/Java)"]
         Lock[WifiManager.MulticastLock]
         OS_Settings[Permessi e Configurazione OS]
     end
 
-    subgraph Livello Core Nativo (C/FFI)
+    subgraph CLayer ["Livello Core Nativo (C/FFI)"]
         Sockets[Socket UDP 0.0.0.0:42142]
         Parser[Validazione raw bytes]
         Buffer[Memory Heap Management]
