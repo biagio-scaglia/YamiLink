@@ -93,7 +93,10 @@ class Frame {
     _writeString(buffer, 130, 32, sessionId);
     
     bd.setUint32(162, messageId, Endian.little);
-    bd.setUint64(166, timestamp, Endian.little);
+    final tsLow = timestamp & 0xFFFFFFFF;
+    final tsHigh = (timestamp ~/ 0x100000000) & 0xFFFFFFFF;
+    bd.setUint32(166, tsLow, Endian.little);
+    bd.setUint32(170, tsHigh, Endian.little);
     bd.setUint8(174, flags);
     bd.setUint8(175, hopCount);
     bd.setUint16(176, payloadLen, Endian.little);
@@ -123,7 +126,9 @@ class Frame {
     final sessionId = _readString(data, 130, 32);
     
     final messageId = bd.getUint32(162, Endian.little);
-    final timestamp = bd.getUint64(166, Endian.little);
+    final tsLow = bd.getUint32(166, Endian.little);
+    final tsHigh = bd.getUint32(170, Endian.little);
+    final timestamp = (tsHigh * 0x100000000) + tsLow;
     final flags = bd.getUint8(174);
     final hopCount = bd.getUint8(175);
     final payloadLen = bd.getUint16(176, Endian.little);
