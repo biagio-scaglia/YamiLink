@@ -124,15 +124,23 @@ void* RecvThreadFunc(void* lpParam) {
                 int parsed = sscanf((char*)buffer + 16, "%63[^:]:%u:%64s", alias, &seed, node_id);
                 if (parsed == 3 && strcmp(node_id, g_node_id) != 0) {
                     if (g_dispatcher) {
-                        YamiLinkEvent ev = {0};
-                        ev.event_type = 0; // NodeDiscovered
-                        ev.sender_hash = node_id;
-                        ev.sender_alias = alias;
-                        ev.avatar_seed = seed;
-                        ev.raw_packet = NULL;
-                        ev.raw_packet_len = 0;
-                        ev.signal_rssi = 0.9f;
-                        g_dispatcher(&ev);
+                        YamiLinkEvent* ev = (YamiLinkEvent*)malloc(sizeof(YamiLinkEvent));
+                        memset(ev, 0, sizeof(YamiLinkEvent));
+                        ev->event_type = 0; // NodeDiscovered
+                        
+                        char* hash_copy = (char*)malloc(strlen(node_id) + 1);
+                        strcpy(hash_copy, node_id);
+                        ev->sender_hash = hash_copy;
+                        
+                        char* alias_copy = (char*)malloc(strlen(alias) + 1);
+                        strcpy(alias_copy, alias);
+                        ev->sender_alias = alias_copy;
+                        
+                        ev->avatar_seed = seed;
+                        ev->raw_packet = NULL;
+                        ev->raw_packet_len = 0;
+                        ev->signal_rssi = 0.9f;
+                        g_dispatcher(ev);
                     }
                 }
             } else if (bytes_received >= 0 && (size_t)bytes_received >= sizeof(YML2Header)) {
@@ -143,15 +151,19 @@ void* RecvThreadFunc(void* lpParam) {
                     uint32_t expected_size = sizeof(YML2Header) + header->payload_len + 64; // 64 for signature
                     if (bytes_received >= 0 && (uint32_t)bytes_received >= expected_size) {
                         if (g_dispatcher) {
-                            YamiLinkEvent ev = {0};
-                            ev.event_type = 1; // PacketReceived
-                            ev.sender_hash = "";
-                            ev.sender_alias = "";
-                            ev.avatar_seed = 0;
-                            ev.raw_packet = buffer;
-                            ev.raw_packet_len = bytes_received;
-                            ev.signal_rssi = 0.9f;
-                            g_dispatcher(&ev);
+                            YamiLinkEvent* ev = (YamiLinkEvent*)malloc(sizeof(YamiLinkEvent));
+                            memset(ev, 0, sizeof(YamiLinkEvent));
+                            ev->event_type = 1; // PacketReceived
+                            ev->sender_hash = NULL;
+                            ev->sender_alias = NULL;
+                            ev->avatar_seed = 0;
+                            
+                            uint8_t* p = (uint8_t*)malloc(bytes_received);
+                            memcpy(p, buffer, bytes_received);
+                            ev->raw_packet = p;
+                            ev->raw_packet_len = bytes_received;
+                            ev->signal_rssi = 0.9f;
+                            g_dispatcher(ev);
                         }
                     }
                 }
@@ -297,4 +309,14 @@ DART_EXPORT int32_t yamilink_core_stop(void) {
 
     g_initialized = 0;
     return 0;
+}
+
+
+DART_EXPORT void yamilink_core_free_event(YamiLinkEvent* ev) {
+    if (ev) {
+        if (ev->raw_packet) free((void*)ev->raw_packet);
+        if (ev->sender_hash) free((void*)ev->sender_hash);
+        if (ev->sender_alias) free((void*)ev->sender_alias);
+        free(ev);
+    }
 }

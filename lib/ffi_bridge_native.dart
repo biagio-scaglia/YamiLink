@@ -71,6 +71,10 @@ typedef DartStartFunc =
       Pointer<NativeFunction<CEventDispatcher>> dispatcher,
     );
 
+
+typedef CFreeEventFunc = Void Function(Pointer<YamiLinkEvent> event);
+typedef DartFreeEventFunc = void Function(Pointer<YamiLinkEvent> event);
+
 typedef CSendFunc =
     Int32 Function(
       Pointer<Uint8> data,

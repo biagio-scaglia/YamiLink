@@ -485,8 +485,9 @@ class _NearbyScreenState extends State<NearbyScreen>
                   top: BorderSide(color: YamiTheme.borderMetallic, width: 1.0),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 36,
@@ -883,6 +884,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                     ),
                   ),
                 ],
+              ),
               ),
             );
           },
