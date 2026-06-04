@@ -53,24 +53,24 @@ Ecco come i nodi si scoprono e stabiliscono un canale sicuro:
 
 ```mermaid
 sequenceDiagram
-    participant Peer A (Alice)
-    participant Rete Locale (UDP)
-    participant Peer B (Bob)
+    participant Peer_A as Peer A (Alice)
+    participant UDP as Rete Locale (UDP)
+    participant Peer_B as Peer B (Bob)
 
-    Note over Peer A: Genera PKI (Ed25519)
-    Note over Peer B: Genera PKI (Ed25519)
+    Note over Peer_A: Genera PKI (Ed25519)
+    Note over Peer_B: Genera PKI (Ed25519)
 
-    Peer A->>Rete Locale (UDP): Broadcast BEACON (In chiaro, firmato)
-    Rete Locale (UDP)->>Peer B: Riceve BEACON
-    Note over Peer B: Verifica Firma Ed25519
-    Peer B->>Peer A: HELLO / Exchange ECDH Keys (Direct Msg)
-    Peer A->>Peer B: ACK / Shared Secret Derivato
+    Peer_A->>UDP: Broadcast BEACON (In chiaro, firmato)
+    UDP->>Peer_B: Riceve BEACON
+    Note over Peer_B: Verifica Firma Ed25519
+    Peer_B->>Peer_A: HELLO / Exchange ECDH Keys (Direct Msg)
+    Peer_A->>Peer_B: ACK / Shared Secret Derivato
 
-    Note over Peer A, Peer B: Entrambi calcolano AES-GCM Shared Secret
+    Note over Peer_A, Peer_B: Entrambi calcolano AES-GCM Shared Secret
 
-    Peer A->>Rete Locale (UDP): Invia Messaggio Privato (AES-GCM Cifrato)
-    Rete Locale (UDP)->>Peer B: Riceve Messaggio Privato
-    Note over Peer B: Decifra AES-GCM con Shared Secret
+    Peer_A->>UDP: Invia Messaggio Privato (AES-GCM Cifrato)
+    UDP->>Peer_B: Riceve Messaggio Privato
+    Note over Peer_B: Decifra AES-GCM con Shared Secret
 ```
 
 ### 1. Identità Crittografica
@@ -87,9 +87,9 @@ I messaggi broadcast e i Direct Message vengono ritrasmessi dai nodi della rete 
 
 ```mermaid
 graph LR
-    A[Nodo A (Mittente)] -->|Hop 1| B(Nodo B - Relay)
-    A -->|Hop 1| C(Nodo C - Relay)
-    B -->|Hop 2| D[Nodo D (Destinatario Lontano)]
+    A["Nodo A (Mittente)"] -->|Hop 1| B("Nodo B (Relay)")
+    A -->|Hop 1| C("Nodo C (Relay)")
+    B -->|Hop 2| D["Nodo D (Destinatario Lontano)"]
     C -->|Hop 2| D
     D -->|Scarta Duplicato| D
 ```
