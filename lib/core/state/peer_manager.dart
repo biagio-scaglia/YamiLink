@@ -6,30 +6,10 @@ class PeerManager {
 
   final Set<String> _blockedPeerIds = {};
   final Map<String, List<DateTime>> _msgTimestamps = {};
-  final Map<String, List<int>> _sharedKeys = {}; // Stores AES keys for paired peers
 
   PeerManager({required void Function() onChanged}) : _onChanged = onChanged;
 
   List<Peer> get peers => List.unmodifiable(_peers);
-
-  List<int>? getSharedKey(String peerId) => _sharedKeys[peerId];
-
-  void setSharedKey(String peerId, List<int> key) {
-    _sharedKeys[peerId] = key;
-  }
-
-  bool isPaired(String peerId) {
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    return index != -1 && _peers[index].trustLevel == TrustLevel.paired;
-  }
-
-  void setPaired(String peerId) {
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    if (index != -1) {
-      _peers[index] = _peers[index].copyWith(trustLevel: TrustLevel.paired);
-      _onChanged();
-    }
-  }
 
   void handlePeerFound({
     required String id,
@@ -49,8 +29,6 @@ class PeerManager {
       hint = ProximityHint.far;
     }
 
-    final isBlockedPeer = _blockedPeerIds.contains(id);
-
     if (index == -1) {
       _peers.add(
         Peer(
@@ -60,9 +38,6 @@ class PeerManager {
           proximityHint: hint,
           relayCapability: true,
           lastSeen: now,
-          trustLevel: isBlockedPeer
-              ? TrustLevel.blocked
-              : TrustLevel.unverified,
         ),
       );
     } else {
@@ -71,9 +46,6 @@ class PeerManager {
         avatarSeed: seed,
         proximityHint: hint,
         lastSeen: now,
-        trustLevel: isBlockedPeer
-            ? TrustLevel.blocked
-            : _peers[index].trustLevel,
       );
     }
     _onChanged();
@@ -84,37 +56,18 @@ class PeerManager {
     _onChanged();
   }
 
-  void toggleTrust(String peerId) {
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    if (index != -1) {
-      final currentTrust = _peers[index].trustLevel;
-      _peers[index].trustLevel = currentTrust == TrustLevel.paired
-          ? TrustLevel.unverified
-          : TrustLevel.paired;
-      _onChanged();
-    }
-  }
-
   bool isBlocked(String peerId) {
     return _blockedPeerIds.contains(peerId);
   }
 
   void blockPeer(String peerId) {
     _blockedPeerIds.add(peerId);
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    if (index != -1) {
-      _peers[index].trustLevel = TrustLevel.blocked;
-    }
     _onChanged();
   }
 
   void unblockPeer(String peerId) {
     _blockedPeerIds.remove(peerId);
     _msgTimestamps.remove(peerId);
-    final index = _peers.indexWhere((p) => p.id == peerId);
-    if (index != -1) {
-      _peers[index].trustLevel = TrustLevel.unverified;
-    }
     _onChanged();
   }
 
@@ -136,7 +89,7 @@ class PeerManager {
   }
 
   /// Sweeps stale peers.
-  /// If no packet or beacon from peer for > 10 seconds, mark as stale (we can update a hint or keep track of last seen).
+  /// If no packet or beacon from peer for > 10 seconds, mark as stale.
   /// If stale for > 15 seconds, remove from the list.
   void sweepStalePeers() {
     final now = DateTime.now();

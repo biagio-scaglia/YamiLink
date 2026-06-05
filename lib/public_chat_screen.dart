@@ -3,20 +3,20 @@ import 'package:provider/provider.dart';
 import 'core/moderation/moderation_models.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'repository/yamilink_repository.dart';
+import 'repository/session_chat_repository.dart';
 import 'widgets/avatar.dart';
 import 'core/tutorial/tutorial_helper.dart';
 
-class RoomScreen extends StatefulWidget {
+class PublicChatScreen extends StatefulWidget {
   final VoidCallback onRunTutorial;
 
-  const RoomScreen({super.key, required this.onRunTutorial});
+  const PublicChatScreen({super.key, required this.onRunTutorial});
 
   @override
-  State<RoomScreen> createState() => _RoomScreenState();
+  State<PublicChatScreen> createState() => _PublicChatScreenState();
 }
 
-class _RoomScreenState extends State<RoomScreen> {
+class _PublicChatScreenState extends State<PublicChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final Set<String> _revealedMessageIds = {};
@@ -39,89 +39,88 @@ class _RoomScreenState extends State<RoomScreen> {
     }
   }
 
-  Future<void> _sendMessage(YamiLinkRepository simulation) async {
+  Future<void> _sendMessage(SessionChatRepository simulation) async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
 
     final decision = await simulation.sendBroadcastMessage(text);
     if (decision != null) {
+      if (decision.action == ModerationAction.block) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: YamiTheme.bgDeep,
+            title: Text(
+              'MESSAGE BLOCKED',
+              style: YamiTheme.headingStyle.copyWith(color: YamiTheme.accentEmber),
+            ),
+            content: Text(
+              'Your message violates local guidelines:\n\n${decision.explanation}',
+              style: YamiTheme.bodyStyle,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'OK',
+                  style: YamiTheme.labelStyle.copyWith(
+                    color: YamiTheme.accentWine,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
 
-    if (decision.action == ModerationAction.block) {
-      if (!mounted) return;
-    showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: YamiTheme.bgDeep,
-          title: Text(
-            'MESSAGE BLOCKED',
-            style: YamiTheme.headingStyle.copyWith(color: YamiTheme.accentEmber),
-          ),
-          content: Text(
-            'Your message violates local guidelines:\n\n${decision.explanation}',
-            style: YamiTheme.bodyStyle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'OK',
-                style: YamiTheme.labelStyle.copyWith(
-                  color: YamiTheme.accentWine,
+      if (decision.action == ModerationAction.warn) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: YamiTheme.bgDeep,
+            title: Text(
+              'SENSITIVE CONTENT',
+              style: YamiTheme.headingStyle.copyWith(color: YamiTheme.accentEmber),
+            ),
+            content: Text(
+              'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
+              style: YamiTheme.bodyStyle,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'CANCEL',
+                  style: YamiTheme.labelStyle.copyWith(
+                    color: YamiTheme.textBody,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
-    if (decision.action == ModerationAction.warn) {
-      if (!mounted) return;
-    showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: YamiTheme.bgDeep,
-          title: Text(
-            'SENSITIVE CONTENT',
-            style: YamiTheme.headingStyle.copyWith(color: YamiTheme.accentEmber),
-          ),
-          content: Text(
-            'Your message contains sensitive words:\n\n${decision.explanation}\n\nSend anyway?',
-            style: YamiTheme.bodyStyle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'CANCEL',
-                style: YamiTheme.labelStyle.copyWith(
-                  color: YamiTheme.textBody,
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await simulation.sendBroadcastMessage(text, force: true);
+                  _messageController.clear();
+                  Future.delayed(
+                    const Duration(milliseconds: 80),
+                    () => _scrollToBottom(),
+                  );
+                },
+                child: Text(
+                  'SEND ANYWAY',
+                  style: YamiTheme.labelStyle.copyWith(
+                    color: YamiTheme.accentEmber,
+                  ),
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await simulation.sendBroadcastMessage(text, force: true);
-                _messageController.clear();
-                Future.delayed(
-                  const Duration(milliseconds: 80),
-                  () => _scrollToBottom(),
-                );
-              },
-              child: Text(
-                'SEND ANYWAY',
-                style: YamiTheme.labelStyle.copyWith(
-                  color: YamiTheme.accentEmber,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+            ],
+          ),
+        );
+        return;
+      }
     }
 
     _messageController.clear();
@@ -139,7 +138,7 @@ class _RoomScreenState extends State<RoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    final simulation = Provider.of<SessionChatRepository>(context);
     final profile = simulation.profile;
     final messages = simulation.roomMessages;
 
@@ -154,8 +153,8 @@ class _RoomScreenState extends State<RoomScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Room Broadcast', style: YamiTheme.headingStyle),
-            Text('Local · Ephemeral · 1-hop', style: YamiTheme.headingSubStyle),
+            Text('Session Room', style: YamiTheme.headingStyle),
+            Text('Local · Ephemeral · Public Local Chat', style: YamiTheme.headingSubStyle),
           ],
         ),
         actions: [
@@ -246,12 +245,10 @@ class _RoomScreenState extends State<RoomScreen> {
                       lastSeen: DateTime.now(),
                     ),
                   );
-                  final isTrusted = senderPeer.trustLevel == TrustLevel.paired;
 
                   return _buildMessageRow(
                     message,
                     isMe,
-                    isTrusted,
                     senderPeer.avatarSeed,
                   );
                 },
@@ -281,7 +278,7 @@ class _RoomScreenState extends State<RoomScreen> {
                           ),
                           maxLines: null,
                           decoration: InputDecoration(
-                            hintText: 'Broadcast to the room…',
+                            hintText: 'Message the room…',
                             hintStyle: YamiTheme.bodyStyle.copyWith(
                               color: YamiTheme.textGhost,
                               fontSize: 15,
@@ -334,9 +331,8 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   Widget _buildMessageRow(
-    Message message,
+    LocalRoomMessage message,
     bool isMe,
-    bool isTrusted,
     int avatarSeed,
   ) {
     final CrossAxisAlignment crossAlignment = isMe
@@ -360,10 +356,8 @@ class _RoomScreenState extends State<RoomScreen> {
             YamiAvatar(
               seed: avatarSeed,
               size: 32,
-              glowColor: isTrusted
-                  ? YamiTheme.accentBrass
-                  : YamiTheme.accentWine,
-              isGlowing: isTrusted,
+              glowColor: YamiTheme.accentWine,
+              isGlowing: false,
             ),
             const SizedBox(width: 8),
           ],
@@ -387,19 +381,9 @@ class _RoomScreenState extends State<RoomScreen> {
                           fontWeight: FontWeight.bold,
                           color: isMe
                               ? YamiTheme.accentWine
-                              : (isTrusted
-                                    ? YamiTheme.accentBrass
-                                    : YamiTheme.textSecondary),
+                              : YamiTheme.textSecondary,
                         ),
                       ),
-                      if (isTrusted && !isMe) ...[
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.verified_rounded,
-                          color: YamiTheme.accentBrass,
-                          size: 10,
-                        ),
-                      ],
                       const SizedBox(width: 6),
                       Text(
                         '[$timeStr]',
@@ -513,7 +497,7 @@ class _RoomScreenState extends State<RoomScreen> {
               seed: avatarSeed,
               size: 32,
               glowColor: YamiTheme.accentWine,
-              isGlowing: true,
+              isGlowing: false,
             ),
           ],
         ],

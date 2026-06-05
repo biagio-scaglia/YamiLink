@@ -5,13 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'repository/yamilink_repository.dart';
+import 'repository/session_chat_repository.dart';
 import 'entry_screen.dart';
 import 'nearby_screen.dart';
-import 'chats_screen.dart';
-import 'room_screen.dart';
+import 'public_chat_screen.dart';
 import 'diagnostics_screen.dart';
-import 'direct_chat_screen.dart';
 import 'core/tutorial/tutorial_helper.dart';
 import 'core/security/tamper_guard.dart';
 
@@ -43,12 +41,12 @@ class InitializerScreen extends StatefulWidget {
 
 class _InitializerScreenState extends State<InitializerScreen> {
   EphemeralProfile? _profile;
-  YamiLinkRepository? _yamilinkRepository;
+  SessionChatRepository? _yamilinkRepository;
 
   void _onProfileCreated(EphemeralProfile profile) {
     setState(() {
       _profile = profile;
-      _yamilinkRepository = YamiLinkRepository(profile: profile);
+      _yamilinkRepository = SessionChatRepository(profile: profile);
       _yamilinkRepository!.startScanning();
     });
   }
@@ -65,7 +63,7 @@ class _InitializerScreenState extends State<InitializerScreen> {
       return EntryScreen(onProfileCreated: _onProfileCreated);
     }
 
-    return ChangeNotifierProvider<YamiLinkRepository>.value(
+    return ChangeNotifierProvider<SessionChatRepository>.value(
       value: _yamilinkRepository!,
       child: const MainShell(),
     );
@@ -83,13 +81,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   int _currentIndex = 0;
 
   final GlobalKey _spaceTabKey = GlobalKey();
-  final GlobalKey _chatsTabKey = GlobalKey();
   final GlobalKey _roomTabKey  = GlobalKey();
   final GlobalKey _diagsTabKey = GlobalKey();
 
   late final List<Widget> _screens;
 
-  // Animazioni nav pill
   late AnimationController _navPillController;
 
   @override
@@ -103,25 +99,13 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
 
     _screens = [
       NearbyScreen(
-        onOpenDirectChat: (peer) {
-          Navigator.push(
-            context,
-            _buildPageRoute(
-              ChangeNotifierProvider<YamiLinkRepository>.value(
-                value: Provider.of<YamiLinkRepository>(context, listen: false),
-                child: DirectChatScreen(peer: peer),
-              ),
-            ),
-          );
-        },
         onRunTutorial: _runTutorial,
       ),
-      ChatsScreen(onRunTutorial: _runTutorial),
-      RoomScreen(onRunTutorial: _runTutorial),
+      PublicChatScreen(onRunTutorial: _runTutorial),
       const DiagnosticsScreen(),
     ];
 
-    // Tutorial once-only tramite SharedPreferences
+    // Onboarding tutorial shown once via SharedPreferences
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final prefs = await SharedPreferences.getInstance();
       final seen = prefs.getBool('onboarding_done') ?? false;
@@ -138,27 +122,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Costruisce una page route con transizione fade + slide leggera
-  PageRoute<T> _buildPageRoute<T>(Widget page) {
-    return PageRouteBuilder<T>(
-      pageBuilder: (_, animation, secondaryAnimation) => page,
-      transitionDuration: YamiTheme.motionNormal,
-      reverseTransitionDuration: YamiTheme.motionFast,
-      transitionsBuilder: (_, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.04, 0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
   void _onTabTap(int index) {
     if (_currentIndex == index) return;
     HapticFeedback.selectionClick();
@@ -169,7 +132,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     YamiTutorialHelper.showOnboardingTutorial(
       context: context,
       spaceTabKey: _spaceTabKey,
-      chatsTabKey: _chatsTabKey,
       roomTabKey:  _roomTabKey,
       diagsTabKey: _diagsTabKey,
       onFinished: () async {
@@ -185,7 +147,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    final simulation = Provider.of<SessionChatRepository>(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
@@ -227,10 +189,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
                   currentIndex: _currentIndex,
                   onTap: _onTabTap,
                   spaceKey: _spaceTabKey,
-                  chatsKey: _chatsTabKey,
                   roomKey: _roomTabKey,
                   diagsKey: _diagsTabKey,
-                  unreadChats: simulation.totalUnreadCount,
                   peersCount: simulation.peers.length,
                 ),
               ),
@@ -250,20 +210,16 @@ class _YamiNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final GlobalKey spaceKey;
-  final GlobalKey chatsKey;
   final GlobalKey roomKey;
   final GlobalKey diagsKey;
-  final int unreadChats;
   final int peersCount;
 
   const _YamiNavBar({
     required this.currentIndex,
     required this.onTap,
     required this.spaceKey,
-    required this.chatsKey,
     required this.roomKey,
     required this.diagsKey,
-    required this.unreadChats,
     required this.peersCount,
   });
 
@@ -290,22 +246,13 @@ class _YamiNavBar extends StatelessWidget {
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                navKey: chatsKey,
-                icon: Icons.chat_bubble_outline_rounded,
-                iconSelected: Icons.chat_bubble_rounded,
-                label: 'Chats',
-                badge: unreadChats,
-                selected: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
                 navKey: roomKey,
                 icon: Icons.forum_outlined,
                 iconSelected: Icons.forum_rounded,
                 label: 'Room',
                 badge: 0,
-                selected: currentIndex == 2,
-                onTap: () => onTap(2),
+                selected: currentIndex == 1,
+                onTap: () => onTap(1),
               ),
               _NavItem(
                 navKey: diagsKey,
@@ -313,8 +260,8 @@ class _YamiNavBar extends StatelessWidget {
                 iconSelected: Icons.monitor_heart,
                 label: 'Diags',
                 badge: 0,
-                selected: currentIndex == 3,
-                onTap: () => onTap(3),
+                selected: currentIndex == 2,
+                onTap: () => onTap(2),
               ),
             ],
           ),
@@ -392,7 +339,6 @@ class _NavItemState extends State<_NavItem>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Indicatore selected + icona
               AnimatedContainer(
                 duration: YamiTheme.motionNormal,
                 curve: Curves.easeOutCubic,

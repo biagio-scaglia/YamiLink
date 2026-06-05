@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme.dart';
-import 'repository/yamilink_repository.dart';
+import 'repository/session_chat_repository.dart';
 
 class DiagnosticsScreen extends StatefulWidget {
   const DiagnosticsScreen({super.key});
@@ -22,7 +22,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    final simulation = Provider.of<SessionChatRepository>(context);
     final logs = simulation.diagnosticsLogs;
 
     if (logs.length != _lastLogCount) {

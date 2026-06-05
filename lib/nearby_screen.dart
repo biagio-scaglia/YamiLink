@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'ui/qr_pairing_screen.dart';
 import 'models.dart';
 import 'theme.dart';
-import 'repository/yamilink_repository.dart';
+import 'repository/session_chat_repository.dart';
 import 'widgets/avatar.dart';
 import 'core/tutorial/tutorial_helper.dart';
 
 class NearbyScreen extends StatefulWidget {
-  final Function(Peer) onOpenDirectChat;
   final VoidCallback onRunTutorial;
 
   const NearbyScreen({
     super.key,
-    required this.onOpenDirectChat,
     required this.onRunTutorial,
   });
 
@@ -42,7 +39,7 @@ class _NearbyScreenState extends State<NearbyScreen>
 
   @override
   Widget build(BuildContext context) {
-    final simulation = Provider.of<YamiLinkRepository>(context);
+    final simulation = Provider.of<SessionChatRepository>(context);
     final isScanning = simulation.isScanning;
 
     return Scaffold(
@@ -100,10 +97,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                                     color: YamiTheme.accentBrass.withValues(
                                       alpha: isScanning
                                           ? (1.0 -
-                                                    ((_radarController.value +
-                                                            0.5) %
-                                                        1.0)) *
-                                                  0.25
+                                                     ((_radarController.value +
+                                                             0.5) %
+                                                         1.0)) *
+                                                   0.25
                                           : 0.05,
                                     ),
                                     width: 1.0,
@@ -302,7 +299,7 @@ class _NearbyScreenState extends State<NearbyScreen>
   Widget _buildPeerTile(
     BuildContext context,
     Peer peer,
-    YamiLinkRepository simulation,
+    SessionChatRepository simulation,
   ) {
     Color proximityColor;
     String proximityText;
@@ -331,8 +328,6 @@ class _NearbyScreenState extends State<NearbyScreen>
         break;
     }
 
-    final isTrusted = peer.trustLevel == TrustLevel.paired;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: YamiTheme.spaceMd, vertical: YamiTheme.spaceXs),
       child: GestureDetector(
@@ -340,7 +335,7 @@ class _NearbyScreenState extends State<NearbyScreen>
         child: Container(
           padding: const EdgeInsets.all(YamiTheme.spaceMd),
           decoration: YamiTheme.surfaceCard(
-            borderColor: isTrusted ? YamiTheme.accentBrass.withValues(alpha: 0.3) : YamiTheme.borderMid,
+            borderColor: YamiTheme.borderMid,
           ),
           child: Row(
             children: [
@@ -348,9 +343,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                 width: 3.5,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: isTrusted
-                      ? YamiTheme.accentBrass
-                      : YamiTheme.textGhost,
+                  color: YamiTheme.textGhost,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -359,8 +352,8 @@ class _NearbyScreenState extends State<NearbyScreen>
               YamiAvatar(
                 seed: peer.avatarSeed,
                 size: 48,
-                glowColor: isTrusted ? YamiTheme.accentBrass : YamiTheme.accentWine,
-                isGlowing: isTrusted,
+                glowColor: YamiTheme.accentWine,
+                isGlowing: false,
               ),
               const SizedBox(width: 14),
 
@@ -368,25 +361,13 @@ class _NearbyScreenState extends State<NearbyScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          peer.alias,
-                          style: YamiTheme.bodyStyle.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                            color: YamiTheme.textBright,
-                          ),
-                        ),
-                        if (isTrusted) ...[
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.verified_rounded,
-                            color: YamiTheme.accentBrass,
-                            size: 14,
-                          ),
-                        ],
-                      ],
+                    Text(
+                      peer.alias,
+                      style: YamiTheme.bodyStyle.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: YamiTheme.textBright,
+                      ),
                     ),
                     const SizedBox(height: 5),
 
@@ -458,7 +439,7 @@ class _NearbyScreenState extends State<NearbyScreen>
   void _showPeerDetailsSheet(
     BuildContext context,
     Peer peer,
-    YamiLinkRepository simulation,
+    SessionChatRepository simulation,
   ) {
     showModalBottomSheet(
       context: context,
@@ -471,15 +452,6 @@ class _NearbyScreenState extends State<NearbyScreen>
               (p) => p.id == peer.id,
               orElse: () => peer,
             );
-            final isTrusted = currentPeer.trustLevel == TrustLevel.paired;
-
-            final sharedKey = simulation.getSharedKey(currentPeer.id);
-            String pairCode = 'WAITING FOR DH KEY...';
-            if (sharedKey != null) {
-              final hash = sharedKey.take(4).toList();
-              final code = (hash[0] << 24 | hash[1] << 16 | hash[2] << 8 | hash[3]).abs();
-              pairCode = '${code % 9000 + 1000} ${code ~/ 9000 % 9000 + 1000}';
-            }
 
             Color proximityColor;
             switch (currentPeer.proximityHint) {
@@ -526,8 +498,8 @@ class _NearbyScreenState extends State<NearbyScreen>
                     YamiAvatar(
                       seed: currentPeer.avatarSeed,
                       size: 80,
-                      glowColor: isTrusted ? YamiTheme.accentBrass : YamiTheme.accentWine,
-                      isGlowing: true,
+                      glowColor: YamiTheme.accentWine,
+                      isGlowing: false,
                     ),
                     const SizedBox(height: 16),
 
@@ -622,164 +594,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    if (isTrusted) ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: YamiTheme.spaceLg),
-                        padding: const EdgeInsets.all(YamiTheme.spaceMd),
-                        decoration: BoxDecoration(
-                          color: YamiTheme.accentBrass.withValues(alpha: 0.05),
-                          border: Border.all(
-                            color: YamiTheme.accentBrass.withValues(alpha: 0.2),
-                          ),
-                          borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.verified_rounded,
-                              color: YamiTheme.accentBrass,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Device verified. Cryptographic pairing completed.',
-                                style: YamiTheme.bodySmallStyle.copyWith(
-                                  color: YamiTheme.accentBrass,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: YamiTheme.spaceLg),
-                        padding: const EdgeInsets.all(YamiTheme.spaceMd),
-                        decoration: BoxDecoration(
-                          color: YamiTheme.surfaceBase,
-                          borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
-                          border: Border.all(color: YamiTheme.borderMid),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              'MATCHING VERIFICATION CODE',
-                              style: YamiTheme.labelStyle.copyWith(
-                                fontSize: 10,
-                                letterSpacing: 1.0,
-                                color: YamiTheme.textSub,
-                              ),
-                            ),
-                            const SizedBox(height: YamiTheme.spaceSm),
-                            Text(
-                              pairCode,
-                              style: YamiTheme.displayStyle.copyWith(
-                                letterSpacing: 4,
-                                fontSize: 24,
-                                color: YamiTheme.accentWine,
-                              ),
-                            ),
-                            const SizedBox(height: YamiTheme.spaceXs),
-                            Text(
-                              'Verify this number matches on their screen.',
-                              style: YamiTheme.captionStyle.copyWith(
-                                color: YamiTheme.textSub,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SizedBox(
-                            height: 48,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: YamiTheme.borderStrong,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
-                                ),
-                                foregroundColor: YamiTheme.textBright,
-                              ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                                widget.onOpenDirectChat(currentPeer);
-                              },
-                              child: Text(
-                                'DIRECT CHAT',
-                                style: YamiTheme.labelStyle.copyWith(
-                                  fontSize: 12,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: SizedBox(
-                            height: 48,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isTrusted
-                                    ? YamiTheme.accentEmber
-                                    : YamiTheme.accentWine,
-                                foregroundColor: YamiTheme.textBright,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
-                                ),
-                              ),
-                              onPressed: () {
-                                if (!isTrusted) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => QRPairingScreen(
-                                        myProfile: simulation.profile,
-                                        targetPeer: currentPeer,
-                                        onVerified: (verifiedId) {
-                                          simulation.initiatePairing(verifiedId);
-                                          simulation.togglePeerTrust(verifiedId);
-                                        },
-                                      ),
-                                    ),
-                                  ).then((_) {
-                                    setModalState(() {});
-                                  });
-                                } else {
-                                  simulation.togglePeerTrust(currentPeer.id);
-                                }
-                                setModalState(() {});
-                              },
-                              child: Text(
-                                isTrusted ? 'REVOKE TRUST' : 'VERIFY PAIRING',
-                                style: YamiTheme.labelStyle.copyWith(
-                                  color: YamiTheme.textBright,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      height: 44,
-                      child: TextButton.icon(
+                      height: 48,
+                      child: OutlinedButton.icon(
                         icon: Icon(
                           simulation.isPeerMuted(currentPeer.id)
                               ? Icons.volume_up_rounded
@@ -797,7 +615,17 @@ class _NearbyScreenState extends State<NearbyScreen>
                             color: simulation.isPeerMuted(currentPeer.id)
                                 ? YamiTheme.accentBrass
                                 : YamiTheme.accentEmber,
-                            fontSize: 12,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: simulation.isPeerMuted(currentPeer.id)
+                                ? YamiTheme.accentBrass
+                                : YamiTheme.accentEmber,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
                           ),
                         ),
                         onPressed: () {
@@ -895,21 +723,29 @@ class _NearbyScreenState extends State<NearbyScreen>
                         },
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      height: 44,
-                      child: TextButton.icon(
+                      height: 48,
+                      child: ElevatedButton.icon(
                         icon: const Icon(
                           Icons.block_rounded,
-                          color: YamiTheme.accentEmber,
+                          color: YamiTheme.textBright,
                           size: 18,
                         ),
                         label: Text(
                           'BLOCK PEER',
                           style: YamiTheme.labelStyle.copyWith(
-                            color: YamiTheme.accentEmber,
-                            fontSize: 12,
+                            color: YamiTheme.textBright,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: YamiTheme.accentEmber,
+                          foregroundColor: YamiTheme.textBright,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(YamiTheme.radiusSoft),
                           ),
                         ),
                         onPressed: () {

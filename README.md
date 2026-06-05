@@ -192,3 +192,10 @@ yamilink/
    flutter run -d windows
    flutter run -d android
    ```
+
+---
+
+## License
+
+Questo progetto è distribuito sotto la licenza **Apache License 2.0**. Per maggiori dettagli, consultare il file [LICENSE](file:///C:/Users/biagi/Desktop/yamilink/LICENSE) e il file [NOTICE](file:///C:/Users/biagi/Desktop/yamilink/NOTICE) presenti nella root del repository.
+

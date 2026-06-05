@@ -6,7 +6,6 @@ class YamiTutorialHelper {
   static void showOnboardingTutorial({
     required BuildContext context,
     required GlobalKey spaceTabKey,
-    required GlobalKey chatsTabKey,
     required GlobalKey roomTabKey,
     required GlobalKey diagsTabKey,
     VoidCallback? onFinished,
@@ -41,31 +40,6 @@ class YamiTutorialHelper {
 
     targets.add(
       TargetFocus(
-        identify: "chats_tab",
-        keyTarget: chatsTabKey,
-        shape: ShapeLightFocus.RRect,
-        radius: 12,
-        paddingFocus: 8,
-        contents: [
-          TargetContent(
-            align: ContentAlign.top,
-            builder: (context, controller) {
-              return _buildTutorialCard(
-                title: "DIRECT CHATS",
-                description:
-                    "Tap any nearby peer to open a secure point-to-point direct chat channel. Conversations persist only during the active session and disappear when peers go offline.",
-                onNext: () => controller.next(),
-                onSkip: () => controller.skip(),
-                nextText: "NEXT",
-              );
-            },
-          ),
-        ],
-      ),
-    );
-
-    targets.add(
-      TargetFocus(
         identify: "room_tab",
         keyTarget: roomTabKey,
         shape: ShapeLightFocus.RRect,
@@ -76,9 +50,9 @@ class YamiTutorialHelper {
             align: ContentAlign.top,
             builder: (context, controller) {
               return _buildTutorialCard(
-                title: "ROOM BROADCAST",
+                title: "SESSION ROOM",
                 description:
-                    "Need to reach everyone nearby? Post messages to the Room chat. All active users on the local network see this public log, which clears when the session ends.",
+                    "All active users on the local network see this public log. Type here to broadcast to everyone in the local room. The entire feed clears automatically when leaving.",
                 onNext: () => controller.next(),
                 onSkip: () => controller.skip(),
                 nextText: "NEXT",
@@ -227,27 +201,27 @@ class YamiTutorialHelper {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
           child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: YamiTheme.borderStrong,
-                    borderRadius: BorderRadius.circular(2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: YamiTheme.borderStrong,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: YamiTheme.spaceLg),
-              Text(
-                'Help & Resources',
-                textAlign: TextAlign.center,
-                style: YamiTheme.headingStyle,
-              ),
-              const SizedBox(height: YamiTheme.spaceLg),
+                const SizedBox(height: YamiTheme.spaceLg),
+                Text(
+                  'Help & Resources',
+                  textAlign: TextAlign.center,
+                  style: YamiTheme.headingStyle,
+                ),
+                const SizedBox(height: YamiTheme.spaceLg),
 
                 _buildActionCard(
                   context: context,
@@ -256,7 +230,6 @@ class YamiTutorialHelper {
                   subtitle: 'Start step-by-step navigation highlighting.',
                   onTap: () {
                     Navigator.pop(context);
-
                     Future.delayed(
                       const Duration(milliseconds: 250),
                       onRunTutorial,
@@ -270,7 +243,7 @@ class YamiTutorialHelper {
                   icon: Icons.menu_book_outlined,
                   title: 'Full User Guide',
                   subtitle:
-                      'Read details on proximity discovery, sessions, and privacy.',
+                      'Read details on proximity discovery, sessions, and moderation.',
                   onTap: () {
                     Navigator.pop(context);
                     _showFullUserGuide(context);
@@ -399,39 +372,39 @@ class YamiTutorialHelper {
                       ),
                       _buildGuideSection(
                         '2. How Nearby Discovery Works',
-                        'YamiLink uses your device\'s local network capabilities (such as Wi-Fi or local network discovery) to find other devices running YamiLink nearby.\n\n• When you open the app, it periodically broadcasts a beacon to detect other active devices.\n• You do not need to pair devices, register phone numbers, or exchange email addresses.\n• Any active user within your physical range will automatically appear on your screen as a nearby peer.',
+                        'YamiLink uses your device\'s local network capabilities (such as Wi-Fi or local network discovery) to find other devices running YamiLink nearby.\n\n• When you open the app, it periodically broadcasts a beacon to detect other active devices.\n• Any active user within your physical range will automatically appear on your screen as a nearby peer.',
                       ),
                       _buildGuideSection(
                         '3. What a Session Means',
                         'Communication in YamiLink is session-based. A session is a temporary period of activity that begins when you open the app and join the local network, and ends when you close the app or disconnect.\n\n• No permanent accounts: There are no global profiles. Your alias and avatar are generated when you start a session.\n• Local-only data: Your chat history is stored entirely in your device\'s temporary memory (RAM) and local database cache. It is never uploaded to a cloud database.\n• Ephemeral history: When a session is terminated or when you manually clear your session, the message history is deleted.',
                       ),
                       _buildGuideSection(
-                        '4. How to Start a Conversation',
-                        'Once you discover a peer in the nearby list:\n\n1. Tap their profile alias on the SPACE radar screen to view their details.\n2. Select "Message" to initiate a direct chat.\n3. This will create a conversation entry in your dedicated CHATS tab.\n4. You can navigate back to the conversations tab at any time to resume active chats.',
+                        '4. Peer Moderation',
+                        'If a peer is sending unwanted broadcast spam or violating local room guidelines, you can mute or block them directly:\n\n• Muting hides the messages from that user temporarily for a selected duration.\n• Blocking completely hides the peer from your radar list and filters out all their broadcast messages during the current session.',
                       ),
                       _buildGuideSection(
                         '5. How Room Chat Works',
-                        'The room chat is a local broadcast channel:\n\n• Every message sent to the room is visible to all active users on the same local network.\n• Think of it as a public bulletin board for the physical room you are in.\n• Like direct messages, room chats are ephemeral and only persist during the active session.',
+                        'The room chat is a local broadcast channel:\n\n• Every message sent to the room is visible to all active users on the same local network.\n• Think of it as a public bulletin board for the physical room you are in.\n• Room chats are ephemeral and only persist during the active session.',
                       ),
                       _buildGuideSection(
                         '6. Privacy and Temporary Identity',
-                        'YamiLink is designed with a privacy-first architecture:\n\n• Anonymity: You choose a temporary display name (alias) when joining a session.\n• Zero Tracking: There are no cookies, trackers, or centralized logging of your conversations.\n• Direct Moderation: If a user is sending unwanted messages or spam, you can mute or block them locally. Blocked peers are immediately hidden from your radar and cannot message you again during the session.',
+                        'YamiLink is designed with a privacy-first architecture:\n\n• Anonymity: You choose a temporary display name (alias) when joining a session.\n• Zero Tracking: There are no cookies, trackers, or centralized logging of your conversations.',
                       ),
                       _buildGuideSection(
                         '7. Disappearances & Offline Status',
-                        'Because the app relies on physical proximity:\n\n• If a peer walks out of range, closes their app, or turns off their device, they will show as offline in your chats.\n• If a peer is inactive for more than 10 seconds, their signal status will fade. If they remain inactive for over 15 seconds, they will be swept from the active list.\n• If they return, they will reconnect under their current session identity, and you can resume the conversation.',
+                        'Because the app relies on physical proximity:\n\n• If a peer walks out of range, closes their app, or turns off their device, they will show as offline.\n• If a peer is inactive for more than 10 seconds, their signal status will fade. If they remain inactive for over 15 seconds, they will be swept from the active list.',
                       ),
                       _buildGuideSection(
                         '8. Tips for Best Use',
-                        '• Keep Wi-Fi Active: Ensure your device\'s Wi-Fi or local network permission is enabled, even if you are not connected to the internet.\n• Stay in Range: For stable connections, remain within the same local network subnet or wireless coverage area.\n• Manage Distractions: Use the manual block or temporary mute controls (10 seconds, 30 seconds, or 1 minute) if a peer is sending repetitive messages.',
+                        '• Keep Wi-Fi Active: Ensure your device\'s Wi-Fi or local network permission is enabled, even if you are not connected to the internet.\n• Stay in Range: For stable connections, remain within the same local network subnet or wireless coverage area.\n• Manage Distractions: Use the manual block or temporary mute controls if a peer is sending repetitive messages.',
                       ),
                       _buildGuideSection(
                         '9. Current Limitations',
-                        '• Physical Proximity Required: You cannot message users who are in a different city or on a different network.\n• No Offline Delivery: Messages cannot be delivered while a peer is disconnected. If a peer is offline, outgoing messages will wait in queue and attempt to send once they return, but will fail if the session is closed before delivery.\n• No Cloud Backups: Deleted sessions or messages cannot be recovered.',
+                        '• Physical Proximity Required: You cannot message users who are in a different city or on a different network.\n• No Cloud Backups: Deleted sessions or messages cannot be recovered.',
                       ),
                       _buildGuideSection(
                         '10. Frequently Asked Questions (FAQ)',
-                        'Q: Do I need cellular data or internet to use YamiLink?\nA: No. YamiLink operates entirely over local networks. You do not need active cellular data or an internet connection.\n\nQ: Are my messages encrypted?\nA: Messages are transmitted directly over the local network protocol. While they bypass the public internet, they are readable by other nodes on the same local network. Avoid sharing sensitive personal information like passwords or financial data.\n\nQ: Where is my chat history saved?\nA: Your chat history is saved locally on your device. Once you close the app or reset your session, the data is permanently erased.',
+                        'Q: Do I need cellular data or internet to use YamiLink?\nA: No. YamiLink operates entirely over local networks. You do not need active cellular data or an internet connection.\n\nQ: Are my messages private?\nA: No. YamiLink now operates exclusively as a public session room where all messages are broadcast in clear text to all active local users. Avoid sharing personal or confidential credentials.\n\nQ: Where is my chat history saved?\nA: Your chat history is saved locally on your device. Once you close the app or reset your session, the data is permanently erased.',
                       ),
                     ],
                   ),

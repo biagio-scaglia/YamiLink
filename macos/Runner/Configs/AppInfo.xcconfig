@@ -11,4 +11,4 @@ PRODUCT_NAME = YamiLink
 PRODUCT_BUNDLE_IDENTIFIER = com.example.yamilink
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Biagio Scaglia. Licensed under Apache 2.0.

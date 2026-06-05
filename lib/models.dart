@@ -2,8 +2,6 @@ import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 import 'package:convert/convert.dart';
 
-enum TrustLevel { unverified, paired, blocked }
-
 enum ProximityHint { immediate, near, far, unknown }
 
 enum MessageStatus { sending, delivered, failed }
@@ -46,7 +44,6 @@ class Peer {
   final String id;
   final String alias;
   final int avatarSeed;
-  TrustLevel trustLevel;
   ProximityHint proximityHint;
   final bool relayCapability;
   DateTime lastSeen;
@@ -55,7 +52,6 @@ class Peer {
     required this.id,
     required this.alias,
     required this.avatarSeed,
-    this.trustLevel = TrustLevel.unverified,
     this.proximityHint = ProximityHint.unknown,
     this.relayCapability = false,
     required this.lastSeen,
@@ -64,7 +60,6 @@ class Peer {
   Peer copyWith({
     String? alias,
     int? avatarSeed,
-    TrustLevel? trustLevel,
     ProximityHint? proximityHint,
     bool? relayCapability,
     DateTime? lastSeen,
@@ -73,7 +68,6 @@ class Peer {
       id: id,
       alias: alias ?? this.alias,
       avatarSeed: avatarSeed ?? this.avatarSeed,
-      trustLevel: trustLevel ?? this.trustLevel,
       proximityHint: proximityHint ?? this.proximityHint,
       relayCapability: relayCapability ?? this.relayCapability,
       lastSeen: lastSeen ?? this.lastSeen,
@@ -81,11 +75,10 @@ class Peer {
   }
 }
 
-class Message {
+class LocalRoomMessage {
   final String id;
   final String senderId;
   final String senderAlias;
-  final String? recipientId;
   final String content;
   final DateTime timestamp;
   MessageStatus status;
@@ -94,11 +87,10 @@ class Message {
   bool isBlurred;
   String? moderationExplanation;
 
-  Message({
+  LocalRoomMessage({
     required this.id,
     required this.senderId,
     required this.senderAlias,
-    this.recipientId,
     required this.content,
     required this.timestamp,
     this.status = MessageStatus.sending,
@@ -115,28 +107,4 @@ class Session {
   final DateTime joinedAt;
 
   Session({required this.id, required this.name, required this.joinedAt});
-}
-
-class Conversation {
-  final String id;
-  final String peerId;
-  final String peerAlias;
-  final int peerAvatarSeed;
-  String lastMessage;
-  DateTime lastTimestamp;
-  int unreadCount;
-  final List<Message> messages;
-  bool isPeerOnline;
-
-  Conversation({
-    required this.id,
-    required this.peerId,
-    required this.peerAlias,
-    required this.peerAvatarSeed,
-    required this.lastMessage,
-    required this.lastTimestamp,
-    this.unreadCount = 0,
-    required this.messages,
-    this.isPeerOnline = true,
-  });
 }
