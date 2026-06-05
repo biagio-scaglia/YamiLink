@@ -1,5 +1,9 @@
 # YamiLink
 
+<p align="center">
+  <img src="assets/logo.png" alt="YamiLink Logo" width="220px"/>
+</p>
+
 YamiLink è un'applicazione di comunicazione locale e decentralizzata progettata per operare offline, sfruttando la prossimità fisica delle stazioni peer. Pensata per scenari temporanei o a infrastruttura assente (come conferenze, campus universitari, LAN party, sistemi di transito o contesti di emergenza), YamiLink implementa un livello sociale effimero che si attiva esclusivamente quando i partecipanti sono fisicamente vicini, per poi svanire senza lasciare tracce persistenti una volta che le stazioni si allontanano.
 
 ---
